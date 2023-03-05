@@ -1,7 +1,14 @@
-import os
-import sys
-
-sys.path.insert(1, os.path.join(sys.path[0], "../../.."))
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 
 class Dataframe:
@@ -11,7 +18,25 @@ class Dataframe:
         self._schema = schema
         self._tuples = data
 
-    def apply_selection(self, predicate):
+    def __new__(cls, *args, **kwargs):
+        return super().__new__(cls)
+
+    @classmethod
+    def from_arrow(cls, table) -> tuple:
+        schema = table.schema
+
+        fields = {
+            str(field.name): {"type": field.type.to_pandas_dtype(), "nullable": field.nullable}
+            for field in schema
+        }
+        columns = [table.column(i) for i in schema.names]
+
+        # Create a list of tuples from the columns
+        tuples = (tuple(col[i].as_py() for col in columns) for i in range(table.num_rows))
+
+        return cls(fields, tuples)
+
+    def query(self, predicate):
         """
         Apply a Selection operation to a Relation, this filters the data in the
         Relation to just the entries which match the predicate.
@@ -28,7 +53,7 @@ class Dataframe:
         new_header = {k: {"type": v.get("type")} for k, v in self._schema.items()}
         return Dataframe(filter(predicate, self._tuples), new_header)
 
-    def apply_projection(self, attributes):
+    def select(self, attributes):
         if not isinstance(attributes, (list, tuple)):
             attributes = [attributes]
         attribute_indices = []
@@ -46,10 +71,6 @@ class Dataframe:
     def materialize(self):
         if not isinstance(self._tuples, list):
             self._tuples = list(self._tuples)
-
-    def __len__(self):
-        self.materialize()
-        return len(self._tuples)
 
     def distinct(self):
         hash_list = {}
@@ -81,37 +102,6 @@ class Dataframe:
             return result[0]
         return result
 
-    def __new__(cls, *args, **kwargs):
-        return super().__new__(cls)
-
-    def row(self, i):
-        self.materialize()
-        return self._tuples[i]
-
-    @property
-    def keys(self):
-        return tuple(self._schema.keys())
-
-    @classmethod
-    def from_arrow(cls, table) -> tuple:
-        schema = table.schema
-
-        fields = {
-            str(field.name): {"type": field.type.to_pandas_dtype(), "nullable": field.nullable}
-            for field in schema
-        }
-        columns = [table.column(i) for i in schema.names]
-
-        # Create a list of tuples from the columns
-        tuples = (tuple(col[i].as_py() for col in columns) for i in range(table.num_rows))
-
-        return cls(fields, tuples)
-
-    def __str__(self):
-        from display import ascii_table
-
-        return ascii_table(self)
-
     def slice(self, offset: int = 0, length: int = None):
         self.materialize()
         if offset < 0:
@@ -120,11 +110,19 @@ class Dataframe:
             return Dataframe(self._schema, self._tuples[offset:])
         return Dataframe(self._schema, self._tuples[offset : offset + length])
 
+    def row(self, i):
+        self.materialize()
+        return self._tuples[i]
 
-if __name__ == "__main__":  # pragma: no cover
-    import opteryx
+    @property
+    def column_names(self):
+        return tuple(self._schema.keys())
 
-    planets = opteryx.query("SELECT * FROM $planets").arrow()
-    df = Dataframe.from_arrow(planets)
-    df.materialize()
-    print(df)
+    def __len__(self) -> int:
+        self.materialize()
+        return len(self._tuples)
+
+    def __str__(self) -> str:
+        from .display import ascii_table
+
+        return ascii_table(self)
