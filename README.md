@@ -13,7 +13,7 @@ Orso is a shared Dataframe library for Opteryx and HadroDB.
 
 ## License
 
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/mabel-dev/hadrodb/blob/main/LICENSE)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/mabel-dev/orso/blob/main/LICENSE)
 
 ## Status
 
