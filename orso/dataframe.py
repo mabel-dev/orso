@@ -9,14 +9,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import typing 
 
+from orso.row import Row
 
 class Dataframe:
-    __slots__ = ("_schema", "_tuples")
+    __slots__ = ("_schema", "_rows")
 
-    def __init__(self, schema, data):
+    def __init__(self, schema, rows):
         self._schema = schema
-        self._tuples = data
+        self._rows = rows
 
     def __new__(cls, *args, **kwargs):
         return super().__new__(cls)
@@ -24,7 +26,6 @@ class Dataframe:
     @classmethod
     def from_arrow(cls, table) -> tuple:
         schema = table.schema
-
         fields = {
             str(field.name): {"type": field.type.to_pandas_dtype(), "nullable": field.nullable}
             for field in schema
@@ -32,9 +33,10 @@ class Dataframe:
         columns = [table.column(i) for i in schema.names]
 
         # Create a list of tuples from the columns
-        tuples = (tuple(col[i].as_py() for col in columns) for i in range(table.num_rows))
+        row_factory = Row.create_class(fields)
+        rows = (row_factory(col[i].as_py() for col in columns) for i in range(table.num_rows))
 
-        return cls(fields, tuples)
+        return cls(fields, rows)
 
     def query(self, predicate):
         """
@@ -51,7 +53,7 @@ class Dataframe:
         """
         # selection invalidates what we thought we knew about counts etc
         new_header = {k: {"type": v.get("type")} for k, v in self._schema.items()}
-        return Dataframe(filter(predicate, self._tuples), new_header)
+        return Dataframe(filter(predicate, self._rows), new_header)
 
     def select(self, attributes):
         if not isinstance(attributes, (list, tuple)):
@@ -63,14 +65,14 @@ class Dataframe:
                 attribute_indices.append(index)
 
         def _inner_projection():
-            for tup in self._tuples:
+            for tup in self._rows:
                 yield tuple([tup[indice] for indice in attribute_indices])
 
         return Dataframe(_inner_projection(), new_header)
 
     def materialize(self):
-        if not isinstance(self._tuples, list):
-            self._tuples = list(self._tuples)
+        if not isinstance(self._rows, list):
+            self._rows = list(self._rows)
 
     def distinct(self):
         hash_list = {}
@@ -82,19 +84,23 @@ class Dataframe:
                     yield item
                     hash_list[hashed_item] = True
 
-        return Dataframe(do_dedupe(self._tuples), self._schema)
+        return Dataframe(do_dedupe(self._rows), self._schema)
 
     def collect(self, columns):
+
         single = False
-        if not isinstance(columns, (list, set, tuple)):
+        if not isinstance(columns, typing.Iterable):
             single = True
             columns = [columns]
+
+        # get the index of a column name
+        columns = [c if isinstance(c, int) else self.column_names.index(c) for c in columns]
 
         # Initialize empty lists for each column
         result = tuple([] for _ in columns)
 
         # Extract the specified columns into the result lists
-        for row in self._tuples:
+        for row in self._rows:
             for j, column in enumerate(columns):
                 result[j].append(row[column])
 
@@ -105,24 +111,35 @@ class Dataframe:
     def slice(self, offset: int = 0, length: int = None):
         self.materialize()
         if offset < 0:
-            offset = len(self._tuples) + offset
+            offset = len(self._rows) + offset
         if length is None:
-            return Dataframe(self._schema, self._tuples[offset:])
-        return Dataframe(self._schema, self._tuples[offset : offset + length])
+            return Dataframe(self._schema, self._rows[offset:])
+        return Dataframe(self._schema, self._rows[offset : offset + length])
 
     def row(self, i):
         self.materialize()
-        return self._tuples[i]
+        return self._rows[i]
 
     @property
     def column_names(self):
         return tuple(self._schema.keys())
+    
+    @property
+    def num_columns(self):
+        return len(self._schema.keys())
+    
+    @property
+    def num_rows(self):
+        self.materialize()
+        return len(self._rows)
+
+    def __iter__(self):
+        return iter(self._rows)
 
     def __len__(self) -> int:
         self.materialize()
-        return len(self._tuples)
+        return len(self._rows)
 
     def __str__(self) -> str:
         from .display import ascii_table
-
         return ascii_table(self)

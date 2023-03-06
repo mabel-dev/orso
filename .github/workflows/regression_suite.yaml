@@ -1,0 +1,44 @@
+name: Regression Suite
+
+on:
+  push
+
+jobs:
+  regression_matrix:
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+  
+      - name: Set up Python ${{ matrix.python-version }} x64
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: x64
+        
+      - name: Install Requirements
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade numpy cython pytest coverage
+          python -m pip install --upgrade -r $GITHUB_WORKSPACE/requirements.txt
+          python -m pip install --upgrade -r $GITHUB_WORKSPACE/tests/requirements.txt
+          python setup.py build_ext --inplace
+
+      - name: Run Regression Tests
+        run: python -m coverage run -m pytest 
+
+      - name: Check Coverage
+        run: python -m coverage report --include=orso/** --fail-under=95 -m
+
+      - name: "Upload coverage to Codecov"
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.10'
+        uses: codecov/codecov-action@v1
+        with:
+          fail_ci_if_error: false

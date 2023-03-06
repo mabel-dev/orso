@@ -197,10 +197,10 @@ def ascii_table(
 
     def _inner():
         # Calculate width
-        col_width = list(map(len, t.keys))
+        col_width = list(map(len, t.column_names))
         data_width = [
             max(map(len, map(str, [p for p in h if p is not None])))
-            for h in (t.collect(i) for i in range(len(t.keys)))
+            for h in (t.collect(i) for i in range(t.num_columns))
         ]
         col_width = [min(max(cw, dw), max_column_width) for cw, dw in zip(col_width, data_width)]
 
@@ -211,7 +211,7 @@ def ascii_table(
             "│"
             + (" " * index_width)
             + "│ "
-            + " │ ".join(v.ljust(w)[:w] for v, w in zip(t.keys, col_width))
+            + " │ ".join(v.ljust(w)[:w] for v, w in zip(t.column_names, col_width))
             + " │"
         )
         yield ("╞" + ("═" * index_width) + "╪═" + "═╪═".join("═" * cw for cw in col_width) + "═╡")
