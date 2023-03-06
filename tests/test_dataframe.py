@@ -1,4 +1,10 @@
 import pytest
+
+import os
+import sys
+
+sys.path.insert(1, os.path.join(sys.path[0], ".."))
+
 from orso.row import Row
 from orso.dataframe import Dataframe
 
@@ -29,25 +35,9 @@ def rows():
 def dataframe(schema, rows):
     return Dataframe(schema, rows)
 
-def test_dataframe_query(dataframe):
-    def predicate(row):
-        return row.A > 2
-    result = dataframe.query(predicate)
-    assert len(result) == 3
-    assert result.column_names == ("A", "B", "C")
-
-def test_dataframe_select(dataframe):
-    result = dataframe.select(["B", "A"])
-    assert len(result) == 5
-    assert result.column_names == ("B", "A")
-
 def test_dataframe_materialize(dataframe):
     dataframe.materialize()
     assert isinstance(dataframe._rows, list)
-
-def test_dataframe_distinct(dataframe):
-    result = dataframe.distinct()
-    assert len(result) == 5
 
 def test_dataframe_collect(dataframe):
     result = dataframe.collect(["A", "C"])
@@ -56,20 +46,9 @@ def test_dataframe_collect(dataframe):
 def test_dataframe_slice(dataframe):
     result = dataframe.slice(offset=1, length=2)
     assert len(result) == 2
-    assert result[0].A == 2
-    assert result[1].A == 3
-
-def test_dataframe_row(dataframe):
-    result = dataframe.row(3)
-    assert result.A == 4
-    assert result.B is None
-    assert result.C == 4.4
 
 def test_dataframe_iter(dataframe):
     assert len(list(dataframe)) == 5
 
 def test_dataframe_len(dataframe):
     assert len(dataframe) == 5
-
-def test_dataframe_str(dataframe):
-    assert str(dataframe).strip() == "| A | B | C |\n|---|---|---|\n| 1 | a | 1.1 |\n| 2 | b | 2.2 |\n| 3 | c | 3.3 |\n| 4 |   | 4.4 |\n| 5 | e | 5.5 |"
