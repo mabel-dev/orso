@@ -10,6 +10,9 @@ Orso is a shared Dataframe library for Opteryx and HadroDB.
 
 </div>
 
+Orso is not intended to compete with [Polars](https://www.pola.rs/) or [Pandas](https://pandas.pydata.org/) (or your favorite Dataframe technology), instead it is developed as a common layer for HadroDB and Opteryx.
+
+If you aren't using HadroDB or Opteryx, we recommend Polars.
 
 ## License
 
