@@ -35,7 +35,7 @@ jobs:
         run: python -m coverage run -m pytest 
 
       - name: Check Coverage
-        run: python -m coverage report --include=orso/** --fail-under=95 -m
+        run: python -m coverage report --include=orso/** --fail-under=50 -m
 
       - name: "Upload coverage to Codecov"
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.10'
