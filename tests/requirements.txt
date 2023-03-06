@@ -3,4 +3,5 @@ pytest
 
 # integrations
 pandas
+polars
 pyarrow

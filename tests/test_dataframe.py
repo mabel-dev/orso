@@ -1,34 +1,75 @@
-import pandas
-import pyarrow
-
-from orso.dataframe import Dataframe
+import pytest
 from orso.row import Row
+from orso.dataframe import Dataframe
 
-# test data
-df_data = {
-    "A": [1, 2, 3, 4],
-    "B": ["foo", "bar", "foo", "foo"],
-    "C": pandas.date_range("2022-01-01", periods=4, freq="D"),
-}
-
-
-def test_dataframe_from_arrow():
-    # create an arrow table from a pandas DataFrame
-    pdf = pandas.DataFrame(df_data)
-    table = pyarrow.Table.from_pandas(pdf)
-
-    # create a Dataframe from the arrow table
-    df = Dataframe.from_arrow(table)
-
-    # check that the dataframe has the expected schema and rows
-    assert df._schema == {
-        "A": {"type": "int64"},
-        "B": {"type": "object"},
-        "C": {"type": "datetime64[ns]", "nullable": True},
+@pytest.fixture
+def schema():
+    return {
+        "A": {"type": int, "nullable": False},
+        "B": {"type": str, "nullable": True},
+        "C": {"type": float, "nullable": False},
     }
-    assert list(df._rows) == [
-        Row(1, "foo", pandas.Timestamp("2022-01-01 00:00:00")),
-        Row(2, "bar", pandas.Timestamp("2022-01-02 00:00:00")),
-        Row(3, "foo", pandas.Timestamp("2022-01-03 00:00:00")),
-        Row(4, "foo", pandas.Timestamp("2022-01-04 00:00:00")),
-    ]
+
+@pytest.fixture
+def rows():
+    row_factory = Row.create_class({
+        "A": {"type": int, "nullable": False},
+        "B": {"type": str, "nullable": True},
+        "C": {"type": float, "nullable": False},
+    })
+    return (
+        row_factory([1, "a", 1.1]),
+        row_factory([2, "b", 2.2]),
+        row_factory([3, "c", 3.3]),
+        row_factory([4, None, 4.4]),
+        row_factory([5, "e", 5.5]),
+    )
+
+@pytest.fixture
+def dataframe(schema, rows):
+    return Dataframe(schema, rows)
+
+def test_dataframe_query(dataframe):
+    def predicate(row):
+        return row.A > 2
+    result = dataframe.query(predicate)
+    assert len(result) == 3
+    assert result.column_names == ("A", "B", "C")
+
+def test_dataframe_select(dataframe):
+    result = dataframe.select(["B", "A"])
+    assert len(result) == 5
+    assert result.column_names == ("B", "A")
+
+def test_dataframe_materialize(dataframe):
+    dataframe.materialize()
+    assert isinstance(dataframe._rows, list)
+
+def test_dataframe_distinct(dataframe):
+    result = dataframe.distinct()
+    assert len(result) == 5
+
+def test_dataframe_collect(dataframe):
+    result = dataframe.collect(["A", "C"])
+    assert result == ([1, 2, 3, 4, 5], [1.1, 2.2, 3.3, 4.4, 5.5])
+
+def test_dataframe_slice(dataframe):
+    result = dataframe.slice(offset=1, length=2)
+    assert len(result) == 2
+    assert result[0].A == 2
+    assert result[1].A == 3
+
+def test_dataframe_row(dataframe):
+    result = dataframe.row(3)
+    assert result.A == 4
+    assert result.B is None
+    assert result.C == 4.4
+
+def test_dataframe_iter(dataframe):
+    assert len(list(dataframe)) == 5
+
+def test_dataframe_len(dataframe):
+    assert len(dataframe) == 5
+
+def test_dataframe_str(dataframe):
+    assert str(dataframe).strip() == "| A | B | C |\n|---|---|---|\n| 1 | a | 1.1 |\n| 2 | b | 2.2 |\n| 3 | c | 3.3 |\n| 4 |   | 4.4 |\n| 5 | e | 5.5 |"
