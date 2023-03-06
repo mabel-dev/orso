@@ -9,9 +9,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import typing 
+import typing
 
 from orso.row import Row
+
 
 class Dataframe:
     __slots__ = ("_schema", "_rows")
@@ -87,7 +88,6 @@ class Dataframe:
         return Dataframe(do_dedupe(self._rows), self._schema)
 
     def collect(self, columns):
-
         single = False
         if not isinstance(columns, typing.Iterable):
             single = True
@@ -123,11 +123,11 @@ class Dataframe:
     @property
     def column_names(self):
         return tuple(self._schema.keys())
-    
+
     @property
     def num_columns(self):
         return len(self._schema.keys())
-    
+
     @property
     def num_rows(self):
         self.materialize()
@@ -142,4 +142,5 @@ class Dataframe:
 
     def __str__(self) -> str:
         from .display import ascii_table
+
         return ascii_table(self)
