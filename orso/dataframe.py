@@ -11,10 +11,11 @@
 # limitations under the License.
 import typing
 
+from orso.exceptions import MissingDependencyError
 from orso.row import Row
 
 
-class Dataframe:
+class DataFrame:
     __slots__ = ("_schema", "_rows")
 
     def __init__(self, schema, rows):
@@ -39,6 +40,19 @@ class Dataframe:
 
         return cls(fields, rows)
 
+    def to_arrow(self):
+        try:
+            import pyarrow
+        except ImportError as import_error:
+            raise MissingDependencyError(import_error.name) from import_error
+        # Create a list of PyArrow arrays from the rows
+        arrays = [pyarrow.array(col) for col in zip(*self._rows)]
+
+        # Create a PyArrow table from the arrays and schema
+        table = pyarrow.Table.from_arrays(arrays, self.column_names)
+
+        return table
+
     def query(self, predicate):
         """
         Apply a Selection operation to a Relation, this filters the data in the
@@ -54,7 +68,7 @@ class Dataframe:
         """
         # selection invalidates what we thought we knew about counts etc
         new_header = {k: {"type": v.get("type")} for k, v in self._schema.items()}
-        return Dataframe(filter(predicate, self._rows), new_header)
+        return DataFrame(filter(predicate, self._rows), new_header)
 
     def select(self, attributes):
         if not isinstance(attributes, (list, tuple)):
@@ -69,7 +83,7 @@ class Dataframe:
             for tup in self._rows:
                 yield tuple([tup[indice] for indice in attribute_indices])
 
-        return Dataframe(_inner_projection(), new_header)
+        return DataFrame(_inner_projection(), new_header)
 
     def materialize(self):
         if not isinstance(self._rows, list):
@@ -85,11 +99,11 @@ class Dataframe:
                     yield item
                     hash_list[hashed_item] = True
 
-        return Dataframe(do_dedupe(self._rows), self._schema)
+        return DataFrame(do_dedupe(self._rows), self._schema)
 
     def collect(self, columns):
         single = False
-        if not isinstance(columns, typing.Iterable):
+        if not isinstance(columns, typing.Iterable) or isinstance(columns, str):
             single = True
             columns = [columns]
 
@@ -113,8 +127,8 @@ class Dataframe:
         if offset < 0:
             offset = len(self._rows) + offset
         if length is None:
-            return Dataframe(self._schema, self._rows[offset:])
-        return Dataframe(self._schema, self._rows[offset : offset + length])
+            return DataFrame(self._schema, self._rows[offset:])
+        return DataFrame(self._schema, self._rows[offset : offset + length])
 
     def row(self, i):
         self.materialize()
