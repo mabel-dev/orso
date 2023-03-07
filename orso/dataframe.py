@@ -18,15 +18,36 @@ from orso.row import Row
 class DataFrame:
     __slots__ = ("_schema", "_rows")
 
-    def __init__(self, schema, rows):
-        self._schema = schema
-        self._rows = rows
+    def __init__(self, dictionaries=None, *, rows: typing.List[tuple] = None, schema: dict = None):
+        if dictionaries is not None:
+            if schema is not None or rows is not None:
+                raise ValueError(
+                    "Can't implicitly and explicitly define a DataFrame at the same time"
+                )
+
+            from itertools import chain
+
+            # make the list of dicts iterable
+            dicts = iter(dictionaries)
+
+            # extract the first of the list, and get the types from it
+            first_dict = {}
+            first_dict = next(dicts)
+            self._schema = {name: {"type": type(value)} for name, value in first_dict.items()}
+
+            # create a list of tuples
+            self._rows = (
+                tuple([row.get(k) for k in first_dict.keys()]) for row in chain([first_dict], dicts)
+            )
+        else:
+            self._schema = schema
+            self._rows = rows
 
     def __new__(cls, *args, **kwargs):
         return super().__new__(cls)
 
     @classmethod
-    def from_arrow(cls, table) -> tuple:
+    def from_arrow(cls, table) -> typing.Any:
         schema = table.schema
         fields = {
             str(field.name): {"type": field.type.to_pandas_dtype(), "nullable": field.nullable}
@@ -38,7 +59,7 @@ class DataFrame:
         row_factory = Row.create_class(fields)
         rows = (row_factory(col[i].as_py() for col in columns) for i in range(table.num_rows))
 
-        return cls(fields, rows)
+        return cls(rows=rows, schema=fields)
 
     def to_arrow(self):
         try:
@@ -67,8 +88,8 @@ class DataFrame:
 
         """
         # selection invalidates what we thought we knew about counts etc
-        new_header = {k: {"type": v.get("type")} for k, v in self._schema.items()}
-        return DataFrame(filter(predicate, self._rows), new_header)
+        new_schema = {k: {"type": v.get("type")} for k, v in self._schema.items()}
+        return DataFrame(rows=filter(predicate, self._rows), schema=new_schema)
 
     def select(self, attributes):
         if not isinstance(attributes, (list, tuple)):
@@ -83,7 +104,7 @@ class DataFrame:
             for tup in self._rows:
                 yield tuple([tup[indice] for indice in attribute_indices])
 
-        return DataFrame(_inner_projection(), new_header)
+        return DataFrame(rows=_inner_projection(), schema=new_header)
 
     def materialize(self):
         if not isinstance(self._rows, list):
@@ -99,7 +120,7 @@ class DataFrame:
                     yield item
                     hash_list[hashed_item] = True
 
-        return DataFrame(do_dedupe(self._rows), self._schema)
+        return DataFrame(rows=do_dedupe(self._rows), schema=self._schema)
 
     def collect(self, columns):
         single = False
@@ -127,8 +148,8 @@ class DataFrame:
         if offset < 0:
             offset = len(self._rows) + offset
         if length is None:
-            return DataFrame(self._schema, self._rows[offset:])
-        return DataFrame(self._schema, self._rows[offset : offset + length])
+            return DataFrame(schema=self._schema, rows=self._rows[offset:])
+        return DataFrame(schema=self._schema, rows=self._rows[offset : offset + length])
 
     def row(self, i):
         self.materialize()

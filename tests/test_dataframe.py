@@ -3,10 +3,10 @@ import sys
 
 import pytest
 
+sys.path.insert(1, os.path.join(sys.path[0], ".."))
+
 from orso.dataframe import DataFrame
 from orso.row import Row
-
-sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
 
 @pytest.fixture
@@ -38,7 +38,7 @@ def rows():
 
 @pytest.fixture
 def dataframe(schema, rows):
-    return DataFrame(schema, rows)
+    return DataFrame(rows=rows, schema=schema)
 
 
 def test_dataframe_materialize(dataframe):
@@ -62,3 +62,21 @@ def test_dataframe_iter(dataframe):
 
 def test_dataframe_len(dataframe):
     assert len(dataframe) == 5
+
+
+def test_dataframe_user_init():
+    # fmt:off
+    cities = [
+        {"name": "Tokyo", "population": 13929286, "country": "Japan", "founded": "1457", "area": 2191, "language": "Japanese"},
+        {"name": "London", "population": 8982000, "country": "United Kingdom", "founded": "43 AD", "area": 1572, "language": "English"},
+        {"name": "New York City", "population": 8399000, "country": "United States", "founded": "1624", "area": 468.9, "language": "English"},
+        {"name": "Mumbai", "population": 18500000, "country": "India", "founded": "7th century BC", "area": 603.4, "language": "Hindi, English"},
+        {"name": "Cape Town", "population": 433688, "country": "South Africa", "founded": "1652", "area": 400, "language": "Afrikaans, English"},
+    ]
+    # fmt:on
+    df = DataFrame(cities)
+    assert df.column_names == ("name", "population", "country", "founded", "area", "language")
+    assert df.num_rows == 5
+
+
+test_dataframe_user_init()
