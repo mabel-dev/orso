@@ -225,7 +225,7 @@ class DataFrame:
 
     def fetchall(self):
         self._cursor = 0
-        return self
+        return list(self)
 
     @property
     def column_names(self):
