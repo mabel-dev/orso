@@ -17,7 +17,7 @@ from orso.row import Row
 
 
 class DataFrame:
-    __slots__ = ("_schema", "_rows")
+    __slots__ = ("_schema", "_rows", "_cursor")
 
     def __init__(self, dictionaries=None, *, rows: typing.List[tuple] = None, schema: dict = None):
         if dictionaries is not None:
@@ -43,6 +43,7 @@ class DataFrame:
         else:
             self._schema = schema
             self._rows = rows
+        self._cursor = 0
 
     def __new__(cls, *args, **kwargs):
         return super().__new__(cls)
@@ -212,13 +213,19 @@ class DataFrame:
         return self._rows[i]
 
     def fetchone(self):
-        raise NotImplementedError()
+        row = self.row(self._cursor)
+        self._cursor += 1
+        return row
 
-    def fetchmany(self):
-        raise NotImplementedError()
+    def fetchmany(self, size=None):
+        fetch_size = self.arraysize if size is None else size
+        rows = self.slice(offset=self._cursor, length=fetch_size)
+        self._cursor += fetch_size
+        return rows
 
     def fetchall(self):
-        raise NotImplementedError()
+        self._cursor = 0
+        return self
 
     @property
     def column_names(self):
@@ -230,7 +237,7 @@ class DataFrame:
 
     @property
     def shape(self):
-        raise NotImplementedError()
+        return (self.rowcount, self.columncount)
 
     @property
     def rowcount(self):
