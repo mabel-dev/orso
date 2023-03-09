@@ -9,6 +9,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import itertools
 import typing
 
 from orso.exceptions import MissingDependencyError
@@ -47,21 +48,64 @@ class DataFrame:
         return super().__new__(cls)
 
     @classmethod
-    def from_arrow(cls, table) -> typing.Any:
-        schema = table.schema
+    def from_arrow(cls, tables) -> typing.Any:
+        try:
+            import pyarrow.lib as lib
+        except ImportError as import_error:
+            raise MissingDependencyError(import_error.name) from import_error
+
+        def _type_convert(field_type):
+            if field_type.id == lib.Type_BOOL:
+                return bool
+            if field_type.id == lib.Type_STRING:
+                return str
+            if field_type.id in {
+                lib.Type_INT8,
+                lib.Type_INT16,
+                lib.Type_INT32,
+                lib.Type_INT64,
+                lib.Type_UINT8,
+                lib.Type_UINT16,
+                lib.Type_UINT32,
+                lib.Type_UINT64,
+            }:
+                return int
+            if field_type.id in {lib.Type_HALF_FLOAT, lib.Type_FLOAT, lib.Type_DOUBLE}:
+                return float
+
+        def _peek(iterable):
+            iter1, iter2 = itertools.tee(iterable)
+            try:
+                first = next(iter1)
+            except StopIteration:
+                return None, iter([])
+            else:
+                return first, iter2
+
+        if not isinstance(tables, (typing.Generator, list, tuple)):
+            tables = [tables]
+
+        if isinstance(tables, (list, tuple)):
+            tables = iter(tables)
+
+        first_table, all_tables = _peek(tables)
+        schema = first_table.schema
         fields = {
-            str(field.name): {"type": field.type.to_pandas_dtype(), "nullable": field.nullable}
+            str(field.name): {"type": _type_convert(field.type), "nullable": field.nullable}
             for field in schema
         }
-        columns = [table.column(i) for i in schema.names]
 
         # Create a list of tuples from the columns
         row_factory = Row.create_class(fields)
-        rows = (row_factory(col[i].as_py() for col in columns) for i in range(table.num_rows))
+        rows = (
+            (row_factory(col[i].as_py() for col in [table.column(j) for j in schema.names]))
+            for table in all_tables
+            for i in range(table.num_rows)
+        )
 
         return cls(rows=rows, schema=fields)
 
-    def to_arrow(self):
+    def arrow(self):
         try:
             import pyarrow
         except ImportError as import_error:
@@ -73,6 +117,18 @@ class DataFrame:
         table = pyarrow.Table.from_arrays(arrays, self.column_names)
 
         return table
+
+    def pandas(self):
+        raise NotImplementedError()
+
+    def polars(self):
+        raise NotImplementedError()
+
+    def head(self, size: int):
+        raise NotImplementedError()
+
+    def tail(self, size: int):
+        raise NotImplementedError()
 
     def query(self, predicate):
         """
@@ -155,16 +211,29 @@ class DataFrame:
         self.materialize()
         return self._rows[i]
 
+    def fetchone(self):
+        raise NotImplementedError()
+
+    def fetchmany(self):
+        raise NotImplementedError()
+
+    def fetchall(self):
+        raise NotImplementedError()
+
     @property
     def column_names(self):
         return tuple(self._schema.keys())
 
     @property
-    def num_columns(self):
+    def columncount(self):
         return len(self._schema.keys())
 
     @property
-    def num_rows(self):
+    def shape(self):
+        raise NotImplementedError()
+
+    @property
+    def rowcount(self):
         self.materialize()
         return len(self._rows)
 

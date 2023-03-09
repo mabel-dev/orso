@@ -76,7 +76,7 @@ def test_dataframe_user_init():
     # fmt:on
     df = DataFrame(cities)
     assert df.column_names == ("name", "population", "country", "founded", "area", "language")
-    assert df.num_rows == 5
+    assert df.rowcount == 5
 
 
 test_dataframe_user_init()
