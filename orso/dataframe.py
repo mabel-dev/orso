@@ -9,11 +9,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import itertools
-import typing
 
-from orso.exceptions import MissingDependencyError
-from orso.row import Row
+import typing
 
 
 class DataFrame:
@@ -49,81 +46,25 @@ class DataFrame:
         return super().__new__(cls)
 
     @classmethod
-    def from_arrow(cls, tables) -> typing.Any:
-        try:
-            import pyarrow.lib as lib
-        except ImportError as import_error:
-            raise MissingDependencyError(import_error.name) from import_error
+    def from_arrow(cls, tables):
+        from orso.converters import from_arrow
 
-        def _type_convert(field_type):
-            if field_type.id == lib.Type_BOOL:
-                return bool
-            if field_type.id == lib.Type_STRING:
-                return str
-            if field_type.id in {
-                lib.Type_INT8,
-                lib.Type_INT16,
-                lib.Type_INT32,
-                lib.Type_INT64,
-                lib.Type_UINT8,
-                lib.Type_UINT16,
-                lib.Type_UINT32,
-                lib.Type_UINT64,
-            }:
-                return int
-            if field_type.id in {lib.Type_HALF_FLOAT, lib.Type_FLOAT, lib.Type_DOUBLE}:
-                return float
-
-        def _peek(iterable):
-            iter1, iter2 = itertools.tee(iterable)
-            try:
-                first = next(iter1)
-            except StopIteration:
-                return None, iter([])
-            else:
-                return first, iter2
-
-        if not isinstance(tables, (typing.Generator, list, tuple)):
-            tables = [tables]
-
-        if isinstance(tables, (list, tuple)):
-            tables = iter(tables)
-
-        first_table, all_tables = _peek(tables)
-        schema = first_table.schema
-        fields = {
-            str(field.name): {"type": _type_convert(field.type), "nullable": field.nullable}
-            for field in schema
-        }
-
-        # Create a list of tuples from the columns
-        row_factory = Row.create_class(fields)
-        rows = (
-            (row_factory(col[i].as_py() for col in [table.column(j) for j in schema.names]))
-            for table in all_tables
-            for i in range(table.num_rows)
-        )
-
-        return cls(rows=rows, schema=fields)
+        return from_arrow(tables)
 
     def arrow(self):
-        try:
-            import pyarrow
-        except ImportError as import_error:
-            raise MissingDependencyError(import_error.name) from import_error
-        # Create a list of PyArrow arrays from the rows
-        arrays = [pyarrow.array(col) for col in zip(*self._rows)]
+        from orso.converters import to_arrow
 
-        # Create a PyArrow table from the arrays and schema
-        table = pyarrow.Table.from_arrays(arrays, self.column_names)
-
-        return table
+        return to_arrow(self)
 
     def pandas(self):
-        raise NotImplementedError()
+        from orso.converters import to_pandas
+
+        return to_pandas(self)
 
     def polars(self):
-        raise NotImplementedError()
+        from orso.converters import to_polars
+
+        return to_polars(self)
 
     def head(self, size: int):
         raise NotImplementedError()
@@ -213,19 +154,21 @@ class DataFrame:
         return self._rows[i]
 
     def fetchone(self):
+        if self._cursor >= len(self._rows):
+            return None
         row = self.row(self._cursor)
         self._cursor += 1
         return row
 
     def fetchmany(self, size=None):
         fetch_size = self.arraysize if size is None else size
-        rows = self.slice(offset=self._cursor, length=fetch_size)
+        rows = list(self.slice(offset=self._cursor, length=fetch_size))
         self._cursor += fetch_size
         return rows
 
     def fetchall(self):
         self._cursor = 0
-        return list(self)
+        return list(self._rows)
 
     @property
     def column_names(self):
