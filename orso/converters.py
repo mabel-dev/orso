@@ -31,7 +31,7 @@ def to_arrow(dataset):
     return table
 
 
-def from_arrow(tables):
+def from_arrow(tables, size=None):
     try:
         import pyarrow.lib as lib
     except ImportError as import_error:
@@ -78,13 +78,17 @@ def from_arrow(tables):
         for field in schema
     }
 
-    # Create a list of tuples from the columns
+    # Create a generator of tuples from the columns
     row_factory = Row.create_class(fields)
     rows = (
         (row_factory(col[i].as_py() for col in [table.column(j) for j in schema.names]))
         for table in all_tables
         for i in range(table.num_rows)
     )
+
+    # Limit the number of rows to 'size'
+    if size:
+        rows = itertools.islice(rows, size)
 
     return DataFrame(rows=rows, schema=fields)
 
