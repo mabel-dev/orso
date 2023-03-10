@@ -40,7 +40,7 @@ class DataFrame:
         else:
             self._schema = schema
             self._rows = rows
-        self._cursor = 0
+        self._cursor = iter(self._rows)
 
     def __new__(cls, *args, **kwargs):
         return super().__new__(cls)
@@ -154,20 +154,23 @@ class DataFrame:
         return self._rows[i]
 
     def fetchone(self):
-        if self._cursor >= len(self._rows):
+        try:
+            return next(self._cursor)
+        except StopIteration:
             return None
-        row = self.row(self._cursor)
-        self._cursor += 1
-        return row
 
     def fetchmany(self, size=None):
         fetch_size = self.arraysize if size is None else size
-        rows = list(self.slice(offset=self._cursor, length=fetch_size))
-        self._cursor += fetch_size
-        return rows
+        entries = []
+        for i in range(fetch_size):
+            try:
+                entry = next(self._cursor)
+                entries.append(entry)
+            except StopIteration:
+                break
+        return entries
 
     def fetchall(self):
-        self._cursor = 0
         return list(self._rows)
 
     @property
