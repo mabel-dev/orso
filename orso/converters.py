@@ -13,10 +13,10 @@
 import itertools
 import typing
 
+from orso import _tools
 from orso.dataframe import DataFrame
 from orso.exceptions import MissingDependencyError
 from orso.row import Row
-from orso import _tools
 
 
 def to_arrow(dataset, size=None):
