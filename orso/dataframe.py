@@ -186,7 +186,7 @@ class DataFrame:
         return entries
 
     def fetchall(self):
-        return list(self._rows)
+        return list(self._cursor)
 
     @property
     def column_names(self):
