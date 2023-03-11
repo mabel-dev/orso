@@ -2,7 +2,7 @@
 
 ![Orso](https://raw.githubusercontent.com/mabel-dev/orso/main/orso.png)
 
-**Orso is a shared Dataframe library for Opteryx and HadroDB.**
+**Orso is a shared DataFrame library for Opteryx and HadroDB.**
 
 [![PyPI Latest Release](https://img.shields.io/pypi/v/orso.svg)](https://pypi.org/project/orso/)
 [![Downloads](https://static.pepy.tech/badge/orso)](https://pepy.tech/project/orso)
