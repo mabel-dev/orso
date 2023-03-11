@@ -16,6 +16,7 @@ import typing
 from orso.dataframe import DataFrame
 from orso.exceptions import MissingDependencyError
 from orso.row import Row
+from orso import _tools
 
 
 def to_arrow(dataset, size=None):
@@ -27,7 +28,7 @@ def to_arrow(dataset, size=None):
     arrays = [pyarrow.array(col) for col in zip(*dataset._rows)]
     # Limit the number of rows to 'size'
     if size:
-        arrays = itertools.islice(arrays, size)
+        arrays = _tools.islice(arrays, size)
     # Create a PyArrow table from the arrays and schema
     table = pyarrow.Table.from_arrays(arrays, dataset.column_names)
 
@@ -91,7 +92,7 @@ def from_arrow(tables, size=None):
 
     # Limit the number of rows to 'size'
     if size:
-        rows = itertools.islice(rows, size)
+        rows = _tools.islice(rows, size)
 
     return DataFrame(rows=rows, schema=fields)
 
