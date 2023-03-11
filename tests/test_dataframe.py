@@ -1,7 +1,7 @@
 import os
 import sys
 
-import pytest
+import pyarrow
 
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
@@ -141,6 +141,36 @@ def test_dataframe_hash():
     assert hash(df1) != hash(df3)
 
 
+def test_to_arrow():
+    # Create a DataFrame
+    df = create_dataframe()
+
+    # Convert to PyArrow
+    arrow_table = df.arrow()
+
+    # Check the column names
+    assert arrow_table.column_names == ["A", "B", "C"]
+
+    # Check the number of rows
+    assert arrow_table.num_rows == 5
+
+    # Check the schema
+    assert arrow_table.schema == pyarrow.schema(
+        [("A", pyarrow.int64()), ("B", pyarrow.string()), ("C", pyarrow.float64())]
+    )
+
+    # Check the values
+    expected_values = [(1, "a", 1.1), (2, "b", 2.2), (3, "c", 3.3), (4, None, 4.4), (5, "e", 5.5)]
+    for i, col in enumerate(arrow_table.itercolumns()):
+        assert col.to_pylist() == [v[i] for v in expected_values]
+
+
+def test_to_arrow_with_size():
+    df = create_dataframe()
+    table = df.arrow(size=3)
+    assert table.num_rows == 3, table
+
+
 if __name__ == "__main__":  # prgama: nocover
     test_dataframe_materialize()
     test_dataframe_collect()
@@ -151,5 +181,7 @@ if __name__ == "__main__":  # prgama: nocover
     test_dataframe_filter()
     test_take()
     test_dataframe_hash()
+    test_to_arrow()
+    test_to_arrow_with_size()
 
     print("✅ okay")
