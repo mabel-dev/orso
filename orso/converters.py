@@ -32,7 +32,10 @@ def to_arrow(dataset, size=None):
     ]
 
     # Create a PyArrow table from the arrays and schema
-    table = pyarrow.Table.from_arrays(arrays, dataset.column_names)
+    if arrays:
+        table = pyarrow.Table.from_arrays(arrays, dataset.column_names)
+    else:
+        table = pyarrow.Table.from_arrays([[]] * len(dataset.column_names), dataset.column_names)
 
     return table
 

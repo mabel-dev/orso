@@ -170,6 +170,10 @@ def test_to_arrow_with_size():
     table = df.arrow(size=3)
     assert table.num_rows == 3, table
 
+    df = create_dataframe()
+    table = df.arrow(size=0)
+    assert table.num_rows == 0, table
+
 
 if __name__ == "__main__":  # prgama: nocover
     test_dataframe_materialize()
