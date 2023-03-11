@@ -9,8 +9,7 @@ from orso.dataframe import DataFrame
 from orso.row import Row
 
 
-@pytest.fixture
-def schema():
+def create_schema():
     return {
         "A": {"type": int, "nullable": False},
         "B": {"type": str, "nullable": True},
@@ -18,8 +17,7 @@ def schema():
     }
 
 
-@pytest.fixture
-def rows():
+def create_rows():
     row_factory = Row.create_class(
         {
             "A": {"type": int, "nullable": False},
@@ -36,31 +34,37 @@ def rows():
     )
 
 
-@pytest.fixture
-def dataframe(schema, rows):
+def create_dataframe():
+    schema = create_schema()
+    rows = create_rows()
     return DataFrame(rows=rows, schema=schema)
 
 
-def test_dataframe_materialize(dataframe):
+def test_dataframe_materialize():
+    dataframe = create_dataframe()
     dataframe.materialize()
     assert isinstance(dataframe._rows, list)
 
 
-def test_dataframe_collect(dataframe):
+def test_dataframe_collect():
+    dataframe = create_dataframe()
     result = dataframe.collect(["A", "C"])
     assert result == ([1, 2, 3, 4, 5], [1.1, 2.2, 3.3, 4.4, 5.5])
 
 
-def test_dataframe_slice(dataframe):
+def test_dataframe_slice():
+    dataframe = create_dataframe()
     result = dataframe.slice(offset=1, length=2)
     assert len(result) == 2
 
 
-def test_dataframe_iter(dataframe):
+def test_dataframe_iter():
+    dataframe = create_dataframe()
     assert len(list(dataframe)) == 5
 
 
-def test_dataframe_len(dataframe):
+def test_dataframe_len():
+    dataframe = create_dataframe()
     assert len(dataframe) == 5
 
 
@@ -77,3 +81,24 @@ def test_dataframe_user_init():
     df = DataFrame(cities)
     assert df.column_names == ("name", "population", "country", "founded", "area", "language")
     assert df.rowcount == 5
+
+
+def test_dataframe_filter():
+    # Filter rows where column A is greater than 2
+    dataframe = create_dataframe()
+    mask = [row[0] > 2 for row in dataframe]
+    filtered_dataframe = dataframe.filter(mask)
+    assert len(filtered_dataframe) == 3
+    assert filtered_dataframe.collect(["A"]) == ([3, 4, 5],)
+
+
+if __name__ == "__main__":  # prgama: nocover
+    test_dataframe_materialize()
+    test_dataframe_collect()
+    test_dataframe_slice()
+    test_dataframe_iter()
+    test_dataframe_len()
+    test_dataframe_user_init()
+    test_dataframe_filter()
+
+    print("✅ okay")

@@ -1,7 +1,6 @@
 import os
 import sys
 
-import pandas
 import pyarrow
 
 sys.path.insert(1, os.path.join(sys.path[0], ".."))

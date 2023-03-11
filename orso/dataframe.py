@@ -51,10 +51,10 @@ class DataFrame:
 
         return from_arrow(tables)
 
-    def arrow(self):
+    def arrow(self, size=None):
         from orso.converters import to_arrow
 
-        return to_arrow(self)
+        return to_arrow(self, size=size)
 
     def pandas(self):
         from orso.converters import to_pandas
@@ -148,6 +148,12 @@ class DataFrame:
         if length is None:
             return DataFrame(schema=self._schema, rows=self._rows[offset:])
         return DataFrame(schema=self._schema, rows=self._rows[offset : offset + length])
+
+    def filter(self, mask):
+        """
+        Select rows from the DataFRame. The DataFrame is filtered based on boolean array.
+        """
+        return DataFrame(schema=self._schema, rows=(t for t, m in zip(self._rows, mask) if m))
 
     def row(self, i):
         self.materialize()

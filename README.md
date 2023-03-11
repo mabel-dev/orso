@@ -15,7 +15,9 @@ Orso is not intended to compete with [Polars](https://www.pola.rs/) or [Pandas](
 
 ## License
 
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/mabel-dev/orso/blob/main/LICENSE)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/mabel-dev/orso/blob/master/LICENSE)
+
+Orso is licensed under Apache 2.0 unless explicitly indicated otherwise.
 
 ## Status
 

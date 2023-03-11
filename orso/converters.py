@@ -18,13 +18,16 @@ from orso.exceptions import MissingDependencyError
 from orso.row import Row
 
 
-def to_arrow(dataset):
+def to_arrow(dataset, size=None):
     try:
         import pyarrow
     except ImportError as import_error:
         raise MissingDependencyError(import_error.name) from import_error
     # Create a list of PyArrow arrays from the rows
     arrays = [pyarrow.array(col) for col in zip(*dataset._rows)]
+    # Limit the number of rows to 'size'
+    if size:
+        arrays = itertools.islice(arrays, size)
     # Create a PyArrow table from the arrays and schema
     table = pyarrow.Table.from_arrays(arrays, dataset.column_names)
 
