@@ -28,7 +28,7 @@ def to_arrow(dataset, size=None):
     arrays = [pyarrow.array(col) for col in zip(*dataset._rows)]
     # Limit the number of rows to 'size'
     if size:
-        arrays = _tools.islice(arrays, size)
+        arrays = size[:size]
     # Create a PyArrow table from the arrays and schema
     table = pyarrow.Table.from_arrays(arrays, dataset.column_names)
 

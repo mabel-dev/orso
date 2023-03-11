@@ -155,6 +155,15 @@ class DataFrame:
         """
         return DataFrame(schema=self._schema, rows=(t for t, m in zip(self._rows, mask) if m))
 
+    def take(self, indexes):
+        """
+        Select rows from the DataFrame. Rows are selected based on their appearance in the indexes
+        list
+        """
+        return DataFrame(
+            schema=self._schema, rows=(m for i, m in enumerate(self._rows) if i in indexes)
+        )
+
     def row(self, i):
         self.materialize()
         return self._rows[i]
@@ -195,6 +204,15 @@ class DataFrame:
     def rowcount(self):
         self.materialize()
         return len(self._rows)
+
+    def __hash__(self):
+        from cityhash import CityHash32
+
+        _hash = 0
+        for row in self._rows:
+            row_hash = CityHash32(str(row).encode())
+            _hash = _hash ^ row_hash
+        return _hash
 
     def __iter__(self):
         return iter(self._rows)

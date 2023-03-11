@@ -92,6 +92,55 @@ def test_dataframe_filter():
     assert filtered_dataframe.collect(["A"]) == ([3, 4, 5],)
 
 
+def test_take():
+    # Create a DataFrame object with some data
+    df = create_dataframe()
+
+    # Test taking a subset of rows
+    indexes = [0, 2, 4]
+    expected_rows = [
+        (1, "a", 1.1),
+        (3, "c", 3.3),
+        (5, "e", 5.5),
+    ]
+    result = df.take(indexes)
+    assert result._schema == create_schema()
+    result_rows = result.fetchall()
+    assert result_rows == expected_rows, result_rows
+
+    # Test taking all rows in the DataFrame
+    indexes = [0, 1, 2, 3, 4]
+
+    expected_rows = [
+        (1, "a", 1.1),
+        (2, "b", 2.2),
+        (3, "c", 3.3),
+        (4, None, 4.4),
+        (5, "e", 5.5),
+    ]
+    result = df.take(indexes)
+    assert result._schema == create_schema()
+    result_rows = result.fetchall()
+    assert result_rows == expected_rows, result_rows
+
+    # Test taking an empty subset of rows
+    indexes = []
+    expected_rows = []
+    result = df.take(indexes)
+    assert result._schema == create_schema()
+    assert result.fetchall() == expected_rows
+
+
+def test_dataframe_hash():
+    df1 = create_dataframe()
+    df2 = create_dataframe()
+    df3 = DataFrame(schema=create_schema(), rows=create_rows()[:4])
+
+    assert hash(df1) == hash(df1)
+    assert hash(df1) == hash(df2)
+    assert hash(df1) != hash(df3)
+
+
 if __name__ == "__main__":  # prgama: nocover
     test_dataframe_materialize()
     test_dataframe_collect()
@@ -100,5 +149,7 @@ if __name__ == "__main__":  # prgama: nocover
     test_dataframe_len()
     test_dataframe_user_init()
     test_dataframe_filter()
+    test_take()
+    test_dataframe_hash()
 
     print("✅ okay")
