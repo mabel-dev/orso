@@ -78,6 +78,9 @@ def from_arrow(tables, size=None):
         tables = iter(tables)
 
     first_table, all_tables = _peek(tables)
+    if first_table is None:
+        return DataFrame(rows=[], schema={})
+
     schema = first_table.schema
     fields = {
         str(field.name): {"type": _type_convert(field.type), "nullable": field.nullable}
