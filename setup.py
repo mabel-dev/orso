@@ -1,3 +1,5 @@
+from Cython.Build import cythonize
+from setuptools import Extension
 from setuptools import find_packages
 from setuptools import setup
 
@@ -19,6 +21,15 @@ except:
     with open(f"{LIBRARY}.egg-info/requires.txt", "r") as f:
         required = f.read().splitlines()
 
+extensions = [
+    Extension(
+        "cityhash",
+        [
+            "orso/cityhash/city.cc",
+            "orso/cityhash/cityhash.cpp",
+        ],
+    ),
+]
 
 setup_config = {
     "name": LIBRARY,
@@ -31,6 +42,7 @@ setup_config = {
     "author_email": "justin.joyce@joocer.com",
     "packages": find_packages(include=[LIBRARY, f"{LIBRARY}.*"]),
     "url": "https://github.com/mabel-dev/orso/",
+    "ext_modules": cythonize(extensions),
     "install_requires": required,
 }
 

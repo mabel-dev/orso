@@ -8,6 +8,10 @@ sys.path.insert(1, os.path.join(sys.path[0], ".."))
 from orso.dataframe import DataFrame
 from orso.row import Row
 
+import orso
+
+print(dir(orso))
+
 
 def create_schema():
     return {

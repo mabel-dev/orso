@@ -206,7 +206,7 @@ class DataFrame:
         return len(self._rows)
 
     def __hash__(self):
-        from cityhash import CityHash32
+        from orso.cityhash import CityHash32
 
         _hash = 0
         for row in self._rows:
