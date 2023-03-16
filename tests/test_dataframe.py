@@ -80,11 +80,66 @@ def test_dataframe_user_init():
         {"name": "New York City", "population": 8399000, "country": "United States", "founded": "1624", "area": 468.9, "language": "English"},
         {"name": "Mumbai", "population": 18500000, "country": "India", "founded": "7th century BC", "area": 603.4, "language": "Hindi, English"},
         {"name": "Cape Town", "population": 433688, "country": "South Africa", "founded": "1652", "area": 400, "language": "Afrikaans, English"},
+        {"name": "Paris", "population": 2148000, "country": "France", "founded": "3rd century BC", "area": 105.4, "language": "French"},
+        {"name": "Beijing", "population": 21710000, "country": "China", "founded": "1045", "area": 16410.54, "language": "Mandarin"},
+        {"name": "Rio de Janeiro", "population": 6747815, "country": "Brazil", "founded": "1 March 1565", "area": 1264, "language": "Portuguese"}
     ]
     # fmt:on
     df = DataFrame(cities)
     assert df.column_names == ("name", "population", "country", "founded", "area", "language")
-    assert df.rowcount == 5
+    assert df.rowcount == 8
+
+
+def test_dataframe_head():
+    # fmt:off
+    cities = [
+        {"name": "Tokyo", "population": 13929286, "country": "Japan", "founded": "1457", "area": 2191, "language": "Japanese"},
+        {"name": "London", "population": 8982000, "country": "United Kingdom", "founded": "43 AD", "area": 1572, "language": "English"},
+        {"name": "New York City", "population": 8399000, "country": "United States", "founded": "1624", "area": 468.9, "language": "English"},
+        {"name": "Mumbai", "population": 18500000, "country": "India", "founded": "7th century BC", "area": 603.4, "language": "Hindi, English"},
+        {"name": "Cape Town", "population": 433688, "country": "South Africa", "founded": "1652", "area": 400, "language": "Afrikaans, English"},
+        {"name": "Paris", "population": 2148000, "country": "France", "founded": "3rd century BC", "area": 105.4, "language": "French"},
+        {"name": "Beijing", "population": 21710000, "country": "China", "founded": "1045", "area": 16410.54, "language": "Mandarin"},
+        {"name": "Rio de Janeiro", "population": 6747815, "country": "Brazil", "founded": "1 March 1565", "area": 1264, "language": "Portuguese"}
+    ]
+    # fmt:on
+    df = DataFrame(cities)
+
+    # Test default head() behavior (first 5 rows)
+    head = df.head()
+    assert head.rowcount == 5
+    assert head.row(0)[0] == "Tokyo"
+
+    # Test head() with size parameter
+    head = df.head(3)
+    assert head.rowcount == 3
+    assert head.row(0)[0] == "Tokyo"
+
+
+def test_dataframe_tail():
+    # fmt:off
+    cities = [
+        {"name": "Tokyo", "population": 13929286, "country": "Japan", "founded": "1457", "area": 2191, "language": "Japanese"},
+        {"name": "London", "population": 8982000, "country": "United Kingdom", "founded": "43 AD", "area": 1572, "language": "English"},
+        {"name": "New York City", "population": 8399000, "country": "United States", "founded": "1624", "area": 468.9, "language": "English"},
+        {"name": "Mumbai", "population": 18500000, "country": "India", "founded": "7th century BC", "area": 603.4, "language": "Hindi, English"},
+        {"name": "Cape Town", "population": 433688, "country": "South Africa", "founded": "1652", "area": 400, "language": "Afrikaans, English"},
+        {"name": "Paris", "population": 2148000, "country": "France", "founded": "3rd century BC", "area": 105.4, "language": "French"},
+        {"name": "Beijing", "population": 21710000, "country": "China", "founded": "1045", "area": 16410.54, "language": "Mandarin"},
+        {"name": "Rio de Janeiro", "population": 6747815, "country": "Brazil", "founded": "1 March 1565", "area": 1264, "language": "Portuguese"}
+    ]
+    # fmt:on
+    df = DataFrame(cities)
+
+    # Test default tail() behavior (last 5 rows)
+    head = df.tail()
+    assert head.rowcount == 5
+    assert head.row(0)[0] == "Mumbai"
+
+    # Test tail() with size parameter
+    head = df.tail(3)
+    assert head.rowcount == 3
+    assert head.row(0)[0] == "Paris"
 
 
 def test_dataframe_filter():
@@ -191,5 +246,7 @@ if __name__ == "__main__":  # prgama: nocover
     test_dataframe_hash()
     test_to_arrow()
     test_to_arrow_with_size()
+    test_dataframe_head()
+    test_dataframe_tail()
 
     print("✅ okay")

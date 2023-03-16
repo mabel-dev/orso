@@ -73,11 +73,11 @@ class DataFrame:
 
         return to_polars(self)
 
-    def head(self, size: int):
-        raise NotImplementedError()
+    def head(self, size: int = 5):
+        return self.slice(0, size)
 
-    def tail(self, size: int):
-        raise NotImplementedError()
+    def tail(self, size: int = 5):
+        return self.slice(offset=0 - size, length=size)
 
     def query(self, predicate):
         """
