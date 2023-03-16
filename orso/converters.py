@@ -102,7 +102,7 @@ def from_arrow(tables, size=None):
     if size:
         rows = _tools.islice(rows, size)
 
-    return DataFrame(rows=rows, schema=fields)
+    return rows, fields
 
 
 def to_pandas(dataset):
