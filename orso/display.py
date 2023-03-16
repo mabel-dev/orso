@@ -200,7 +200,7 @@ def ascii_table(
         col_width = list(map(len, t.column_names))
         data_width = [
             max(map(len, map(str, [p for p in h if p is not None])))
-            for h in (t.collect(i) for i in range(t.num_columns))
+            for h in (t.collect(i) for i in range(t.columncount))
         ]
         col_width = [min(max(cw, dw), max_column_width) for cw, dw in zip(col_width, data_width)]
 
