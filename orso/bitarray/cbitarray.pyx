@@ -21,7 +21,7 @@ cdef extern from "Python.h":
     void PyMem_Free(void *ptr) nogil
     void memset(void *s, int c, int n)
 
-cdef class bitarray:
+cdef class BitArray:
     cdef public int size
     cdef int *bits
 

@@ -968,16 +968,16 @@ static const char *__pyx_f[] = {
 };
 
 /*--- Type declarations ---*/
-struct __pyx_obj_9cbitarray_bitarray;
+struct __pyx_obj_9cbitarray_BitArray;
 
 /* "cbitarray.pyx":24
  *     void memset(void *s, int c, int n)
  * 
- * cdef class bitarray:             # <<<<<<<<<<<<<<
+ * cdef class BitArray:             # <<<<<<<<<<<<<<
  *     cdef public int size
  *     cdef int *bits
  */
-struct __pyx_obj_9cbitarray_bitarray {
+struct __pyx_obj_9cbitarray_BitArray {
   PyObject_HEAD
   int size;
   int *bits;
@@ -1317,7 +1317,7 @@ static int __Pyx_InitStrings(__Pyx_StringTabEntry *t);
 
 
 /* Module declarations from 'cbitarray' */
-static PyTypeObject *__pyx_ptype_9cbitarray_bitarray = 0;
+static PyTypeObject *__pyx_ptype_9cbitarray_BitArray = 0;
 #define __Pyx_MODULE_NAME "cbitarray"
 extern int __pyx_module_is_main_cbitarray;
 int __pyx_module_is_main_cbitarray = 0;
@@ -1334,7 +1334,7 @@ static const char __pyx_k_index[] = "index";
 static const char __pyx_k_range[] = "range";
 static const char __pyx_k_value[] = "value";
 static const char __pyx_k_reduce[] = "__reduce__";
-static const char __pyx_k_bitarray[] = "bitarray";
+static const char __pyx_k_BitArray[] = "BitArray";
 static const char __pyx_k_getstate[] = "__getstate__";
 static const char __pyx_k_setstate[] = "__setstate__";
 static const char __pyx_k_TypeError[] = "TypeError";
@@ -1347,10 +1347,10 @@ static const char __pyx_k_cline_in_traceback[] = "cline_in_traceback";
 static const char __pyx_k_This_module_was_written_with_as[] = "\nThis module was written with assistance from ChatGPT\n";
 static const char __pyx_k_bitarray_size_must_be_a_positive[] = "bitarray size must be a positive integer";
 static const char __pyx_k_self_bits_cannot_be_converted_to[] = "self.bits cannot be converted to a Python object for pickling";
+static PyObject *__pyx_n_s_BitArray;
 static PyObject *__pyx_n_s_IndexError;
 static PyObject *__pyx_kp_u_Index_out_of_range;
 static PyObject *__pyx_n_s_TypeError;
-static PyObject *__pyx_n_s_bitarray;
 static PyObject *__pyx_kp_u_bitarray_size_must_be_a_positive;
 static PyObject *__pyx_n_s_cline_in_traceback;
 static PyObject *__pyx_n_s_getstate;
@@ -1367,16 +1367,16 @@ static PyObject *__pyx_n_s_setstate_cython;
 static PyObject *__pyx_n_s_size;
 static PyObject *__pyx_n_s_test;
 static PyObject *__pyx_n_s_value;
-static int __pyx_pf_9cbitarray_8bitarray___init__(struct __pyx_obj_9cbitarray_bitarray *__pyx_v_self, int __pyx_v_size); /* proto */
-static void __pyx_pf_9cbitarray_8bitarray_2__dealloc__(struct __pyx_obj_9cbitarray_bitarray *__pyx_v_self); /* proto */
-static PyObject *__pyx_pf_9cbitarray_8bitarray_4get(struct __pyx_obj_9cbitarray_bitarray *__pyx_v_self, int __pyx_v_index); /* proto */
-static PyObject *__pyx_pf_9cbitarray_8bitarray_6set(struct __pyx_obj_9cbitarray_bitarray *__pyx_v_self, int __pyx_v_index, int __pyx_v_value); /* proto */
-static PyObject *__pyx_pf_9cbitarray_8bitarray_5array___get__(struct __pyx_obj_9cbitarray_bitarray *__pyx_v_self); /* proto */
-static PyObject *__pyx_pf_9cbitarray_8bitarray_4size___get__(struct __pyx_obj_9cbitarray_bitarray *__pyx_v_self); /* proto */
-static int __pyx_pf_9cbitarray_8bitarray_4size_2__set__(struct __pyx_obj_9cbitarray_bitarray *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
-static PyObject *__pyx_pf_9cbitarray_8bitarray_8__reduce_cython__(CYTHON_UNUSED struct __pyx_obj_9cbitarray_bitarray *__pyx_v_self); /* proto */
-static PyObject *__pyx_pf_9cbitarray_8bitarray_10__setstate_cython__(CYTHON_UNUSED struct __pyx_obj_9cbitarray_bitarray *__pyx_v_self, CYTHON_UNUSED PyObject *__pyx_v___pyx_state); /* proto */
-static PyObject *__pyx_tp_new_9cbitarray_bitarray(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
+static int __pyx_pf_9cbitarray_8BitArray___init__(struct __pyx_obj_9cbitarray_BitArray *__pyx_v_self, int __pyx_v_size); /* proto */
+static void __pyx_pf_9cbitarray_8BitArray_2__dealloc__(struct __pyx_obj_9cbitarray_BitArray *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_9cbitarray_8BitArray_4get(struct __pyx_obj_9cbitarray_BitArray *__pyx_v_self, int __pyx_v_index); /* proto */
+static PyObject *__pyx_pf_9cbitarray_8BitArray_6set(struct __pyx_obj_9cbitarray_BitArray *__pyx_v_self, int __pyx_v_index, int __pyx_v_value); /* proto */
+static PyObject *__pyx_pf_9cbitarray_8BitArray_5array___get__(struct __pyx_obj_9cbitarray_BitArray *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_9cbitarray_8BitArray_4size___get__(struct __pyx_obj_9cbitarray_BitArray *__pyx_v_self); /* proto */
+static int __pyx_pf_9cbitarray_8BitArray_4size_2__set__(struct __pyx_obj_9cbitarray_BitArray *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
+static PyObject *__pyx_pf_9cbitarray_8BitArray_8__reduce_cython__(CYTHON_UNUSED struct __pyx_obj_9cbitarray_BitArray *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_9cbitarray_8BitArray_10__setstate_cython__(CYTHON_UNUSED struct __pyx_obj_9cbitarray_BitArray *__pyx_v_self, CYTHON_UNUSED PyObject *__pyx_v___pyx_state); /* proto */
+static PyObject *__pyx_tp_new_9cbitarray_BitArray(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
 static PyObject *__pyx_int_1;
 static PyObject *__pyx_int_8;
 static PyObject *__pyx_tuple_;
@@ -1393,8 +1393,8 @@ static PyObject *__pyx_tuple__3;
  */
 
 /* Python wrapper */
-static int __pyx_pw_9cbitarray_8bitarray_1__init__(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static int __pyx_pw_9cbitarray_8bitarray_1__init__(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+static int __pyx_pw_9cbitarray_8BitArray_1__init__(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static int __pyx_pw_9cbitarray_8BitArray_1__init__(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   int __pyx_v_size;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
@@ -1434,18 +1434,18 @@ static int __pyx_pw_9cbitarray_8bitarray_1__init__(PyObject *__pyx_v_self, PyObj
   __pyx_L5_argtuple_error:;
   __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 28, __pyx_L3_error)
   __pyx_L3_error:;
-  __Pyx_AddTraceback("cbitarray.bitarray.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("cbitarray.BitArray.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_9cbitarray_8bitarray___init__(((struct __pyx_obj_9cbitarray_bitarray *)__pyx_v_self), __pyx_v_size);
+  __pyx_r = __pyx_pf_9cbitarray_8BitArray___init__(((struct __pyx_obj_9cbitarray_BitArray *)__pyx_v_self), __pyx_v_size);
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static int __pyx_pf_9cbitarray_8bitarray___init__(struct __pyx_obj_9cbitarray_bitarray *__pyx_v_self, int __pyx_v_size) {
+static int __pyx_pf_9cbitarray_8BitArray___init__(struct __pyx_obj_9cbitarray_BitArray *__pyx_v_self, int __pyx_v_size) {
   int __pyx_v_n_bytes;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
@@ -1518,7 +1518,7 @@ static int __pyx_pf_9cbitarray_8bitarray___init__(struct __pyx_obj_9cbitarray_bi
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_AddTraceback("cbitarray.bitarray.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("cbitarray.BitArray.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();
@@ -1534,17 +1534,17 @@ static int __pyx_pf_9cbitarray_8bitarray___init__(struct __pyx_obj_9cbitarray_bi
  */
 
 /* Python wrapper */
-static void __pyx_pw_9cbitarray_8bitarray_3__dealloc__(PyObject *__pyx_v_self); /*proto*/
-static void __pyx_pw_9cbitarray_8bitarray_3__dealloc__(PyObject *__pyx_v_self) {
+static void __pyx_pw_9cbitarray_8BitArray_3__dealloc__(PyObject *__pyx_v_self); /*proto*/
+static void __pyx_pw_9cbitarray_8BitArray_3__dealloc__(PyObject *__pyx_v_self) {
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__dealloc__ (wrapper)", 0);
-  __pyx_pf_9cbitarray_8bitarray_2__dealloc__(((struct __pyx_obj_9cbitarray_bitarray *)__pyx_v_self));
+  __pyx_pf_9cbitarray_8BitArray_2__dealloc__(((struct __pyx_obj_9cbitarray_BitArray *)__pyx_v_self));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
 }
 
-static void __pyx_pf_9cbitarray_8bitarray_2__dealloc__(struct __pyx_obj_9cbitarray_bitarray *__pyx_v_self) {
+static void __pyx_pf_9cbitarray_8BitArray_2__dealloc__(struct __pyx_obj_9cbitarray_BitArray *__pyx_v_self) {
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__dealloc__", 0);
 
@@ -1578,8 +1578,8 @@ static void __pyx_pf_9cbitarray_8bitarray_2__dealloc__(struct __pyx_obj_9cbitarr
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_9cbitarray_8bitarray_5get(PyObject *__pyx_v_self, PyObject *__pyx_arg_index); /*proto*/
-static PyObject *__pyx_pw_9cbitarray_8bitarray_5get(PyObject *__pyx_v_self, PyObject *__pyx_arg_index) {
+static PyObject *__pyx_pw_9cbitarray_8BitArray_5get(PyObject *__pyx_v_self, PyObject *__pyx_arg_index); /*proto*/
+static PyObject *__pyx_pw_9cbitarray_8BitArray_5get(PyObject *__pyx_v_self, PyObject *__pyx_arg_index) {
   int __pyx_v_index;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
@@ -1592,18 +1592,18 @@ static PyObject *__pyx_pw_9cbitarray_8bitarray_5get(PyObject *__pyx_v_self, PyOb
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
-  __Pyx_AddTraceback("cbitarray.bitarray.get", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("cbitarray.BitArray.get", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_9cbitarray_8bitarray_4get(((struct __pyx_obj_9cbitarray_bitarray *)__pyx_v_self), ((int)__pyx_v_index));
+  __pyx_r = __pyx_pf_9cbitarray_8BitArray_4get(((struct __pyx_obj_9cbitarray_BitArray *)__pyx_v_self), ((int)__pyx_v_index));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_9cbitarray_8bitarray_4get(struct __pyx_obj_9cbitarray_bitarray *__pyx_v_self, int __pyx_v_index) {
+static PyObject *__pyx_pf_9cbitarray_8BitArray_4get(struct __pyx_obj_9cbitarray_BitArray *__pyx_v_self, int __pyx_v_index) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   int __pyx_t_1;
@@ -1679,7 +1679,7 @@ static PyObject *__pyx_pf_9cbitarray_8bitarray_4get(struct __pyx_obj_9cbitarray_
   /* function exit code */
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_3);
-  __Pyx_AddTraceback("cbitarray.bitarray.get", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("cbitarray.BitArray.get", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __Pyx_XGIVEREF(__pyx_r);
@@ -1696,8 +1696,8 @@ static PyObject *__pyx_pf_9cbitarray_8bitarray_4get(struct __pyx_obj_9cbitarray_
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_9cbitarray_8bitarray_7set(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyObject *__pyx_pw_9cbitarray_8bitarray_7set(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+static PyObject *__pyx_pw_9cbitarray_8BitArray_7set(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyObject *__pyx_pw_9cbitarray_8BitArray_7set(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   int __pyx_v_index;
   int __pyx_v_value;
   int __pyx_lineno = 0;
@@ -1748,18 +1748,18 @@ static PyObject *__pyx_pw_9cbitarray_8bitarray_7set(PyObject *__pyx_v_self, PyOb
   __pyx_L5_argtuple_error:;
   __Pyx_RaiseArgtupleInvalid("set", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 43, __pyx_L3_error)
   __pyx_L3_error:;
-  __Pyx_AddTraceback("cbitarray.bitarray.set", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("cbitarray.BitArray.set", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_9cbitarray_8bitarray_6set(((struct __pyx_obj_9cbitarray_bitarray *)__pyx_v_self), __pyx_v_index, __pyx_v_value);
+  __pyx_r = __pyx_pf_9cbitarray_8BitArray_6set(((struct __pyx_obj_9cbitarray_BitArray *)__pyx_v_self), __pyx_v_index, __pyx_v_value);
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_9cbitarray_8bitarray_6set(struct __pyx_obj_9cbitarray_bitarray *__pyx_v_self, int __pyx_v_index, int __pyx_v_value) {
+static PyObject *__pyx_pf_9cbitarray_8BitArray_6set(struct __pyx_obj_9cbitarray_BitArray *__pyx_v_self, int __pyx_v_index, int __pyx_v_value) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   int __pyx_t_1;
@@ -1867,7 +1867,7 @@ static PyObject *__pyx_pf_9cbitarray_8bitarray_6set(struct __pyx_obj_9cbitarray_
   goto __pyx_L0;
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_3);
-  __Pyx_AddTraceback("cbitarray.bitarray.set", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("cbitarray.BitArray.set", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __Pyx_XGIVEREF(__pyx_r);
@@ -1884,19 +1884,19 @@ static PyObject *__pyx_pf_9cbitarray_8bitarray_6set(struct __pyx_obj_9cbitarray_
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_9cbitarray_8bitarray_5array_1__get__(PyObject *__pyx_v_self); /*proto*/
-static PyObject *__pyx_pw_9cbitarray_8bitarray_5array_1__get__(PyObject *__pyx_v_self) {
+static PyObject *__pyx_pw_9cbitarray_8BitArray_5array_1__get__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_9cbitarray_8BitArray_5array_1__get__(PyObject *__pyx_v_self) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__get__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_9cbitarray_8bitarray_5array___get__(((struct __pyx_obj_9cbitarray_bitarray *)__pyx_v_self));
+  __pyx_r = __pyx_pf_9cbitarray_8BitArray_5array___get__(((struct __pyx_obj_9cbitarray_BitArray *)__pyx_v_self));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_9cbitarray_8bitarray_5array___get__(struct __pyx_obj_9cbitarray_bitarray *__pyx_v_self) {
+static PyObject *__pyx_pf_9cbitarray_8BitArray_5array___get__(struct __pyx_obj_9cbitarray_BitArray *__pyx_v_self) {
   PyObject *__pyx_v_ba = NULL;
   PyObject *__pyx_v_i = NULL;
   PyObject *__pyx_v_j = NULL;
@@ -2096,7 +2096,7 @@ static PyObject *__pyx_pf_9cbitarray_8bitarray_5array___get__(struct __pyx_obj_9
   __Pyx_XDECREF(__pyx_t_6);
   __Pyx_XDECREF(__pyx_t_7);
   __Pyx_XDECREF(__pyx_t_10);
-  __Pyx_AddTraceback("cbitarray.bitarray.array.__get__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("cbitarray.BitArray.array.__get__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __Pyx_XDECREF(__pyx_v_ba);
@@ -2109,26 +2109,26 @@ static PyObject *__pyx_pf_9cbitarray_8bitarray_5array___get__(struct __pyx_obj_9
 
 /* "cbitarray.pyx":25
  * 
- * cdef class bitarray:
+ * cdef class BitArray:
  *     cdef public int size             # <<<<<<<<<<<<<<
  *     cdef int *bits
  * 
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_9cbitarray_8bitarray_4size_1__get__(PyObject *__pyx_v_self); /*proto*/
-static PyObject *__pyx_pw_9cbitarray_8bitarray_4size_1__get__(PyObject *__pyx_v_self) {
+static PyObject *__pyx_pw_9cbitarray_8BitArray_4size_1__get__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_9cbitarray_8BitArray_4size_1__get__(PyObject *__pyx_v_self) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__get__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_9cbitarray_8bitarray_4size___get__(((struct __pyx_obj_9cbitarray_bitarray *)__pyx_v_self));
+  __pyx_r = __pyx_pf_9cbitarray_8BitArray_4size___get__(((struct __pyx_obj_9cbitarray_BitArray *)__pyx_v_self));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_9cbitarray_8bitarray_4size___get__(struct __pyx_obj_9cbitarray_bitarray *__pyx_v_self) {
+static PyObject *__pyx_pf_9cbitarray_8BitArray_4size___get__(struct __pyx_obj_9cbitarray_BitArray *__pyx_v_self) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -2146,7 +2146,7 @@ static PyObject *__pyx_pf_9cbitarray_8bitarray_4size___get__(struct __pyx_obj_9c
   /* function exit code */
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_AddTraceback("cbitarray.bitarray.size.__get__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("cbitarray.BitArray.size.__get__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __Pyx_XGIVEREF(__pyx_r);
@@ -2155,19 +2155,19 @@ static PyObject *__pyx_pf_9cbitarray_8bitarray_4size___get__(struct __pyx_obj_9c
 }
 
 /* Python wrapper */
-static int __pyx_pw_9cbitarray_8bitarray_4size_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
-static int __pyx_pw_9cbitarray_8bitarray_4size_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
+static int __pyx_pw_9cbitarray_8BitArray_4size_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
+static int __pyx_pw_9cbitarray_8BitArray_4size_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__set__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_9cbitarray_8bitarray_4size_2__set__(((struct __pyx_obj_9cbitarray_bitarray *)__pyx_v_self), ((PyObject *)__pyx_v_value));
+  __pyx_r = __pyx_pf_9cbitarray_8BitArray_4size_2__set__(((struct __pyx_obj_9cbitarray_BitArray *)__pyx_v_self), ((PyObject *)__pyx_v_value));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static int __pyx_pf_9cbitarray_8bitarray_4size_2__set__(struct __pyx_obj_9cbitarray_bitarray *__pyx_v_self, PyObject *__pyx_v_value) {
+static int __pyx_pf_9cbitarray_8BitArray_4size_2__set__(struct __pyx_obj_9cbitarray_BitArray *__pyx_v_self, PyObject *__pyx_v_value) {
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   int __pyx_t_1;
@@ -2182,7 +2182,7 @@ static int __pyx_pf_9cbitarray_8bitarray_4size_2__set__(struct __pyx_obj_9cbitar
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_AddTraceback("cbitarray.bitarray.size.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("cbitarray.BitArray.size.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();
@@ -2196,19 +2196,19 @@ static int __pyx_pf_9cbitarray_8bitarray_4size_2__set__(struct __pyx_obj_9cbitar
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_9cbitarray_8bitarray_9__reduce_cython__(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
-static PyObject *__pyx_pw_9cbitarray_8bitarray_9__reduce_cython__(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused) {
+static PyObject *__pyx_pw_9cbitarray_8BitArray_9__reduce_cython__(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
+static PyObject *__pyx_pw_9cbitarray_8BitArray_9__reduce_cython__(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__reduce_cython__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_9cbitarray_8bitarray_8__reduce_cython__(((struct __pyx_obj_9cbitarray_bitarray *)__pyx_v_self));
+  __pyx_r = __pyx_pf_9cbitarray_8BitArray_8__reduce_cython__(((struct __pyx_obj_9cbitarray_BitArray *)__pyx_v_self));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_9cbitarray_8bitarray_8__reduce_cython__(CYTHON_UNUSED struct __pyx_obj_9cbitarray_bitarray *__pyx_v_self) {
+static PyObject *__pyx_pf_9cbitarray_8BitArray_8__reduce_cython__(CYTHON_UNUSED struct __pyx_obj_9cbitarray_BitArray *__pyx_v_self) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -2238,7 +2238,7 @@ static PyObject *__pyx_pf_9cbitarray_8bitarray_8__reduce_cython__(CYTHON_UNUSED 
   /* function exit code */
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_AddTraceback("cbitarray.bitarray.__reduce_cython__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("cbitarray.BitArray.__reduce_cython__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __Pyx_XGIVEREF(__pyx_r);
   __Pyx_RefNannyFinishContext();
@@ -2253,19 +2253,19 @@ static PyObject *__pyx_pf_9cbitarray_8bitarray_8__reduce_cython__(CYTHON_UNUSED 
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_9cbitarray_8bitarray_11__setstate_cython__(PyObject *__pyx_v_self, PyObject *__pyx_v___pyx_state); /*proto*/
-static PyObject *__pyx_pw_9cbitarray_8bitarray_11__setstate_cython__(PyObject *__pyx_v_self, PyObject *__pyx_v___pyx_state) {
+static PyObject *__pyx_pw_9cbitarray_8BitArray_11__setstate_cython__(PyObject *__pyx_v_self, PyObject *__pyx_v___pyx_state); /*proto*/
+static PyObject *__pyx_pw_9cbitarray_8BitArray_11__setstate_cython__(PyObject *__pyx_v_self, PyObject *__pyx_v___pyx_state) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__setstate_cython__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_9cbitarray_8bitarray_10__setstate_cython__(((struct __pyx_obj_9cbitarray_bitarray *)__pyx_v_self), ((PyObject *)__pyx_v___pyx_state));
+  __pyx_r = __pyx_pf_9cbitarray_8BitArray_10__setstate_cython__(((struct __pyx_obj_9cbitarray_BitArray *)__pyx_v_self), ((PyObject *)__pyx_v___pyx_state));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_9cbitarray_8bitarray_10__setstate_cython__(CYTHON_UNUSED struct __pyx_obj_9cbitarray_bitarray *__pyx_v_self, CYTHON_UNUSED PyObject *__pyx_v___pyx_state) {
+static PyObject *__pyx_pf_9cbitarray_8BitArray_10__setstate_cython__(CYTHON_UNUSED struct __pyx_obj_9cbitarray_BitArray *__pyx_v_self, CYTHON_UNUSED PyObject *__pyx_v___pyx_state) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -2295,14 +2295,14 @@ static PyObject *__pyx_pf_9cbitarray_8bitarray_10__setstate_cython__(CYTHON_UNUS
   /* function exit code */
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_AddTraceback("cbitarray.bitarray.__setstate_cython__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("cbitarray.BitArray.__setstate_cython__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __Pyx_XGIVEREF(__pyx_r);
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_tp_new_9cbitarray_bitarray(PyTypeObject *t, CYTHON_UNUSED PyObject *a, CYTHON_UNUSED PyObject *k) {
+static PyObject *__pyx_tp_new_9cbitarray_BitArray(PyTypeObject *t, CYTHON_UNUSED PyObject *a, CYTHON_UNUSED PyObject *k) {
   PyObject *o;
   if (likely((t->tp_flags & Py_TPFLAGS_IS_ABSTRACT) == 0)) {
     o = (*t->tp_alloc)(t, 0);
@@ -2313,7 +2313,7 @@ static PyObject *__pyx_tp_new_9cbitarray_bitarray(PyTypeObject *t, CYTHON_UNUSED
   return o;
 }
 
-static void __pyx_tp_dealloc_9cbitarray_bitarray(PyObject *o) {
+static void __pyx_tp_dealloc_9cbitarray_BitArray(PyObject *o) {
   #if CYTHON_USE_TP_FINALIZE
   if (unlikely(PyType_HasFeature(Py_TYPE(o), Py_TPFLAGS_HAVE_FINALIZE) && Py_TYPE(o)->tp_finalize) && (!PyType_IS_GC(Py_TYPE(o)) || !_PyGC_FINALIZED(o))) {
     if (PyObject_CallFinalizerFromDealloc(o)) return;
@@ -2323,24 +2323,24 @@ static void __pyx_tp_dealloc_9cbitarray_bitarray(PyObject *o) {
     PyObject *etype, *eval, *etb;
     PyErr_Fetch(&etype, &eval, &etb);
     __Pyx_SET_REFCNT(o, Py_REFCNT(o) + 1);
-    __pyx_pw_9cbitarray_8bitarray_3__dealloc__(o);
+    __pyx_pw_9cbitarray_8BitArray_3__dealloc__(o);
     __Pyx_SET_REFCNT(o, Py_REFCNT(o) - 1);
     PyErr_Restore(etype, eval, etb);
   }
   (*Py_TYPE(o)->tp_free)(o);
 }
 
-static PyObject *__pyx_getprop_9cbitarray_8bitarray_array(PyObject *o, CYTHON_UNUSED void *x) {
-  return __pyx_pw_9cbitarray_8bitarray_5array_1__get__(o);
+static PyObject *__pyx_getprop_9cbitarray_8BitArray_array(PyObject *o, CYTHON_UNUSED void *x) {
+  return __pyx_pw_9cbitarray_8BitArray_5array_1__get__(o);
 }
 
-static PyObject *__pyx_getprop_9cbitarray_8bitarray_size(PyObject *o, CYTHON_UNUSED void *x) {
-  return __pyx_pw_9cbitarray_8bitarray_4size_1__get__(o);
+static PyObject *__pyx_getprop_9cbitarray_8BitArray_size(PyObject *o, CYTHON_UNUSED void *x) {
+  return __pyx_pw_9cbitarray_8BitArray_4size_1__get__(o);
 }
 
-static int __pyx_setprop_9cbitarray_8bitarray_size(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
+static int __pyx_setprop_9cbitarray_8BitArray_size(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
   if (v) {
-    return __pyx_pw_9cbitarray_8bitarray_4size_3__set__(o, v);
+    return __pyx_pw_9cbitarray_8BitArray_4size_3__set__(o, v);
   }
   else {
     PyErr_SetString(PyExc_NotImplementedError, "__del__");
@@ -2348,26 +2348,26 @@ static int __pyx_setprop_9cbitarray_8bitarray_size(PyObject *o, PyObject *v, CYT
   }
 }
 
-static PyMethodDef __pyx_methods_9cbitarray_bitarray[] = {
-  {"get", (PyCFunction)__pyx_pw_9cbitarray_8bitarray_5get, METH_O, 0},
-  {"set", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_9cbitarray_8bitarray_7set, METH_VARARGS|METH_KEYWORDS, 0},
-  {"__reduce_cython__", (PyCFunction)__pyx_pw_9cbitarray_8bitarray_9__reduce_cython__, METH_NOARGS, 0},
-  {"__setstate_cython__", (PyCFunction)__pyx_pw_9cbitarray_8bitarray_11__setstate_cython__, METH_O, 0},
+static PyMethodDef __pyx_methods_9cbitarray_BitArray[] = {
+  {"get", (PyCFunction)__pyx_pw_9cbitarray_8BitArray_5get, METH_O, 0},
+  {"set", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_9cbitarray_8BitArray_7set, METH_VARARGS|METH_KEYWORDS, 0},
+  {"__reduce_cython__", (PyCFunction)__pyx_pw_9cbitarray_8BitArray_9__reduce_cython__, METH_NOARGS, 0},
+  {"__setstate_cython__", (PyCFunction)__pyx_pw_9cbitarray_8BitArray_11__setstate_cython__, METH_O, 0},
   {0, 0, 0, 0}
 };
 
-static struct PyGetSetDef __pyx_getsets_9cbitarray_bitarray[] = {
-  {(char *)"array", __pyx_getprop_9cbitarray_8bitarray_array, 0, (char *)0, 0},
-  {(char *)"size", __pyx_getprop_9cbitarray_8bitarray_size, __pyx_setprop_9cbitarray_8bitarray_size, (char *)0, 0},
+static struct PyGetSetDef __pyx_getsets_9cbitarray_BitArray[] = {
+  {(char *)"array", __pyx_getprop_9cbitarray_8BitArray_array, 0, (char *)0, 0},
+  {(char *)"size", __pyx_getprop_9cbitarray_8BitArray_size, __pyx_setprop_9cbitarray_8BitArray_size, (char *)0, 0},
   {0, 0, 0, 0, 0}
 };
 
-static PyTypeObject __pyx_type_9cbitarray_bitarray = {
+static PyTypeObject __pyx_type_9cbitarray_BitArray = {
   PyVarObject_HEAD_INIT(0, 0)
-  "cbitarray.bitarray", /*tp_name*/
-  sizeof(struct __pyx_obj_9cbitarray_bitarray), /*tp_basicsize*/
+  "cbitarray.BitArray", /*tp_name*/
+  sizeof(struct __pyx_obj_9cbitarray_BitArray), /*tp_basicsize*/
   0, /*tp_itemsize*/
-  __pyx_tp_dealloc_9cbitarray_bitarray, /*tp_dealloc*/
+  __pyx_tp_dealloc_9cbitarray_BitArray, /*tp_dealloc*/
   #if PY_VERSION_HEX < 0x030800b4
   0, /*tp_print*/
   #endif
@@ -2400,17 +2400,17 @@ static PyTypeObject __pyx_type_9cbitarray_bitarray = {
   0, /*tp_weaklistoffset*/
   0, /*tp_iter*/
   0, /*tp_iternext*/
-  __pyx_methods_9cbitarray_bitarray, /*tp_methods*/
+  __pyx_methods_9cbitarray_BitArray, /*tp_methods*/
   0, /*tp_members*/
-  __pyx_getsets_9cbitarray_bitarray, /*tp_getset*/
+  __pyx_getsets_9cbitarray_BitArray, /*tp_getset*/
   0, /*tp_base*/
   0, /*tp_dict*/
   0, /*tp_descr_get*/
   0, /*tp_descr_set*/
   0, /*tp_dictoffset*/
-  __pyx_pw_9cbitarray_8bitarray_1__init__, /*tp_init*/
+  __pyx_pw_9cbitarray_8BitArray_1__init__, /*tp_init*/
   0, /*tp_alloc*/
-  __pyx_tp_new_9cbitarray_bitarray, /*tp_new*/
+  __pyx_tp_new_9cbitarray_BitArray, /*tp_new*/
   0, /*tp_free*/
   0, /*tp_is_gc*/
   0, /*tp_bases*/
@@ -2480,10 +2480,10 @@ static struct PyModuleDef __pyx_moduledef = {
 #endif
 
 static __Pyx_StringTabEntry __pyx_string_tab[] = {
+  {&__pyx_n_s_BitArray, __pyx_k_BitArray, sizeof(__pyx_k_BitArray), 0, 0, 1, 1},
   {&__pyx_n_s_IndexError, __pyx_k_IndexError, sizeof(__pyx_k_IndexError), 0, 0, 1, 1},
   {&__pyx_kp_u_Index_out_of_range, __pyx_k_Index_out_of_range, sizeof(__pyx_k_Index_out_of_range), 0, 1, 0, 0},
   {&__pyx_n_s_TypeError, __pyx_k_TypeError, sizeof(__pyx_k_TypeError), 0, 0, 1, 1},
-  {&__pyx_n_s_bitarray, __pyx_k_bitarray, sizeof(__pyx_k_bitarray), 0, 0, 1, 1},
   {&__pyx_kp_u_bitarray_size_must_be_a_positive, __pyx_k_bitarray_size_must_be_a_positive, sizeof(__pyx_k_bitarray_size_must_be_a_positive), 0, 1, 0, 0},
   {&__pyx_n_s_cline_in_traceback, __pyx_k_cline_in_traceback, sizeof(__pyx_k_cline_in_traceback), 0, 0, 1, 1},
   {&__pyx_n_s_getstate, __pyx_k_getstate, sizeof(__pyx_k_getstate), 0, 0, 1, 1},
@@ -2599,16 +2599,16 @@ static int __Pyx_modinit_type_init_code(void) {
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__Pyx_modinit_type_init_code", 0);
   /*--- Type init code ---*/
-  if (PyType_Ready(&__pyx_type_9cbitarray_bitarray) < 0) __PYX_ERR(0, 24, __pyx_L1_error)
+  if (PyType_Ready(&__pyx_type_9cbitarray_BitArray) < 0) __PYX_ERR(0, 24, __pyx_L1_error)
   #if PY_VERSION_HEX < 0x030800B1
-  __pyx_type_9cbitarray_bitarray.tp_print = 0;
+  __pyx_type_9cbitarray_BitArray.tp_print = 0;
   #endif
-  if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!__pyx_type_9cbitarray_bitarray.tp_dictoffset && __pyx_type_9cbitarray_bitarray.tp_getattro == PyObject_GenericGetAttr)) {
-    __pyx_type_9cbitarray_bitarray.tp_getattro = __Pyx_PyObject_GenericGetAttr;
+  if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!__pyx_type_9cbitarray_BitArray.tp_dictoffset && __pyx_type_9cbitarray_BitArray.tp_getattro == PyObject_GenericGetAttr)) {
+    __pyx_type_9cbitarray_BitArray.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttr(__pyx_m, __pyx_n_s_bitarray, (PyObject *)&__pyx_type_9cbitarray_bitarray) < 0) __PYX_ERR(0, 24, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&__pyx_type_9cbitarray_bitarray) < 0) __PYX_ERR(0, 24, __pyx_L1_error)
-  __pyx_ptype_9cbitarray_bitarray = &__pyx_type_9cbitarray_bitarray;
+  if (PyObject_SetAttr(__pyx_m, __pyx_n_s_BitArray, (PyObject *)&__pyx_type_9cbitarray_BitArray) < 0) __PYX_ERR(0, 24, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&__pyx_type_9cbitarray_BitArray) < 0) __PYX_ERR(0, 24, __pyx_L1_error)
+  __pyx_ptype_9cbitarray_BitArray = &__pyx_type_9cbitarray_BitArray;
   __Pyx_RefNannyFinishContext();
   return 0;
   __pyx_L1_error:;
