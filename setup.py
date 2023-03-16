@@ -1,3 +1,4 @@
+import numpy
 from Cython.Build import cythonize
 from setuptools import Extension
 from setuptools import find_packages
@@ -28,6 +29,10 @@ extensions = [
             "orso/cityhash/city.cc",
             "orso/cityhash/cityhash.cpp",
         ],
+    ),
+    Extension(
+        "cbitarray",
+        ["orso/bitarray/cbitarray.pyx"],
     ),
 ]
 

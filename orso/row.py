@@ -28,7 +28,7 @@ from ormsgpack import unpackb
 
 def extract_columns(table, columns):
     # Initialize empty lists for each column
-    result = tuple([] for _ in columns)
+    result: tuple = tuple([] for _ in columns)
 
     # Extract the specified columns into the result lists
     for row in table:
@@ -40,7 +40,7 @@ def extract_columns(table, columns):
 
 class Row(tuple):
     __slots__ = ()
-    _fields = []
+    _fields: list = []
 
     def __new__(cls, data):
         return super().__new__(cls, data)

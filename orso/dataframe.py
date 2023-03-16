@@ -14,9 +14,15 @@ import typing
 
 
 class DataFrame:
-    __slots__ = ("_schema", "_rows", "_cursor")
+    __slots__ = ("_schema", "_rows", "_cursor", "arraysize")
 
-    def __init__(self, dictionaries=None, *, rows: typing.List[tuple] = None, schema: dict = None):
+    def __init__(
+        self,
+        dictionaries=None,
+        *,
+        rows: typing.Union[typing.Generator, list, None] = None,
+        schema: dict = None,
+    ):
         if dictionaries is not None:
             if schema is not None or rows is not None:
                 raise ValueError(
@@ -34,12 +40,13 @@ class DataFrame:
             self._schema = {name: {"type": type(value)} for name, value in first_dict.items()}
 
             # create a list of tuples
-            self._rows = (
+            self._rows: list = (  # type:ignore
                 tuple([row.get(k) for k in first_dict.keys()]) for row in chain([first_dict], dicts)
             )
         else:
             self._schema = schema
-            self._rows = rows
+            self._rows = rows  # type:ignore
+        self.arraysize = 100
         self._cursor = iter(self._rows)
 
     def __new__(cls, *args, **kwargs):
@@ -87,7 +94,7 @@ class DataFrame:
         """
         # selection invalidates what we thought we knew about counts etc
         new_schema = {k: {"type": v.get("type")} for k, v in self._schema.items()}
-        return DataFrame(rows=filter(predicate, self._rows), schema=new_schema)
+        return DataFrame(rows=(r for r in filter(predicate, self._rows)), schema=new_schema)
 
     def select(self, attributes):
         if not isinstance(attributes, (list, tuple)):
@@ -130,7 +137,7 @@ class DataFrame:
         columns = [c if isinstance(c, int) else self.column_names.index(c) for c in columns]
 
         # Initialize empty lists for each column
-        result = tuple([] for _ in columns)
+        result: tuple = tuple([] for _ in columns)
 
         # Extract the specified columns into the result lists
         for row in self._rows:

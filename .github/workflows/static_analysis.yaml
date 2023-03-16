@@ -75,4 +75,4 @@ jobs:
           pip install -r $GITHUB_WORKSPACE/tests/requirements.txt
 
       - name: Execute Test
-        run: pylint --fail-under=5 --load-plugins perflint orso
+        run: pylint --fail-under=6 --load-plugins perflint orso
