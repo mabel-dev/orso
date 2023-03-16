@@ -28,6 +28,10 @@ def test_to_polars():
     assert "name" in pdf.columns
     assert type(pdf) == polars.DataFrame
 
+    pdf = odf.polars(size=4)
+    assert len(pdf) == 4
+    assert "name" in pdf.columns
+    assert type(pdf) == polars.DataFrame
 
 if __name__ == "__main__":  # pragma: no cover
     test_to_polars()

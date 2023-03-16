@@ -28,6 +28,11 @@ def test_to_pandas():
     assert "name" in pdf.columns
     assert type(pdf) == pandas.DataFrame
 
+    pdf = odf.pandas(size=4)
+    assert len(pdf) == 4
+    assert "name" in pdf.columns
+    assert type(pdf) == pandas.DataFrame
+
 
 if __name__ == "__main__":  # pragma: no cover
     test_to_pandas()

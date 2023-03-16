@@ -105,24 +105,24 @@ def from_arrow(tables, size=None):
     return rows, fields
 
 
-def to_pandas(dataset):
+def to_pandas(dataset, size=None):
     try:
         import pandas
     except ImportError as import_error:
         raise MissingDependencyError(import_error.name) from import_error
-    return pandas.DataFrame(r.as_dict for r in dataset)
+    return pandas.DataFrame(r.as_dict for r in dataset.slice(0, size))
 
 
 def from_pandas(pandas):
     raise NotImplementedError()
 
 
-def to_polars(dataset):
+def to_polars(dataset, size=None):
     try:
         import polars
     except ImportError as import_error:
         raise MissingDependencyError(import_error.name) from import_error
-    return polars.DataFrame(r.as_dict for r in dataset)
+    return polars.DataFrame(r.as_dict for r in dataset.slice(0, size))
 
 
 def from_polars(polars):

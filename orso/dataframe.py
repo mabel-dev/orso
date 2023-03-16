@@ -68,15 +68,15 @@ class DataFrame:
 
         return to_arrow(self, size=size)
 
-    def pandas(self):
+    def pandas(self, size=None):
         from orso.converters import to_pandas
 
-        return to_pandas(self)
+        return to_pandas(self, size)
 
-    def polars(self):
+    def polars(self, size=None):
         from orso.converters import to_polars
 
-        return to_polars(self)
+        return to_polars(self, size)
 
     def head(self, size: int = 5):
         return self.slice(0, size)
