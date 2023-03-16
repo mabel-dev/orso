@@ -31,6 +31,8 @@ class DataFrame:
 
             from itertools import chain
 
+            from orso import Row
+
             # make the list of dicts iterable
             dicts = iter(dictionaries)
 
@@ -39,9 +41,11 @@ class DataFrame:
             first_dict = next(dicts)
             self._schema = {name: {"type": type(value)} for name, value in first_dict.items()}
 
+            row_factory = Row.create_class(self._schema)
             # create a list of tuples
             self._rows: list = (  # type:ignore
-                tuple([row.get(k) for k in first_dict.keys()]) for row in chain([first_dict], dicts)
+                row_factory([row.get(k) for k in first_dict.keys()])
+                for row in chain([first_dict], dicts)
             )
         else:
             self._schema = schema
