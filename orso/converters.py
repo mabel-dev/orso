@@ -82,7 +82,8 @@ def from_arrow(tables, size=None):
 
     first_table, all_tables = _peek(tables)
     if first_table is None:
-        return DataFrame(rows=[], schema={})
+        # return nothing back
+        return [], {}
 
     schema = first_table.schema
     fields = {

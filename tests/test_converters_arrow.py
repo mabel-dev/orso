@@ -106,8 +106,15 @@ def test_from_arrow_with_multiple_tables():
     assert obj._schema == expected_schema
 
 
+def test_from_arrow_none():
+    rows, schema = converters.from_arrow(None)
+    assert rows == []
+    assert schema == {}
+
+
 if __name__ == "__main__":  # pragma: no cover
     test_from_arrow()
     test_from_arrow_with_single_table()
     test_from_arrow_with_multiple_tables()
+    test_from_arrow_none()
     print("✅ okay")
