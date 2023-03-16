@@ -61,7 +61,7 @@ class DataFrame:
         from orso.converters import from_arrow
 
         rows, schema = from_arrow(tables)
-        return cls(rows, schema)
+        return cls(rows=rows, schema=schema)
 
     def arrow(self, size=None):
         from orso.converters import to_arrow
