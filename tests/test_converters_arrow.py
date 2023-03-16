@@ -30,7 +30,8 @@ def test_from_arrow():
     tables = [table1, table2]
 
     # Test the function with a limit of 4 rows
-    result = converters.from_arrow(tables, 4)
+    rows, schema = converters.from_arrow(tables, 4)
+    result = DataFrame(rows=rows, schema=schema)
 
     # Verify that the result has the correct number of rows and columns
     assert len(result) == 4
@@ -47,7 +48,8 @@ def test_from_arrow_with_single_table():
     table = pyarrow.Table.from_pydict({f.name: [r[i] for r in data] for i, f in enumerate(schema)})
 
     # Create an instance of MyClass from the PyArrow table
-    obj = DataFrame.from_arrow(table)
+    rows, schema = converters.from_arrow(table)
+    obj = DataFrame(rows=rows, schema=schema)
 
     # Check that the instance has the correct rows and schema
     expected_rows = [("Alice", 25), ("Bob", 30), ("Charlie", 35)]
@@ -80,7 +82,8 @@ def test_from_arrow_with_multiple_tables():
 
     # Create an instance of MyClass from a generator of PyArrow tables
     tables = (table1, table2, table3)
-    obj = DataFrame.from_arrow(tables)
+    rows, schema = converters.from_arrow(tables)
+    obj = DataFrame(rows=rows, schema=schema)
 
     # Check that the instance has the correct rows and schema
     expected_rows = [
