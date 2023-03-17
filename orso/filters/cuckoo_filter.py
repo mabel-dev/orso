@@ -10,7 +10,7 @@ class CuckooFilter:
         self.capacity = capacity
         self.bucket_size = bucket_size
         self.fingerprint_size = fingerprint_size
-        self.buckets = [[] for _ in range(capacity)]
+        self.buckets:list = [[] for _ in range(capacity)]
 
     def __len__(self):
         return sum(len(bucket) for bucket in self.buckets)
@@ -71,9 +71,9 @@ if __name__ == "__main__":  # pragma: no cover
 
     t = time.monotonic_ns()
     tokens = (random_string(48) for i in range(ITERATIONS))
-    bf = CuckooFilter()
+    cf = CuckooFilter()
     for token in tokens:
-        bf.add(token)
+        cf.add(token)
 
     print((time.monotonic_ns() - t) / 1e9)
 
@@ -83,7 +83,7 @@ if __name__ == "__main__":  # pragma: no cover
     tokens = (random_string(32) for i in range(ITERATIONS))
     collisions = 0
     for token in tokens:
-        if token in bf:
+        if token in cf:
             collisions += 1
 
     print(ITERATIONS, collisions, (time.monotonic_ns() - t) / 1e9)
