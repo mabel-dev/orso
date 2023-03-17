@@ -28,16 +28,14 @@ def test_cuckoo_filter():
 
     # then we test. 100% shouldn't match (we use different string lengths)
     # but we're a probabilistic filter so expect some false positives
-    # we're configured for a 1% false positive rate
     tokens = (random_string(32) for i in range(ITERATIONS))
     collisions = 0
     for token in tokens:
         if token in bf:
             collisions += 1
 
-    # this is approximately 1% false positive rate, we're going to test between
-    # 0.5 and 1.5 because this is probabilistic so are unlikely to actually get 1%
-    assert (ITERATIONS * 0.005) < collisions < (ITERATIONS * 0.015), collisions / ITERATIONS
+    # should be about 0.006
+    assert (ITERATIONS * 0.001) < collisions < (ITERATIONS * 0.01), collisions / ITERATIONS
 
 
 def test_cuckoo_contains():

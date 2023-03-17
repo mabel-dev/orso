@@ -55,16 +55,6 @@ class CuckooFilter:
                 return True
         return False
 
-    def estimate_fpr(self):
-        # Calculate false positive rate using formula
-        c = self.capacity
-        s = self.bucket_size
-        f = self.fingerprint_size
-        n = self.count
-        x = 1.0 / (2 ** (f / s))
-        y = 1.0 - (n / c) ** (s - 1)
-        return x * y
-
 
 if __name__ == "__main__":  # pragma: no cover
     import os
