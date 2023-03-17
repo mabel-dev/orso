@@ -10,7 +10,7 @@ class CuckooFilter:
         self.capacity = capacity
         self.bucket_size = bucket_size
         self.fingerprint_size = fingerprint_size
-        self.buckets:list = [[] for _ in range(capacity)]
+        self.buckets: list = [[] for _ in range(capacity)]
 
     def __len__(self):
         return sum(len(bucket) for bucket in self.buckets)

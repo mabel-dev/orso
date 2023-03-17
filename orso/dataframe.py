@@ -200,6 +200,47 @@ class DataFrame:
     def fetchall(self):
         return list(self._cursor)
 
+    def to_batches(self, batch_size: int = 1000):
+        """
+        Batch a DataFrame into batches of `size` records.
+
+        Args:
+            size (int): The size of each batch.
+
+        Yields:
+            DataFrames
+        """
+        self.materialize()
+        for i in range(0, self.rowcount, batch_size):
+            yield DataFrame(rows=self._rows[i : i + batch_size], schema=self._schema)
+
+    @property
+    def description(self):
+        """
+        name
+        type_code
+        display_size
+        internal_size
+        precision
+        scale
+        null_ok
+        """
+        result = []
+        for column in self.column_names:
+            column_data = self._schema.get(column, {})
+            result.append(
+                (
+                    column,
+                    column_data.get("type"),
+                    None,
+                    None,
+                    None,
+                    None,
+                    column_data.get("nullable"),
+                )
+            )
+        return result
+
     @property
     def column_names(self):
         return tuple(self._schema.keys())
