@@ -13,6 +13,10 @@
 
 Orso is not intended to compete with [Polars](https://www.pola.rs/) or [Pandas](https://pandas.pydata.org/) (or your favorite DataFrame technology), instead it is developed as a common layer for HadroDB and Opteryx.
 
+In Opteryx, orso provides much of the functionality of the Cursor.
+
+In HadroDB, orso provides functionality for handling datasets.
+
 ## License
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/mabel-dev/orso/blob/master/LICENSE)
