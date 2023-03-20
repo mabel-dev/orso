@@ -200,6 +200,23 @@ class DataFrame:
     def fetchall(self):
         return list(self._cursor)
 
+    def display(
+        self,
+        limit: int = 5,
+        display_width: Union[bool, int] = True,
+        max_column_width: int = 30,
+        colorize: bool = True,
+    ):
+        from .display import ascii_table
+
+        return ascii_table(
+            self,
+            limit=limit,
+            display_width=display_width,
+            max_column_width=max_column_width,
+            colorize=colorize,
+        )
+
     def to_batches(self, batch_size: int = 1000):
         """
         Batch a DataFrame into batches of `size` records.

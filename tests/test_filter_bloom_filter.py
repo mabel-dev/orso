@@ -28,8 +28,9 @@ def test_bloom_filter():
 
     # then we test. 100% shouldn't match (we use different string lengths)
     # but we're a probabilistic filter so expect some false positives
-    # we're configured for a 1% false positive rate
-    tokens = (random_string(32) for i in range(ITERATIONS))
+    # test a lot more cycles than we used to populate
+    SCALE_FACTOR = 10
+    tokens = (random_string(32) for i in range(ITERATIONS * SCALE_FACTOR))
     collisions = 0
     for token in tokens:
         if token in bf:
@@ -37,7 +38,9 @@ def test_bloom_filter():
 
     # this is approximately 1% false positive rate, we're going to test between
     # 0.5 and 1.5 because this is probabilistic so are unlikely to actually get 1%
-    assert (ITERATIONS * 0.005) < collisions < (ITERATIONS * 0.015), collisions / ITERATIONS
+    assert (
+        (ITERATIONS * SCALE_FACTOR * 0.005) < collisions < (ITERATIONS * SCALE_FACTOR * 0.015)
+    ), collisions / (ITERATIONS * SCALE_FACTOR)
 
 
 def test_bloom_contains():

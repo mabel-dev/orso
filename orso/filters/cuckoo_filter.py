@@ -1,8 +1,6 @@
 import random
 
-from orso.cityhash import CityHash32
-
-SALTS = ("EPSOM", "TABLE")
+from orso.cityhash import CityHash64
 
 
 class CuckooFilter:
@@ -18,22 +16,22 @@ class CuckooFilter:
     def add(self, item):
         item = str(item)
 
-        hash1 = CityHash32(item + SALTS[0])
-        fingerprint = hash1 & 0xFFFF
-        bucket_index = hash1 % self.capacity
+        hash32 = CityHash64(item)
+        hash16_1 = hash32 & 0xFFFFFFFF
+        hash16_2 = hash32 >> 32
 
         # Try to insert fingerprint into first bucket
-        if fingerprint not in self.buckets[bucket_index]:
-            self.buckets[bucket_index].append(fingerprint)
+        bucket_index = hash16_1 % self.capacity
+        hash16_1 &= 0xFFFF
+        if hash16_1 not in self.buckets[bucket_index]:
+            self.buckets[bucket_index].append(hash16_1)
             return True
 
         # Try to insert fingerprint into second bucket
-        hash2 = CityHash32(item + "salt")
-        fingerprint = hash2 & 0xFFFF
-        bucket_index = hash2 % self.capacity
-
-        if fingerprint not in self.buckets[bucket_index]:
-            self.buckets[bucket_index].append(fingerprint)
+        bucket_index = hash16_2 % self.capacity
+        hash16_2 &= 0xFFFF
+        if hash16_2 not in self.buckets[bucket_index]:
+            self.buckets[bucket_index].append(hash16_2)
             return True
 
         # If both buckets are full, perform eviction
@@ -47,12 +45,21 @@ class CuckooFilter:
 
     def __contains__(self, item):
         item = str(item)
-        for salt in SALTS:
-            hash = CityHash32(item + salt)
-            fingerprint = hash & 0xFFFF
-            bucket_index = hash % self.capacity
-            if fingerprint in self.buckets[bucket_index]:
-                return True
+
+        hash32 = CityHash64(item)
+        hash16_1 = hash32 & 0xFFFFFFFF
+        hash16_2 = hash32 >> 32
+
+        bucket_index = hash16_1 % self.capacity
+        hash16_1 &= 0xFFFF
+        if hash16_1 in self.buckets[bucket_index]:
+            return True
+
+        bucket_index = hash16_2 % self.capacity
+        hash16_2 &= 0xFFFF
+        if hash16_2 in self.buckets[bucket_index]:
+            return True
+
         return False
 
 
@@ -75,7 +82,7 @@ if __name__ == "__main__":  # pragma: no cover
     for token in tokens:
         cf.add(token)
 
-    print((time.monotonic_ns() - t) / 1e9)
+    print((time.monotonic_ns() - t) / 1e9, "cf")
 
     # then we test. 100% shouldn't match (we use different string lengths)
     # but we're a probabilistic filter so expect some false positives
