@@ -131,7 +131,7 @@ jobs:
       shell: bash
       env:
         DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
-        MACOSX_DEPLOYMENT_TARGET: '11.00'
+        MACOSX_DEPLOYMENT_TARGET: 'macosx-10.5-universal'
         ARCHFLAGS: -arch x86_64 -arch arm64
       run: python setup.py bdist_wheel
 
