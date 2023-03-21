@@ -203,7 +203,7 @@ class DataFrame:
     def display(
         self,
         limit: int = 5,
-        display_width: Union[bool, int] = True,
+        display_width: typing.Union[bool, int] = True,
         max_column_width: int = 30,
         colorize: bool = True,
     ):
