@@ -133,7 +133,7 @@ jobs:
         DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
         MACOSX_DEPLOYMENT_TARGET: '11.0'
         ARCHFLAGS: -arch x86_64 -arch arm64
-      run: python setup.py bdist_wheel -d
+      run: python setup.py bdist_wheel
 
     - name: Archive dist artifacts
       uses: actions/upload-artifact@v1
