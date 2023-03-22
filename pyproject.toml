@@ -1,17 +1,11 @@
 [project]
 name = "orso"
 version = "0.0.35"
-authors = [
-  { name="Justin Joyce", email="author@example.com" },
-]
-description = "🐻 Dataframe Library""
+authors = [{ name="Justin Joyce", email="author@example.com" }]
+description = "Dataframe Library"
 readme = "README.md"
 requires-python = ">=3.8"
-dependencies = [
-    "orjson",
-    "ormsgpack",
-    "numpy"
-]
+dependencies = ["orjson", "ormsgpack", "numpy"]
 
 [project.urls]
 "Homepage" = "https://github.com/mabel-dev/orso"
@@ -22,7 +16,7 @@ where = ["orso"]
 
 [tool.black]
 line-length = 100
-target-version = ['py310']
+target-version = ["py310"]
 
 [tool.isort]
 profile = "black"

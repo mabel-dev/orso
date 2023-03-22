@@ -5,10 +5,9 @@ import pyarrow
 
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
+import orso
 from orso.dataframe import DataFrame
 from orso.row import Row
-
-import orso
 
 print(dir(orso))
 

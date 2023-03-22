@@ -62,17 +62,10 @@ cdef extern from "city.h" nogil:
 
 
 from cpython cimport long
-
-from cpython.buffer cimport PyObject_CheckBuffer
-from cpython.buffer cimport PyObject_GetBuffer
-from cpython.buffer cimport PyBuffer_Release
-from cpython.buffer cimport PyBUF_SIMPLE
-
+from cpython.buffer cimport (PyBUF_SIMPLE, PyBuffer_Release,
+                             PyObject_CheckBuffer, PyObject_GetBuffer)
+from cpython.bytes cimport PyBytes_AS_STRING, PyBytes_Check, PyBytes_GET_SIZE
 from cpython.unicode cimport PyUnicode_Check
-
-from cpython.bytes cimport PyBytes_Check
-from cpython.bytes cimport PyBytes_GET_SIZE
-from cpython.bytes cimport PyBytes_AS_STRING
 
 
 cdef object _type_error(argname: str, expected: object, value: object):

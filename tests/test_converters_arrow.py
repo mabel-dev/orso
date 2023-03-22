@@ -5,8 +5,8 @@ import pyarrow
 
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
-from orso.dataframe import DataFrame
 from orso import converters
+from orso.dataframe import DataFrame
 
 
 def test_from_arrow():
