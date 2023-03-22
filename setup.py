@@ -42,8 +42,6 @@ setup_config = {
     "description": "🐻 Dataframe Library",
     "long_description": long_description,
     "long_description_content_type": "text/markdown",
-    "maintainer": "@joocer",
-    "author": "@joocer",
     "author_email": "justin.joyce@joocer.com",
     "packages": find_packages(include=[LIBRARY, f"{LIBRARY}.*"]),
     "url": "https://github.com/mabel-dev/orso/",
