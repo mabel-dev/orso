@@ -24,7 +24,7 @@ except:
 
 extensions = [
     Extension(
-        name="cityhash.cityhash",
+        name="orso.cityhash",
         sources=[
             "orso/cityhash/city.cc",
             "orso/cityhash/cityhash.cpp",
