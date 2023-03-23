@@ -31,7 +31,7 @@ extensions = [
         ],
     ),
     Extension(
-        name="bitarray.cbitarray",
+        name="orso.bitarray",
         sources=["orso/bitarray/cbitarray.pyx"],
     ),
 ]
