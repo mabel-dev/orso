@@ -24,14 +24,14 @@ except:
 
 extensions = [
     Extension(
-        name="orso.cityhash.cityhash",
+        name="cityhash.cityhash",
         sources=[
             "orso/cityhash/city.cc",
             "orso/cityhash/cityhash.cpp",
         ],
     ),
     Extension(
-        name="orso.bitarray.cbitarray",
+        name="bitarray.cbitarray",
         sources=["orso/bitarray/cbitarray.pyx"],
     ),
 ]
