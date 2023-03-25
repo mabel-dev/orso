@@ -1,2 +1,2 @@
-from cityhash import CityHash32
-from cityhash import CityHash64
+from .cityhash import CityHash32
+from .cityhash import CityHash64

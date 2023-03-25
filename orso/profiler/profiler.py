@@ -62,9 +62,9 @@ def _statitics_collector(dataframe):
                 continue
 
             profile = profile_collector.get(column, orjson.loads(empty_profile))
-            _type = functools.reduce(
+            _type: set = functools.reduce(
                 lambda a, b: a if b is None else a.union({type(b).__name__}), column_data, set()
-            )
+            )  # type:ignore
 
             profile["type"] = list(set(profile["type"]).union(_type))
             if len(profile["type"]) > 1:
