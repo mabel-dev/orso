@@ -16,7 +16,7 @@ jobs:
     - uses: actions/checkout@master
 
     - name: Install Python package dependencies
-      run: /opt/python/cp38-cp38/bin/python -m pip install --upgrade cython wheel numpy build
+      run: /opt/python/cp38-cp38/bin/python -m pip install --upgrade cython wheel numpy
 
     - name: Build binary wheel
       run: /opt/python/cp38-cp38/bin/python setup.py bdist_wheel
@@ -42,7 +42,7 @@ jobs:
     - uses: actions/checkout@master
 
     - name: Install Python package dependencies
-      run: /opt/python/cp39-cp39/bin/python -m pip install --upgrade cython wheel numpy build
+      run: /opt/python/cp39-cp39/bin/python -m pip install --upgrade cython wheel numpy
 
     - name: Build binary wheel
       run: /opt/python/cp39-cp39/bin/python setup.py bdist_wheel
@@ -67,7 +67,7 @@ jobs:
     - uses: actions/checkout@master
 
     - name: Install Python package dependencies
-      run: /opt/python/cp310-cp310/bin/python -m pip install --upgrade cython wheel numpy build
+      run: /opt/python/cp310-cp310/bin/python -m pip install --upgrade cython wheel numpy
 
     - name: Build binary wheel
       run: /opt/python/cp310-cp310/bin/python setup.py bdist_wheel
@@ -92,7 +92,7 @@ jobs:
     - uses: actions/checkout@master
 
     - name: Install Python package dependencies
-      run: /opt/python/cp311-cp311/bin/python -m pip install --upgrade cython wheel numpy build
+      run: /opt/python/cp311-cp311/bin/python -m pip install --upgrade cython wheel numpy
 
     - name: Build binary wheel
       run: /opt/python/cp311-cp311/bin/python setup.py bdist_wheel
