@@ -2,3 +2,6 @@
 scratch/**
 **.so
 **.o
+build/**
+dist/**
+orso.egg-info/**

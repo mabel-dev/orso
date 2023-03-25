@@ -18,7 +18,10 @@ jobs:
     - name: Install Python package dependencies
       run: /opt/python/cp38-cp38/bin/python -m pip install --upgrade cython wheel numpy
 
-    - name: Build binary wheel
+    - name: Build binaries
+      run: /opt/python/cp38-cp38/bin/python setup.py build_ext --inplace
+
+    - name: Build wheel
       run: /opt/python/cp38-cp38/bin/python setup.py bdist_wheel
 
     - name: Apply auditwheel for manylinux wheel
@@ -44,7 +47,10 @@ jobs:
     - name: Install Python package dependencies
       run: /opt/python/cp39-cp39/bin/python -m pip install --upgrade cython wheel numpy
 
-    - name: Build binary wheel
+    - name: Build binaries
+      run: /opt/python/cp39-cp39/bin/python setup.py build_ext --inplace
+
+    - name: Build wheel
       run: /opt/python/cp39-cp39/bin/python setup.py bdist_wheel
 
     - name: Apply auditwheel for manylinux wheel
@@ -69,7 +75,10 @@ jobs:
     - name: Install Python package dependencies
       run: /opt/python/cp310-cp310/bin/python -m pip install --upgrade cython wheel numpy
 
-    - name: Build binary wheel
+    - name: Build binaries
+      run: /opt/python/cp310-cp310/bin/python setup.py build_ext --inplace
+
+    - name: Build wheel
       run: /opt/python/cp310-cp310/bin/python setup.py bdist_wheel
 
     - name: Apply auditwheel for manylinux wheel
@@ -94,7 +103,10 @@ jobs:
     - name: Install Python package dependencies
       run: /opt/python/cp311-cp311/bin/python -m pip install --upgrade cython wheel numpy
 
-    - name: Build binary wheel
+    - name: Build binaries
+      run: /opt/python/cp311-cp311/bin/python setup.py build_ext --inplace
+
+    - name: Build wheel
       run: /opt/python/cp311-cp311/bin/python setup.py bdist_wheel
 
     - name: Apply auditwheel for manylinux wheel
@@ -127,7 +139,13 @@ jobs:
     - name: Install Python package dependencies
       run: python -m pip install --upgrade cython wheel numpy
 
-    - name: Build on macOS universal2
+    - name: Build binaries on macOS universal2
+      shell: bash
+      env:
+        ARCHFLAGS: -arch x86_64 -arch arm64
+      run: python setup.py build_ext --inplace
+
+    - name: Build wheels on macOS universal2
       shell: bash
       env:
         ARCHFLAGS: -arch x86_64 -arch arm64
@@ -164,7 +182,10 @@ jobs:
     - name: Install Python package dependencies
       run: python -m pip install --upgrade cython wheel numpy
 
-    - name: Build binary wheel
+    - name: Build binaries
+      run: python setup.py build_ext --inplace
+
+    - name: Build wheel
       run: python setup.py bdist_wheel
 
     - name: Archive dist artifacts
