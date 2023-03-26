@@ -53,7 +53,7 @@ jobs:
         submodules: true
 
     - name: Install Python package dependencies
-      run: python -m pip install --upgrade cython wheel numpy build
+      run: pipx install --upgrade cython wheel numpy build
 
     - uses: pypa/cibuildwheel@v2.12.1
       env:
