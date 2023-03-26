@@ -306,16 +306,18 @@ class DataFrame:
             i_am_in_a_notebook = False
 
         if i_am_in_a_notebook:
-            from IPython.display import HTML, display
+            from IPython.display import HTML
+            from IPython.display import display
+
             from .display import html_table
 
-            html = html_table(iter(self), size)
+            html = html_table([r.asdict for i,r in enumerate(iter(self)) if i < size], size)
             display(HTML(html))
             return ""
         else:
             from .display import ascii_table
 
             return (
-                ascii_table(self, size=size)
+                ascii_table(self, limit=size)
                 + f"\n [ {self.rowcount} rows x {self.columncount} columns ]"
             )
