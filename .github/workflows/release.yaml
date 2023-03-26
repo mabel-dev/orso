@@ -137,7 +137,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Install Python package dependencies
-      run: python -m pip install --upgrade cython wheel numpy
+      run: python -m pip install --upgrade cython wheel numpy build
 
     - name: Build binaries on macOS universal2
       shell: bash
