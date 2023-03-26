@@ -27,10 +27,10 @@ jobs:
 
     - name: Install Python package dependencies
       run: |
-        pipx install cython
-        pipx install wheel
-        pipx install numpy
-        pipx install build
+        pip install cython
+        pip install wheel
+        pip install numpy
+        pip install build
 
     - name: Build SDist
       run: pipx run build --sdist
@@ -58,10 +58,10 @@ jobs:
 
     - name: Install Python package dependencies
       run: |
-        pipx install cython
-        pipx install wheel
-        pipx install numpy
-        pipx install build
+        pip install cython
+        pip install wheel
+        pip install numpy
+        pip install build
 
     - uses: pypa/cibuildwheel@v2.12.1
       env:
