@@ -297,7 +297,7 @@ class DataFrame:
         return ascii_table(self) + f"\n [ {self.rowcount} rows x {self.columncount} columns ]"
 
     def __repr__(self) -> str:
-        size:int = 10
+        size: int = 10
         try:
             from IPython import get_ipython
 
@@ -315,4 +315,7 @@ class DataFrame:
         else:
             from .display import ascii_table
 
-            return ascii_table(self, size=size) + f"\n [ {self.rowcount} rows x {self.columncount} columns ]"
+            return (
+                ascii_table(self, size=size)
+                + f"\n [ {self.rowcount} rows x {self.columncount} columns ]"
+            )
