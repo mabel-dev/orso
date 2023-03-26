@@ -311,7 +311,7 @@ class DataFrame:
 
             from .display import html_table
 
-            html = html_table([r.asdict for i,r in enumerate(iter(self)) if i < size], size)
+            html = html_table([r.asdict for i, r in enumerate(iter(self)) if i < size], size)
             display(HTML(html))
             return ""
         else:
