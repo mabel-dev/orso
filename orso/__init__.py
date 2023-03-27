@@ -8,7 +8,6 @@ from .row import Row
 __all__ = ["DataFrame", "Row", "__version__"]
 
 
-
 def retry(
     max_tries: int = 3,
     backoff_seconds: int = 1,
