@@ -13,7 +13,7 @@
 import itertools
 import typing
 
-from orso import _tools
+from orso import tools
 from orso.dataframe import DataFrame
 from orso.exceptions import MissingDependencyError
 from orso.row import Row

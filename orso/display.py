@@ -284,3 +284,40 @@ def ascii_table(
     return "\n".join(
         colorizer(trunc_printable(line, display_width, False), colorize) for line in _inner()
     )
+
+
+def markdown(
+    table,
+    limit: int = 5,
+    max_column_width: int = 30,
+):
+    # Extract head data
+    if limit > 0:
+        t = table.slice(length=limit)
+    else:
+        t = table
+
+    # width of index column
+    index_width = len(str(len(table)))
+
+    # Calculate width
+    col_width = list(map(len, t.column_names))
+    data_width = [
+        max(list(map(len, map(str, [p for p in h if p is not None]))) + [4])
+        for h in (t.collect(i) for i in range(t.columncount))
+    ]
+    col_width = [min(max(cw, dw), max_column_width) for cw, dw in zip(col_width, data_width)]
+
+    # Print data
+    data = [t.row(i) for i in range(len(t))]
+    yield (
+        "| #"
+        + (" " * (index_width - 2))
+        + "| "
+        + " | ".join(v.ljust(w)[:w] for v, w in zip(t.column_names, col_width))
+        + " |"
+    )
+    yield ("|" + ("-" * index_width) + "|-" + "-|-".join("-" * cw for cw in col_width) + "-|")
+    for i in range(len(data)):
+        formatted = [str(v).rjust(w)[:w] for v, w in zip(data[i], col_width)]
+        yield ("|" + str(i + 1).rjust(index_width - 1) + " | " + " | ".join(formatted) + " |")

@@ -217,6 +217,11 @@ class DataFrame:
             colorize=colorize,
         )
 
+    def markdown(self, limit: int = 5, max_column_width: int = 30):
+        from .display import markdown
+
+        return "\n".join(markdown(self, limit=limit, max_column_width=max_column_width))
+
     def to_batches(self, batch_size: int = 1000):
         """
         Batch a DataFrame into batches of `size` records.
