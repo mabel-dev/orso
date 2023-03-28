@@ -200,7 +200,7 @@ def table_profiler(dataframe):
 
 if __name__ == "__main__":  # pragme: no cover
     # fmt:off
-    cities = [
+    cities_list:list = [
         {"name": "Tokyo", "population": 13929286, "country": "Japan", "founded": "1457", "area": 2191, "language": "Japanese"},
         {"name": "London", "population": 8982000, "country": "United Kingdom", "founded": "43 AD", "area": 1572, "language": "English"},
         {"name": "New York City", "population": 8399000, "country": "United States", "founded": "1624", "area": 468.9, "language": "English"},
@@ -211,7 +211,7 @@ if __name__ == "__main__":  # pragme: no cover
         {"name": "Rio de Janeiro", "population": 6747815, "country": "Brazil", "founded": "1 March 1565", "area": 1264, "language": "Portuguese"}
     ]
     import orso
-    cities = orso.DataFrame(cities)
+    cities = orso.DataFrame(cities_list)
     # fmt:on
 
     import os
