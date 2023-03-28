@@ -1,4 +1,3 @@
-import numpy
 from Cython.Build import cythonize
 from setuptools import Extension
 from setuptools import find_packages
@@ -39,7 +38,7 @@ extensions = [
 setup_config = {
     "name": LIBRARY,
     "version": __version__,
-    "description": "🐻 Dataframe Library",
+    "description": "🐻 DataFrame Library",
     "long_description": long_description,
     "long_description_content_type": "text/markdown",
     "author_email": "justin.joyce@joocer.com",

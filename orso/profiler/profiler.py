@@ -4,13 +4,13 @@ import functools
 import numpy
 import orjson
 
-MAX_STRING_SIZE: int = 32
+MAX_STRING_SIZE: int = 64
 MAX_UNIQUE_COLLECTOR: int = 8
 
 
 class DataProfile:
     def __init__(self):
-        pass
+        profile = {}
 
     def add(self, dataset):
         pass
@@ -21,6 +21,19 @@ class DataProfile:
 
 UNIX_EPOCH = datetime.datetime(1970, 1, 1)
 
+TYPE_MAP = {
+    "bool": "BOOLEAN",
+    "bytes": "BLOB",
+    "date": "DATE",
+    "datetime": "TIMESTAMP",
+    "dict": "STRUCT",
+    "float": "FLOAT",
+    "int": "INTEGER",
+    "list": "ARRAY",
+    "str": "VARCHAR",
+    "time": "TIME",
+}
+
 
 def _to_unix_epoch(date):
     if date is None:
@@ -30,7 +43,7 @@ def _to_unix_epoch(date):
     return (date - UNIX_EPOCH).total_seconds()
 
 
-def _statitics_collector(dataframe):
+def table_profiler(dataframe):
     """
     Collect summary statistics about each column
     """
@@ -154,7 +167,7 @@ def _statitics_collector(dataframe):
 
         for column, profile in profile_collector.items():
             profile["name"] = column
-            profile["type"] = ", ".join(profile["type"])
+            profile["type"] = ", ".join([TYPE_MAP.get(t, "OTHER") for t in profile["type"]])
 
             if column not in uncollected_columns:
                 dgram = profile.pop("dgram", None)
@@ -185,7 +198,7 @@ def _statitics_collector(dataframe):
         return buffer
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragme: no cover
     # fmt:off
     cities = [
         {"name": "Tokyo", "population": 13929286, "country": "Japan", "founded": "1457", "area": 2191, "language": "Japanese"},
@@ -197,6 +210,8 @@ if __name__ == "__main__":
         {"name": "Beijing", "population": 21710000, "country": "China", "founded": "1045", "area": 16410.54, "language": "Mandarin"},
         {"name": "Rio de Janeiro", "population": 6747815, "country": "Brazil", "founded": "1 March 1565", "area": 1264, "language": "Portuguese"}
     ]
+    import orso
+    cities = orso.DataFrame(cities)
     # fmt:on
 
     import os
@@ -206,9 +221,9 @@ if __name__ == "__main__":
 
     import opteryx
 
-    df = opteryx.query("SELECT graduate_major FROM $astronauts")
+    df = opteryx.query("SELECT graduate_major, len(graduate_major) FROM $astronauts")
     print(df)
 
     from pprint import pprint
 
-    pprint(_statitics_collector(df))
+    pprint(table_profiler(df))
