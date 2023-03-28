@@ -101,7 +101,7 @@ def from_arrow(tables, size=None):
 
     # Limit the number of rows to 'size'
     if size:
-        rows = _tools.islice(rows, size)
+        rows = tools.islice(rows, size)
 
     return rows, fields
 
