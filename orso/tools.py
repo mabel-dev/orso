@@ -134,15 +134,15 @@ def monitor(func):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        wrapper.count += 1
+        wrapper.count += 1  # type:ignore
         start_time = time.monotonic()
         result = func(*args, **kwargs)
-        wrapper._run_times.append(time.monotonic() - start_time)
+        wrapper._run_times.append(time.monotonic() - start_time)  # type:ignore
         return result
 
-    wrapper.count = 0
-    wrapper._run_times = []
-    wrapper.stats = lambda: report(wrapper)
+    wrapper.count = 0  # type:ignore
+    wrapper._run_times = []  # type:ignore
+    wrapper.stats = lambda: report(wrapper)  # type:ignore
     return wrapper
 
 

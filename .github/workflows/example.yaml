@@ -33,7 +33,7 @@ jobs:
         pip install build
 
     - name: Build SDist
-      run: pipx run build --sdist
+      run: build --sdist
 
     - name: Check metadata
       run: pipx run twine check dist/*
