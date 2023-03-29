@@ -65,7 +65,6 @@ def table_profiler(dataframe):
     )
 
     for morsel in dataframe.to_batches(10000):
-        print(morsel)
         uncollected_columns = []
         profile_collector: dict = {}
 
