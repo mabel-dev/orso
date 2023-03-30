@@ -145,7 +145,7 @@ jobs:
       env:
         ARCHFLAGS: "-arch x86_64 -arch arm64"
         MACOSX_DEPLOYMENT_TARGET: "11.0"
-      run: python setup.py bdist_wheel --plat-name=macosx_11_0_x86_64_arm64
+      run: python setup.py bdist_wheel --plat-name=macosx_11_0_universal2
 
     - name: Archive dist artifacts
       uses: actions/upload-artifact@v1
