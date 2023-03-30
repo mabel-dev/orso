@@ -4,27 +4,20 @@ import functools
 import numpy
 import orjson
 
+import orso
+
 MAX_STRING_SIZE: int = 64
 MAX_UNIQUE_COLLECTOR: int = 8
 
 
-class DataProfile:
-    def __init__(self):
-        self.profile = {}
-
-    def add(self, dataset):
-        if self.profile == {}:
-            self.profile = table_profiler(dataset)
-        else:
-            raise NotImplementedError("cannot add profiles")
-
+class DataProfile(orso.DataFrame):
     def __add__(self, data_profile):
         raise NotImplementedError("cannot add profiles")
 
     @classmethod
     def from_dataset(cls, dataset):
-        profile = cls()
-        profile.add(dataset)
+        _profile = table_profiler(dataset)
+        profile = cls(_profile)
         return profile
 
 
@@ -56,7 +49,7 @@ def table_profiler(dataframe):
     """
     Collect summary statistics about each column
     """
-    import distogram
+    from orso.profiler.distogram import Distogram
 
     empty_profile = orjson.dumps(
         {
@@ -90,7 +83,10 @@ def table_profiler(dataframe):
             profile["type"] = list(set(profile["type"]).union(_type))
             if len(profile["type"]) > 1:
                 uncollected_columns.append(column)
-            _type = _type.pop()
+            if len(_type) > 0:
+                _type = _type.pop()
+            else:
+                _type = None
             profile["count"] += len(column_data)
             profile["missing"] += sum(1 for a in column_data if a is None)
 
@@ -136,8 +132,10 @@ def table_profiler(dataframe):
             # convert TIMESTAMP into a NUMERIC (seconds after Unix Epoch)
             if _type == "datetime":
                 column_data = (_to_unix_epoch(i) for i in column_data)
-            # remove empty values
-            column_data = numpy.array([i for i in column_data if i not in (None, numpy.nan)])
+
+            if _type in {"bool", "datetime", "int", "float", "str"}:
+                # remove empty values
+                column_data = numpy.array([i for i in column_data if i not in (None, numpy.nan)])
 
             if _type == "bool":
                 # we can make it easier to collect booleans
@@ -165,7 +163,7 @@ def table_profiler(dataframe):
                 # populate the distogram, this is used for distribution statistics
                 dgram = profile.get("dgram")
                 if dgram is None:
-                    dgram = distogram.Distogram()  # type:ignore
+                    dgram = Distogram()  # type:ignore
                 dgram.bulkload(column_data)
                 profile["dgram"] = dgram
 
