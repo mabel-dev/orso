@@ -42,4 +42,4 @@ jobs:
       shell: bash
       env:
         ARCHFLAGS: -arch x86_64 -arch arm64
-      run: python setup.py bdist_wheel --universal2 --arch arm64 x86_64
+      run: python setup.py bdist_wheel --arch arm64 x86_64
