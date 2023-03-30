@@ -239,6 +239,7 @@ class DataFrame:
     @property
     def profile(self):
         from orso.profiler import DataProfile
+
         return DataProfile.from_dataset(self)
 
     @property
