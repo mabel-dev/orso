@@ -236,6 +236,11 @@ class DataFrame:
         for i in range(0, self.rowcount, batch_size):
             yield DataFrame(rows=self._rows[i : i + batch_size], schema=self._schema)
 
+    def profile(self):
+        from orso.profiler import DataProfile
+
+        return DataFrame.from_dataset(self)
+
     @property
     def description(self):
         """

@@ -10,13 +10,22 @@ MAX_UNIQUE_COLLECTOR: int = 8
 
 class DataProfile:
     def __init__(self):
-        profile = {}
+        self.profile = {}
 
     def add(self, dataset):
-        pass
+        if self.profile == {}:
+            self.profile = table_profiler(dataset)
+        else:
+            raise NotImplementedError("cannot add profiles")
 
     def __add__(self, data_profile):
-        pass
+        raise NotImplementedError("cannot add profiles")
+
+    @classmethod
+    def from_dataset(cls, dataset):
+        profile = cls()
+        profile.add(dataset)
+        return profile
 
 
 UNIX_EPOCH = datetime.datetime(1970, 1, 1)
