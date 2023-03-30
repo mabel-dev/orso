@@ -41,5 +41,5 @@ jobs:
       env:
         ARCHFLAGS: "-arch x86_64 -arch arm64"
         MACOSX_DEPLOYMENT_TARGET: "10.15"
-      run: python -m build --plat-name=macosx-11.0-universal2
+      run: python -m build --universal2
 
