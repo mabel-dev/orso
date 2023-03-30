@@ -43,4 +43,10 @@ jobs:
         MACOSX_DEPLOYMENT_TARGET: "11.0"
       run: python setup.py bdist_wheel --universal2 --plat-name=macosx_11_0_universal2
 
+    - name: Build wheels on macOS universal2 - take 2
+      shell: bash
+      env:
+        ARCHFLAGS: "-arch x86_64 -arch arm64"
+        MACOSX_DEPLOYMENT_TARGET: "11.0"
+      run: python -m wheel --universal --architectures "x86_64 arm64" .
 
