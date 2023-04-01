@@ -18,14 +18,14 @@ COLORS = {
     "\001OFFm": "\033[0m",  # Text Reset
     # Opteryx named colors
     "\001PUNCm": "\033[38;5;102m",
-    "\001VARCHARm": "\033[38;5;229m",
-    "\001CONSTm": "\033[38;5;117m",
+    "\001VARCHARm": "\033[38;5;228m",  # yellow
+    "\001CONSTm": "\033[38;5;117m",  # blue
     "\001NULLm": "\033[38;5;102m",
     "\001VALUEm": "\033[38;5;153m",
-    "\001NUMERICm": "\033[38;5;212m",
-    "\001DATEm": "\033[38;5;120m",
+    "\001NUMERICm": "\033[38;5;212m",  # pink
+    "\001DATEm": "\033[38;5;84m",  # green
     "\001TIMEm": "\033[38;5;72m",
-    "\001KEYm": "\033[38;5;183m",
+    "\001KEYm": "\033[38;5;141m",  # purple
     # an orange color - 222
     # a red color = 209
     # Regular Colors
