@@ -18,14 +18,18 @@ COLORS = {
     "\001OFFm": "\033[0m",  # Text Reset
     # Opteryx named colors
     "\001PUNCm": "\033[38;5;102m",
-    "\001VARCHARm": "\033[38;5;228m",  # yellow
-    "\001CONSTm": "\033[38;5;117m",  # blue
-    "\001NULLm": "\033[38;5;102m",
+    "\001VARCHARm": "\033[38;5;215m",  # orange
+    "\001CONSTm": "\033[38;5;117m\033[3m",  # blue
+    "\001NULLm": "\033[38;5;102m\033[3m",
     "\001VALUEm": "\033[38;5;153m",
-    "\001NUMERICm": "\033[38;5;212m",  # pink
+    "\001FLOATm": "\033[38;5;212m",  # pink
+    "\001INTEGERm": "\033[38;5;177m",  # non-std pink
     "\001DATEm": "\033[38;5;84m",  # green
-    "\001TIMEm": "\033[38;5;72m",
+    "\001TIMESTAMPm": "\033[38;5;84m",  # green
+    "\001TIMEm": "\033[38;5;72m",  # non-std green
     "\001KEYm": "\033[38;5;141m",  # purple
+    "\001BLOBm": "\033[38;5;228m",  # yellow
+    "\001INTERVALm": "\033[38;5;203m",  # red
     # an orange color - 222
     # a red color = 209
     # Regular Colors
@@ -154,6 +158,7 @@ def ascii_table(
     display_width: Union[bool, int] = True,
     max_column_width: int = 30,
     colorize: bool = True,
+    top_and_tail: bool = True,
 ):
     """
     Render the dictset as a ASCII table.
@@ -185,10 +190,11 @@ def ascii_table(
             import shutil
 
             display_width = shutil.get_terminal_size((80, 20))[0]
-
     # Extract head data
-    if limit > 0:
+    if limit > 0 and not top_and_tail:
         t = table.slice(length=limit)
+    elif limit > 0 and top_and_tail and table.rowcount > ((2 * limit) + 1):
+        t = table.head(size=limit) + table.tail(size=limit)
     else:
         t = table
 
@@ -201,15 +207,17 @@ def ascii_table(
         if isinstance(value, bool):
             return "\001CONSTm" + str(value).rjust(width)[:width] + "\001OFFm"
         if isinstance(value, int):
-            return "\001NUMERICm" + str(value).rjust(width)[:width] + "\001OFFm"
+            return "\001INTEGERm" + str(value).rjust(width)[:width] + "\001OFFm"
         if isinstance(value, float):
-            return "\001NUMERICm" + str(value).rjust(width)[:width] + "\001OFFm"
+            return "\001FLOATm" + str(value).rjust(width)[:width] + "\001OFFm"
         if isinstance(value, str):
             return "\001VARCHARm" + trunc_printable(str(value).ljust(width), width) + "\001OFFm"
         if isinstance(value, datetime.datetime):
             value = f"{value.strftime('%Y-%m-%d')} \001TIMEm{value.strftime('%H:%M:%S')}"
             return "\001DATEm" + trunc_printable(value.rjust(width), width) + "\001OFFm"
-        if isinstance(value, list):
+        if isinstance(value, (bytes, bytearray)):
+            return "\001BLOBm" + trunc_printable(str(value).ljust(width), width) + "\001OFFm"
+        if isinstance(value, (list, tuple)):
             value = (
                 "\001PUNCm['\001VALUEm"
                 + "\001PUNCm', '\001VALUEm".join(map(str, value))
@@ -266,7 +274,6 @@ def ascii_table(
         col_width = [min(max(cw, dw), max_column_width) for cw, dw in zip(col_width, data_width)]
 
         # Print data
-        data = [t.row(i) for i in range(len(t))]
         yield ("┌" + ("─" * index_width) + "┬─" + "─┬─".join("─" * cw for cw in col_width) + "─┐")
         yield (
             "│"
@@ -276,8 +283,19 @@ def ascii_table(
             + " │"
         )
         yield ("╞" + ("═" * index_width) + "╪═" + "═╪═".join("═" * cw for cw in col_width) + "═╡")
-        for i in range(len(data)):
-            formatted = [type_formatter(v, w) for v, w in zip(data[i], col_width)]
+        for i, row in enumerate(t):
+            if top_and_tail and (len(t) + 1) < len(table):
+                if i == limit:
+                    yield (
+                        "│ "
+                        + ("\001PUNCm─\001OFFm" * (index_width - 2))
+                        + " │ "
+                        + " │ ".join("\001PUNCm─\001OFFm" * w for w in col_width)
+                        + " │"
+                    )
+                if i >= limit:
+                    i += len(table) - (limit * 2)
+            formatted = [type_formatter(v, w) for v, w in zip(row, col_width)]
             yield ("│" + str(i + 1).rjust(index_width - 1) + " │ " + " │ ".join(formatted) + " │")
         yield ("└" + ("─" * index_width) + "┴─" + "─┴─".join("─" * cw for cw in col_width) + "─┘")
 

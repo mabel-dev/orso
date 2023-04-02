@@ -329,6 +329,11 @@ class DataFrame:
             from .display import ascii_table
 
             return (
-                ascii_table(self, limit=size)
-                + f"\n [ {self.rowcount} rows x {self.columncount} columns ]"
+                ascii_table(self, limit=size, top_and_tail=True)
+                + f"\n[ {self.rowcount} rows x {self.columncount} columns ]"
             )
+
+    def __add__(self, the_other):
+        if self._schema != the_other._schema:
+            raise ValueError("Schemas must be identical to add DataFrames")
+        return DataFrame(rows=self._rows + the_other._rows, schema=self._schema)
