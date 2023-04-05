@@ -14,12 +14,11 @@ import datetime
 from typing import Iterable
 from typing import Union
 
-
-#Background		#282a36	40 42 54	231° 15% 18%
-#Current Line		#44475a	68 71 90	232° 14% 31%
-#Foreground		#f8f8f2	248 248 242	60° 30% 96%
-#Red		#ff5555	255 85 85	0° 100% 67%
-#Yellow		#f1fa8c	241 250 140	65° 92% 76%
+# Background		#282a36	40 42 54	231° 15% 18%
+# Current Line		#44475a	68 71 90	232° 14% 31%
+# Foreground		#f8f8f2	248 248 242	60° 30% 96%
+# Red		#ff5555	255 85 85	0° 100% 67%
+# Yellow		#f1fa8c	241 250 140	65° 92% 76%
 
 COLORS = {
     "\001OFFm": "\033[0m",  # Text Reset
@@ -29,12 +28,12 @@ COLORS = {
     "\001VARCHARm": "\033[38;2;255;184;108m",  # orange
     "\001CONSTm": "\033[38;2;139;233;253m\033[3m",  # cyan, italic
     "\001NULLm": "\033[38;2;98;114;164m\033[3m",  # grey, italic
-    "\001VALUEm": "\033[38;2;139;233;253m",   # cyan
+    "\001VALUEm": "\033[38;2;139;233;253m",  # cyan
     "\001FLOATm": "\033[38;2;255;121;198m",  # pink
     "\001INTEGERm": "\033[38;2;189;147;249m",  # purple
     "\001DATEm": "\033[38;2;80;250;123m",  # green
     "\001TIMESTAMPm": "\033[38;2;80;250;123m",  # green
-    "\001TIMEm": "\033[38;2;26;185;67m",  # non-std green 
+    "\001TIMEm": "\033[38;2;26;185;67m",  # non-std green
     "\001KEYm": "\033[38;2;189;147;249m",  # purple
     "\001BLOBm": "\033[38;5;228m",  # yellow
     "\001INTERVALm": "\033[38;5;203m",  # red
@@ -287,7 +286,9 @@ def ascii_table(
             "│"
             + (" " * index_width)
             + "│ "
-            + " │ ".join("\001HEADm" + v.ljust(w)[:w] + "\001OFFm" for v, w in zip(t.column_names, col_width))
+            + " │ ".join(
+                "\001HEADm" + v.ljust(w)[:w] + "\001OFFm" for v, w in zip(t.column_names, col_width)
+            )
             + " │"
         )
         yield ("╞" + ("═" * index_width) + "╪═" + "═╪═".join("═" * cw for cw in col_width) + "═╡")
