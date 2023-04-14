@@ -171,6 +171,69 @@ def throttle(calls_per_second: float):
     return decorate
 
 
+def monitor(time_limit=10, interval=1):
+    import os
+    import threading
+    import time
+
+    import psutil
+
+    def decorator(func):
+        stop_flag = False
+
+        def wrapper(*args, **kwargs):
+            nonlocal stop_flag
+            stop_flag = False
+
+            # Use a thread to monitor the resource usage
+            def monitor():
+                peak_cpu = 0
+                peak_memory = 0
+                cpu_tracker = []
+                memory_tracker = []
+
+                process = psutil.Process(os.getpid())
+                while not stop_flag:
+                    cpu_percent = process.cpu_percent(interval=interval)
+                    memory_info = process.memory_info().rss
+
+                    cpu_tracker.append(cpu_percent)
+                    memory_tracker.append(memory_info)
+                    if len(cpu_tracker) > time_limit:
+                        cpu_tracker.pop(0)
+                        memory_tracker.pop(0)
+
+                    if cpu_percent > peak_cpu:
+                        peak_cpu = cpu_percent
+                    if memory_info > peak_memory:
+                        peak_memory = memory_info
+
+                print(f"Peak CPU usage: {peak_cpu:.2f}%")
+                print(f"Peak memory usage: {peak_memory/1024/1024:.2f} MB")
+
+            monitor_thread = threading.Thread(target=monitor)
+            monitor_thread.start()
+
+            try:
+                start_time = time.monotonic_ns()
+                result = func(*args, **kwargs)
+                end_time = time.monotonic_ns()
+                print(f"Execution time: {(end_time - start_time)/1e9:.6f} seconds")
+                return result
+            except Exception as e:
+                print(f"Error raised: {type(e).__name__}")
+                end_time = time.monotonic_ns()
+                print(f"Execution time: {(end_time - start_time)/1e9:.6f} seconds")
+                raise e
+            finally:
+                stop_flag = True
+                monitor_thread.join()
+
+        return wrapper
+
+    return decorator
+
+
 def islice(iterator, size):
     for i in range(size):
         yield next(iterator)
