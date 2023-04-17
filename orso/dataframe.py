@@ -10,7 +10,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import datetime
 import typing
+
+TYPE_MAP = {
+    bool: "BOOLEAN",
+    bytes: "BLOB",
+    datetime.date: "DATE",
+    datetime.datetime: "TIMESTAMP",
+    datetime.time: "TIME",
+    datetime.timedelta: "INTERVAL",
+    dict: "STRUCT",
+    float: "DOUBLE",
+    int: "INTEGER",
+    list: "ARRAY",
+    set: "ARRAY",
+    str: "VARCHAR",
+    tuple: "ARRAY",
+}
 
 
 class DataFrame:
@@ -204,8 +221,9 @@ class DataFrame:
         self,
         limit: int = 5,
         display_width: typing.Union[bool, int] = True,
-        max_column_width: int = 30,
+        max_column_width: int = 32,
         colorize: bool = True,
+        show_types: bool = True,
     ):
         from .display import ascii_table
 
@@ -215,6 +233,7 @@ class DataFrame:
             display_width=display_width,
             max_column_width=max_column_width,
             colorize=colorize,
+            show_types=show_types,
         )
 
     def markdown(self, limit: int = 5, max_column_width: int = 30):
@@ -259,7 +278,7 @@ class DataFrame:
             result.append(
                 (
                     column,
-                    column_data.get("type"),
+                    TYPE_MAP.get(column_data.get("type"), str(column_data.get("type"))),
                     None,
                     None,
                     None,
@@ -305,7 +324,10 @@ class DataFrame:
     def __str__(self) -> str:
         from .display import ascii_table
 
-        return ascii_table(self) + f"\n [ {self.rowcount} rows x {self.columncount} columns ]"
+        return (
+            ascii_table(self, show_types=True)
+            + f"\n [ {self.rowcount} rows x {self.columncount} columns ]"
+        )
 
     def __repr__(self) -> str:
         size: int = 10

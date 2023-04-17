@@ -237,3 +237,51 @@ def monitor(time_limit=10, interval=1):
 def islice(iterator, size):
     for i in range(size):
         yield next(iterator)
+
+
+def parquet_type_map(parquet_type):
+    import datetime
+    import decimal
+
+    from orso.exceptions import MissingDependencyError
+
+    try:
+        import pyarrow.lib as lib
+    except ImportError as import_error:
+        raise MissingDependencyError(import_error.name) from import_error
+
+    if parquet_type.id == lib.Type_NA:
+        return None
+    if parquet_type.id == lib.Type_BOOL:
+        return bool
+    if parquet_type.id in {lib.Type_STRING, lib.Type_LARGE_STRING}:
+        return str
+    if parquet_type.id in {
+        lib.Type_INT8,
+        lib.Type_INT16,
+        lib.Type_INT32,
+        lib.Type_INT64,
+        lib.Type_UINT8,
+        lib.Type_UINT16,
+        lib.Type_UINT32,
+        lib.Type_UINT64,
+    }:
+        return int
+    if parquet_type.id in {lib.Type_HALF_FLOAT, lib.Type_FLOAT, lib.Type_DOUBLE}:
+        return float
+    if parquet_type.id in {lib.Type_DECIMAL128, lib.Type_DECIMAL256}:
+        return decimal.Decimal
+    if parquet_type.id in {lib.Type_DATE32, lib.Type_DATE64, 18}:
+        return datetime.datetime
+    if parquet_type.id in {lib.Type_TIME32, lib.Type_TIME64}:
+        return datetime.time
+    if parquet_type.id == lib.Type_INTERVAL_MONTH_DAY_NANO:  # lib.Type_DURATION?
+        return datetime.timedelta
+    if parquet_type.id in {lib.Type_LIST, lib.Type_LARGE_LIST, lib.Type_FIXED_SIZE_LIST}:
+        return list
+    if parquet_type.id in {lib.Type_STRUCT, lib.Type_MAP}:
+        return dict
+    if parquet_type.id in {lib.Type_BINARY, lib.Type_LARGE_BINARY}:
+        return bytes
+    # _UNION_TYPES = {lib.Type_SPARSE_UNION, lib.Type_DENSE_UNION}
+    raise ValueError(f"Unable to map parquet type {parquet_type} ({parquet_type.id})")

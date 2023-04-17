@@ -41,29 +41,7 @@ def to_arrow(dataset, size=None):
 
 
 def from_arrow(tables, size=None):
-    try:
-        import pyarrow.lib as lib
-    except ImportError as import_error:
-        raise MissingDependencyError(import_error.name) from import_error
-
-    def _type_convert(field_type):
-        if field_type.id == lib.Type_BOOL:
-            return bool
-        if field_type.id == lib.Type_STRING:
-            return str
-        if field_type.id in {
-            lib.Type_INT8,
-            lib.Type_INT16,
-            lib.Type_INT32,
-            lib.Type_INT64,
-            lib.Type_UINT8,
-            lib.Type_UINT16,
-            lib.Type_UINT32,
-            lib.Type_UINT64,
-        }:
-            return int
-        if field_type.id in {lib.Type_HALF_FLOAT, lib.Type_FLOAT, lib.Type_DOUBLE}:
-            return float
+    from orso.tools import parquet_type_map
 
     def _peek(iterable):
         iter1, iter2 = itertools.tee(iterable)
@@ -87,7 +65,7 @@ def from_arrow(tables, size=None):
 
     schema = first_table.schema
     fields = {
-        str(field.name): {"type": _type_convert(field.type), "nullable": field.nullable}
+        str(field.name): {"type": parquet_type_map(field.type), "nullable": field.nullable}
         for field in schema
     }
 

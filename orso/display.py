@@ -28,6 +28,7 @@ COLORS = {
     "\001VARCHARm": "\033[38;2;255;184;108m",  # orange
     "\001CONSTm": "\033[38;2;139;233;253m\033[3m",  # cyan, italic
     "\001NULLm": "\033[38;2;98;114;164m\033[3m",  # grey, italic
+    "\001TYPEm": "\033[38;2;98;114;164m",  # grey,
     "\001VALUEm": "\033[38;2;139;233;253m",  # cyan
     "\001FLOATm": "\033[38;2;255;121;198m",  # pink
     "\001INTEGERm": "\033[38;2;189;147;249m",  # purple
@@ -151,6 +152,7 @@ def ascii_table(
     max_column_width: int = 30,
     colorize: bool = True,
     top_and_tail: bool = True,
+    show_types: bool = False,
 ):
     """
     Render the dictset as a ASCII table.
@@ -265,7 +267,15 @@ def ascii_table(
             max(list(map(len, map(str, [p for p in h if p is not None]))) + [4])
             for h in (t.collect(i) for i in range(t.columncount))
         ]
-        col_width = [min(max(cw, dw), max_column_width) for cw, dw in zip(col_width, data_width)]
+        col_types = [str(t.description[c][1]).lower() for c in range(len(t.column_names))]
+        if show_types:
+            col_type_width = list(map(len, col_types))
+        else:
+            col_type_width = [0] * len(col_types)
+        col_width = [
+            min(max(cw, ctw, dw), max_column_width)
+            for cw, ctw, dw in zip(col_width, col_type_width, data_width)
+        ]
 
         # Print data
         yield ("┌" + ("─" * index_width) + "┬─" + "─┬─".join("─" * cw for cw in col_width) + "─┐")
@@ -274,10 +284,21 @@ def ascii_table(
             + (" " * index_width)
             + "│ "
             + " │ ".join(
-                "\001HEADm" + v.ljust(w)[:w] + "\001OFFm" for v, w in zip(t.column_names, col_width)
+                "\001HEADm" + v.center(w)[:w] + "\001OFFm"
+                for v, w in zip(t.column_names, col_width)
             )
             + " │"
         )
+        if show_types:
+            yield (
+                "│"
+                + (" " * index_width)
+                + "│ "
+                + " │ ".join(
+                    "\001TYPEm" + v.center(w)[:w] + "\001OFFm" for v, w in zip(col_types, col_width)
+                )
+                + " │"
+            )
         yield ("╞" + ("═" * index_width) + "╪═" + "═╪═".join("═" * cw for cw in col_width) + "═╡")
         for i, row in enumerate(t):
             if top_and_tail and (len(t) + 1) < len(table):
