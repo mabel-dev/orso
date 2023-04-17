@@ -242,6 +242,8 @@ def ascii_table(
                 emit += "\001PUNCm↵\001VARCHARm"
                 offset += 1
                 continue
+            if char == "\r":
+                continue
             emit += char
             if char in ("\033", "\001"):
                 ignoring = True
