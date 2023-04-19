@@ -78,6 +78,11 @@ class Row(tuple):
         record_size = len(record_bytes)
         return b"\x00" + record_size.to_bytes(4, "big") + record_bytes
 
+    def to_json(self) -> bytes:
+        import orjson
+
+        return orjson.dumps(self.as_dict, default=str)
+
     @classmethod
     def create_class(cls, schema):
         row_class = type(
