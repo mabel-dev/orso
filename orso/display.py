@@ -303,13 +303,7 @@ def ascii_table(
         for i, row in enumerate(t):
             if top_and_tail and (len(t) + 1) < len(table):
                 if i == limit:
-                    yield (
-                        "│ "
-                        + ("\001PUNCm─\001OFFm" * (index_width - 2))
-                        + " │ "
-                        + " │ ".join("\001PUNCm─\001OFFm" * w for w in col_width)
-                        + " │"
-                    )
+                    yield "\001PUNCm...\001OFFm"
                 if i >= limit:
                     i += len(table) - (limit * 2)
             formatted = [type_formatter(v, w) for v, w in zip(row, col_width)]
