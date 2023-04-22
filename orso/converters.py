@@ -13,8 +13,6 @@
 import itertools
 import typing
 
-from orso import tools
-from orso.dataframe import DataFrame
 from orso.exceptions import MissingDependencyError
 from orso.row import Row
 
@@ -45,6 +43,8 @@ def from_arrow(tables, size=None):
     Convert an Arrow table or an iterable of Arrow tables to a generator of
     Python objects.
     """
+    from orso.tools import parquet_type_map
+
     if not isinstance(tables, (typing.Generator, list, tuple)):
         tables = [tables]
 
@@ -53,18 +53,17 @@ def from_arrow(tables, size=None):
 
     # Extract schema information from the first table
     first_table = next(tables)
+    if first_table is None:
+        return [], {}
+
     schema = first_table.schema
     fields = {
-        str(field.name): {"type": str(field.type), "nullable": field.nullable} for field in schema
+        str(field.name): {"type": parquet_type_map(field.type), "nullable": field.nullable}
+        for field in schema
     }
 
     # Create a generator of tuples from the columns
     row_factory = Row.create_class(fields)
-    #    rows = (
-    #        row_factory(col[i].as_py() for col in [table.column(j) for j in schema.names])
-    #        for table in itertools.chain([first_table], tables)
-    #        for i in range(table.num_rows)
-    #    )
 
     BATCH_SIZE: int = 10000
     if size:
@@ -74,9 +73,6 @@ def from_arrow(tables, size=None):
     for table in [first_table] + list(tables):
         batches = table.to_batches(max_chunksize=BATCH_SIZE)
         for batch in batches:
-            import time
-
-            print(".", time.time(), flush=True)
             column_data_dict = batch.to_pydict()
             column_data = [column_data_dict[name] for name in schema.names]
             new_rows = [tuple()] * batch.num_rows
