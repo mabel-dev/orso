@@ -41,45 +41,54 @@ def to_arrow(dataset, size=None):
 
 
 def from_arrow(tables, size=None):
-    from orso.tools import parquet_type_map
-
-    def _peek(iterable):
-        iter1, iter2 = itertools.tee(iterable)
-        try:
-            first = next(iter1)
-        except StopIteration:
-            return None, iter([])
-        else:
-            return first, iter2
-
+    """
+    Convert an Arrow table or an iterable of Arrow tables to a generator of
+    Python objects.
+    """
     if not isinstance(tables, (typing.Generator, list, tuple)):
         tables = [tables]
 
     if isinstance(tables, (list, tuple)):
         tables = iter(tables)
 
-    first_table, all_tables = _peek(tables)
-    if first_table is None:
-        # return nothing back
-        return [], {}
-
+    # Extract schema information from the first table
+    first_table = next(tables)
     schema = first_table.schema
     fields = {
-        str(field.name): {"type": parquet_type_map(field.type), "nullable": field.nullable}
-        for field in schema
+        str(field.name): {"type": str(field.type), "nullable": field.nullable} for field in schema
     }
 
     # Create a generator of tuples from the columns
     row_factory = Row.create_class(fields)
-    rows = (
-        (row_factory(col[i].as_py() for col in [table.column(j) for j in schema.names]))
-        for table in all_tables
-        for i in range(table.num_rows)
-    )
+    #    rows = (
+    #        row_factory(col[i].as_py() for col in [table.column(j) for j in schema.names])
+    #        for table in itertools.chain([first_table], tables)
+    #        for i in range(table.num_rows)
+    #    )
+
+    BATCH_SIZE: int = 10000
+    if size:
+        BATCH_SIZE = min(size, BATCH_SIZE)
+
+    rows = []
+    for table in [first_table] + list(tables):
+        batches = table.to_batches(max_chunksize=BATCH_SIZE)
+        for batch in batches:
+            import time
+
+            print(".", time.time(), flush=True)
+            column_data_dict = batch.to_pydict()
+            column_data = [column_data_dict[name] for name in schema.names]
+            new_rows = [tuple()] * batch.num_rows
+            for i, row_data in enumerate(zip(*column_data)):
+                new_rows[i] = row_factory(row_data)
+            rows.extend(new_rows)
+            if size and len(rows) >= size:
+                break
 
     # Limit the number of rows to 'size'
     if size:
-        rows = tools.islice(rows, size)
+        rows = itertools.islice(rows, size)
 
     return rows, fields
 
