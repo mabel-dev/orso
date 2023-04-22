@@ -52,7 +52,7 @@ def from_arrow(tables, size=None):
         tables = iter(tables)
 
     # Extract schema information from the first table
-    first_table = next(tables)
+    first_table = next(tables, None)
     if first_table is None:
         return [], {}
 
