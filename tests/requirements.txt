@@ -5,3 +5,4 @@ pytest
 pandas
 polars
 pyarrow
+opteryx
