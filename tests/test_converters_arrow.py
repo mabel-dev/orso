@@ -4,6 +4,8 @@ import sys
 import pyarrow
 
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
+sys.path.insert(1, os.path.join(sys.path[0], "../.."))
+sys.path.insert(1, os.path.join(sys.path[0], "../../opteryx"))
 
 from orso import converters
 from orso.dataframe import DataFrame
@@ -112,9 +114,39 @@ def test_from_arrow_none():
     assert schema == {}
 
 
+def test_opteryx_arrow_small():
+    import opteryx
+    import orso
+
+    planets = opteryx.query("SELECT * FROM $planets")
+    planets_arrow = planets.arrow()
+    assert isinstance(planets_arrow, pyarrow.Table)
+    assert planets_arrow.shape == (9, 20)
+
+    planets2 = orso.DataFrame.from_arrow(planets_arrow)
+    assert isinstance(planets2, orso.DataFrame)
+    assert planets2.shape == (9, 20)
+
+
+def test_opteryx_arrow_medium():
+    import opteryx
+    import orso
+
+    fake = opteryx.query("SELECT * FROM FAKE(100000, 100);")
+    fake_arrow = fake.arrow()
+    assert isinstance(fake_arrow, pyarrow.Table)
+    assert fake_arrow.shape == (100000, 100)
+
+    fake2 = orso.DataFrame.from_arrow(fake_arrow)
+    assert isinstance(fake2, orso.DataFrame)
+    assert fake2.shape == (9, 20)
+
+
 if __name__ == "__main__":  # pragma: no cover
     test_from_arrow()
     test_from_arrow_with_single_table()
     test_from_arrow_with_multiple_tables()
     test_from_arrow_none()
+    test_opteryx_arrow_small()
+    test_opteryx_arrow_medium()
     print("✅ okay")

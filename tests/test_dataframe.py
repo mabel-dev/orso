@@ -8,6 +8,7 @@ sys.path.insert(1, os.path.join(sys.path[0], ".."))
 import orso
 from orso.dataframe import DataFrame
 from orso.row import Row
+from tests.cities import cities_list
 
 print(dir(orso))
 
@@ -72,37 +73,13 @@ def test_dataframe_len():
 
 
 def test_dataframe_user_init():
-    # fmt:off
-    cities = [
-        {"name": "Tokyo", "population": 13929286, "country": "Japan", "founded": "1457", "area": 2191, "language": "Japanese"},
-        {"name": "London", "population": 8982000, "country": "United Kingdom", "founded": "43 AD", "area": 1572, "language": "English"},
-        {"name": "New York City", "population": 8399000, "country": "United States", "founded": "1624", "area": 468.9, "language": "English"},
-        {"name": "Mumbai", "population": 18500000, "country": "India", "founded": "7th century BC", "area": 603.4, "language": "Hindi, English"},
-        {"name": "Cape Town", "population": 433688, "country": "South Africa", "founded": "1652", "area": 400, "language": "Afrikaans, English"},
-        {"name": "Paris", "population": 2148000, "country": "France", "founded": "3rd century BC", "area": 105.4, "language": "French"},
-        {"name": "Beijing", "population": 21710000, "country": "China", "founded": "1045", "area": 16410.54, "language": "Mandarin"},
-        {"name": "Rio de Janeiro", "population": 6747815, "country": "Brazil", "founded": "1 March 1565", "area": 1264, "language": "Portuguese"}
-    ]
-    # fmt:on
-    df = DataFrame(cities)
+    df = DataFrame(cities_list)
     assert df.column_names == ("name", "population", "country", "founded", "area", "language")
-    assert df.rowcount == 8
+    assert df.rowcount == 20
 
 
 def test_dataframe_head():
-    # fmt:off
-    cities = [
-        {"name": "Tokyo", "population": 13929286, "country": "Japan", "founded": "1457", "area": 2191, "language": "Japanese"},
-        {"name": "London", "population": 8982000, "country": "United Kingdom", "founded": "43 AD", "area": 1572, "language": "English"},
-        {"name": "New York City", "population": 8399000, "country": "United States", "founded": "1624", "area": 468.9, "language": "English"},
-        {"name": "Mumbai", "population": 18500000, "country": "India", "founded": "7th century BC", "area": 603.4, "language": "Hindi, English"},
-        {"name": "Cape Town", "population": 433688, "country": "South Africa", "founded": "1652", "area": 400, "language": "Afrikaans, English"},
-        {"name": "Paris", "population": 2148000, "country": "France", "founded": "3rd century BC", "area": 105.4, "language": "French"},
-        {"name": "Beijing", "population": 21710000, "country": "China", "founded": "1045", "area": 16410.54, "language": "Mandarin"},
-        {"name": "Rio de Janeiro", "population": 6747815, "country": "Brazil", "founded": "1 March 1565", "area": 1264, "language": "Portuguese"}
-    ]
-    # fmt:on
-    df = DataFrame(cities)
+    df = DataFrame(cities_list)
 
     # Test default head() behavior (first 5 rows)
     head = df.head()
@@ -116,29 +93,17 @@ def test_dataframe_head():
 
 
 def test_dataframe_tail():
-    # fmt:off
-    cities = [
-        {"name": "Tokyo", "population": 13929286, "country": "Japan", "founded": "1457", "area": 2191, "language": "Japanese"},
-        {"name": "London", "population": 8982000, "country": "United Kingdom", "founded": "43 AD", "area": 1572, "language": "English"},
-        {"name": "New York City", "population": 8399000, "country": "United States", "founded": "1624", "area": 468.9, "language": "English"},
-        {"name": "Mumbai", "population": 18500000, "country": "India", "founded": "7th century BC", "area": 603.4, "language": "Hindi, English"},
-        {"name": "Cape Town", "population": 433688, "country": "South Africa", "founded": "1652", "area": 400, "language": "Afrikaans, English"},
-        {"name": "Paris", "population": 2148000, "country": "France", "founded": "3rd century BC", "area": 105.4, "language": "French"},
-        {"name": "Beijing", "population": 21710000, "country": "China", "founded": "1045", "area": 16410.54, "language": "Mandarin"},
-        {"name": "Rio de Janeiro", "population": 6747815, "country": "Brazil", "founded": "1 March 1565", "area": 1264, "language": "Portuguese"}
-    ]
-    # fmt:on
-    df = DataFrame(cities)
+    df = DataFrame(cities_list)
 
     # Test default tail() behavior (last 5 rows)
     head = df.tail()
     assert head.rowcount == 5
-    assert head.row(0)[0] == "Mumbai"
+    assert head.row(0)[0] == "Dubai", head.row(0)[0]
 
     # Test tail() with size parameter
     head = df.tail(3)
     assert head.rowcount == 3
-    assert head.row(0)[0] == "Paris"
+    assert head.row(0)[0] == "Stockholm", head.row(0)[0]
 
 
 def test_dataframe_filter():
