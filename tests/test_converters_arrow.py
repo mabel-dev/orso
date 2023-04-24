@@ -139,7 +139,7 @@ def test_opteryx_arrow_medium():
 
     fake2 = orso.DataFrame.from_arrow(fake_arrow)
     assert isinstance(fake2, orso.DataFrame)
-    assert fake2.shape == (9, 20)
+    assert fake2.shape == (100000, 100)
 
 
 if __name__ == "__main__":  # pragma: no cover
