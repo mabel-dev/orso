@@ -29,7 +29,7 @@ TYPE_MAP = {
     "date": "DATE",
     "datetime": "TIMESTAMP",
     "dict": "STRUCT",
-    "float": "FLOAT",
+    "float": "DOUBLE",
     "int": "INTEGER",
     "list": "ARRAY",
     "str": "VARCHAR",
