@@ -75,7 +75,7 @@ def from_arrow(tables, size=None):
         for batch in batches:
             column_data_dict = batch.to_pydict()
             column_data = [column_data_dict[name] for name in schema.names]
-            new_rows = [tuple()] * batch.num_rows
+            new_rows: typing.Iterable = [tuple()] * batch.num_rows
             for i, row_data in enumerate(zip(*column_data)):
                 new_rows[i] = row_factory(row_data)
             rows.extend(new_rows)

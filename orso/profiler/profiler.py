@@ -49,7 +49,7 @@ def table_profiler(dataframe):
     """
     Collect summary statistics about each column
     """
-    from orso.profiler.distogram import Distogram
+    from orso.profiler.distogram import Distogram  # type:ignore
 
     empty_profile = orjson.dumps(
         {

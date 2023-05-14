@@ -118,7 +118,7 @@ def repeat(number_of_times: int = None, capture_results: bool = False):
     return decorate
 
 
-def monitor(func):
+def counter(func):
     """
     Add an execution counter and timer to a function
     """
