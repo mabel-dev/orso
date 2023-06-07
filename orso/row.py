@@ -11,7 +11,7 @@
 # limitations under the License.
 
 # ---------------------------------------------------------------------------------
-# Our record when saved looks like this
+# Our record when converted to bytes looks like this
 #
 #   ┌───────┬───────────┬────────────┐
 #   │ flags | row_size  │ row values │
@@ -21,9 +21,6 @@
 #
 # Row object looks and acts like a Tuple where possible, but has additional features
 # such as as_dict() to render as a dictionary.
-
-from ormsgpack import packb
-from ormsgpack import unpackb
 
 
 def extract_columns(table, columns):
@@ -40,7 +37,7 @@ def extract_columns(table, columns):
 
 class Row(tuple):
     __slots__ = ()
-    _fields: list = []
+    _fields: tuple = None
 
     def __new__(cls, data):
         return super().__new__(cls, data)
@@ -70,10 +67,14 @@ class Row(tuple):
 
     @classmethod
     def from_bytes(cls, data: bytes) -> tuple:
+        from ormsgpack import unpackb
+
         unpacked_values = unpackb(data)
         return cls(unpacked_values)
 
     def to_bytes(self) -> bytes:
+        from ormsgpack import packb
+
         record_bytes = packb(tuple(self))
         record_size = len(record_bytes)
         return b"\x00" + record_size.to_bytes(4, "big") + record_bytes
@@ -85,7 +86,4 @@ class Row(tuple):
 
     @classmethod
     def create_class(cls, schema):
-        row_class = type(
-            "RowClass", (Row,), {"_fields": [field for field in schema], "_schema": schema}
-        )
-        return row_class
+        return type("RowFactory", (Row,), {"_fields": tuple(schema)})
