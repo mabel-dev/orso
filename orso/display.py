@@ -221,17 +221,34 @@ def ascii_table(
                 + "}\001OFFm"
             )
             return trunc_printable(value, width)
-        if isinstance(value, datetime.timedelta):
-            new_days, seconds = divmod(value.seconds, 24 * 60 * 60)
-            total_days = value.days + new_days
-            microseconds = str(value.microseconds).zfill(6)[:2]
-            value = f"\001INTERVALm{total_days}d, {seconds}.{microseconds}s\001OFFm"
-            return trunc_printable(value, width)
-        if hasattr(value, "nanoseconds"):  # don't import pyarrow just to do this test
+        if hasattr(value, "days"):
             # MonthDayNano is a superclass of list, do before list
-            value = (
-                f"\001INTERVALm{value.months}m, {value.days}d, {value.nanoseconds/1e9:.2f}s\001OFFm"
-            )
+            if isinstance(value, datetime.timedelta):
+                days = value.days
+                months = 0
+                seconds = value.microseconds / 1e6 + value.seconds
+            else:
+                days = value.days
+                months = value.months
+                seconds = value.nanoseconds / 1e9
+
+            hours, seconds = divmod(seconds, 3600)
+            minutes, seconds = divmod(seconds, 60)
+            years, months = divmod(months, 12)
+            parts = []
+            if years >= 1:
+                parts.append(f"{int(years)}y")
+            if months >= 1:
+                parts.append(f"{int(months)}mo")
+            if days >= 1:
+                parts.append(f"{int(days)}d")
+            if hours >= 1:
+                parts.append(f"{int(hours)}h")
+            if minutes >= 1:
+                parts.append(f"{int(minutes)}m")
+            if seconds > 0:
+                parts.append(f"{seconds:.2f}s")
+            value = f"\001INTERVALm{' '.join(parts)}\001OFFm"
             return trunc_printable(value, width)
         if isinstance(value, (list, tuple)):
             value = (

@@ -10,5 +10,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__: str = "0.0.64"
+__version__: str = "0.0.65"
 __author__: str = "@joocer"
