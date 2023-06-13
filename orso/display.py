@@ -37,7 +37,7 @@ COLORS = {
     "\001TIMEm": "\033[38;2;26;185;67m",  # non-std green
     "\001KEYm": "\033[38;2;189;147;249m",  # purple
     "\001BLOBm": "\033[38;5;228m",  # yellow
-    "\001INTERVALm": "\033[38;5;203m",  # red
+    "\001INTERVALm": "\033[38;2;255;85;85m",  # pink
     # an orange color - 222
     # a red color = 209
     # Regular Colors
@@ -199,6 +199,7 @@ def ascii_table(
         if value is None:
             return "\001NULLm" + "null".rjust(width)[:width] + "\001OFFm"
         if isinstance(value, bool):
+            # bool is a superclass of int, do before the int test
             return "\001CONSTm" + str(value).rjust(width)[:width] + "\001OFFm"
         if isinstance(value, int):
             return "\001INTEGERm" + str(value).rjust(width)[:width] + "\001OFFm"
@@ -211,13 +212,6 @@ def ascii_table(
             return "\001DATEm" + trunc_printable(value.rjust(width), width) + "\001OFFm"
         if isinstance(value, (bytes, bytearray)):
             return "\001BLOBm" + trunc_printable(str(value).ljust(width), width) + "\001OFFm"
-        if isinstance(value, (list, tuple)):
-            value = (
-                "\001PUNCm['\001VALUEm"
-                + "\001PUNCm', '\001VALUEm".join(map(str, value))
-                + "\001PUNCm']\001OFFm"
-            )
-            return trunc_printable(value, width)
         if isinstance(value, dict):
             value = (
                 "\001PUNCm{"
@@ -225,6 +219,25 @@ def ascii_table(
                     f"'\001KEYm{k}\001PUNCm':'\001VALUEm{v}\001PUNCm'" for k, v in value.items()
                 )
                 + "}\001OFFm"
+            )
+            return trunc_printable(value, width)
+        if isinstance(value, datetime.timedelta):
+            new_days, seconds = divmod(value.seconds, 24 * 60 * 60)
+            total_days = value.days + new_days
+            microseconds = str(value.microseconds).zfill(6)[:2]
+            value = f"\001INTERVALm{total_days}d, {seconds}.{microseconds}s\001OFFm"
+            return trunc_printable(value, width)
+        if hasattr(value, "nanoseconds"):  # don't import pyarrow just to do this test
+            # MonthDayNano is a superclass of list, do before list
+            value = (
+                f"\001INTERVALm{value.months}m, {value.days}d, {value.nanoseconds/1e9:.2f}s\001OFFm"
+            )
+            return trunc_printable(value, width)
+        if isinstance(value, (list, tuple)):
+            value = (
+                "\001PUNCm['\001VALUEm"
+                + "\001PUNCm', '\001VALUEm".join(map(str, value))
+                + "\001PUNCm']\001OFFm"
             )
             return trunc_printable(value, width)
         return str(value).ljust(width)[:width]
