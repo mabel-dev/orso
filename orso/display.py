@@ -25,7 +25,7 @@ COLORS = {
     # Opteryx named colors
     "\001PUNCm": "\033[38;5;102m",
     "\001HEADm": "\033[1m",
-    "\001VARCHARm": "\033[38;2;255;184;108m",  # orange
+    "\001VARCHARm": "\033[38;2;255;171;82m",  # orange
     "\001CONSTm": "\033[38;2;139;233;253m\033[3m",  # cyan, italic
     "\001NULLm": "\033[38;2;98;114;164m\033[3m",  # grey, italic
     "\001TYPEm": "\033[38;2;98;114;164m",  # grey,
@@ -36,7 +36,7 @@ COLORS = {
     "\001TIMESTAMPm": "\033[38;2;80;250;123m",  # green
     "\001TIMEm": "\033[38;2;26;185;67m",  # non-std green
     "\001KEYm": "\033[38;2;189;147;249m",  # purple
-    "\001BLOBm": "\033[38;5;228m",  # yellow
+    "\001BLOBm": "\033[38;2;241;250;140m",  # yellow
     "\001INTERVALm": "\033[38;2;255;85;85m",  # pink
     # an orange color - 222
     # a red color = 209
