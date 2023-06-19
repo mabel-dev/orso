@@ -16,3 +16,7 @@ class MissingDependencyError(Exception):
         self.dependency = dependency
         message = f"No module named '{dependency}' can be found, please install or include in requirements.txt"
         super().__init__(message)
+
+
+class DataError(Exception):
+    pass
