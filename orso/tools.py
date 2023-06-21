@@ -176,7 +176,12 @@ def monitor(time_limit=10, interval=1):
     import threading
     import time
 
-    import psutil
+    from orso.exceptions import MissingDependencyError
+
+    try:
+        import psutil
+    except ImportError as import_error:
+        raise MissingDependencyError(import_error.name) from import_error
 
     def decorator(func):
         stop_flag = False
