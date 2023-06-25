@@ -10,36 +10,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
+
 import typing
 
-TYPE_MAP = {
-    bool: "BOOLEAN",
-    bytes: "BLOB",
-    datetime.date: "DATE",
-    datetime.datetime: "TIMESTAMP",
-    datetime.time: "TIME",
-    datetime.timedelta: "INTERVAL",
-    dict: "STRUCT",
-    float: "DOUBLE",
-    int: "INTEGER",
-    list: "ARRAY",
-    set: "ARRAY",
-    str: "VARCHAR",
-    tuple: "ARRAY",
-}
+from orso.schema import RelationSchema
 
 
 class DataFrame:
-    __slots__ = ("_schema", "_rows", "_cursor", "arraysize")
+    __slots__ = ("_schema", "_rows", "_cursor", "arraysize", "_row_factory")
 
     def __init__(
         self,
-        dictionaries=None,
+        dictionaries: typing.Optional[typing.List[dict]] = None,
         *,
         rows: typing.Union[typing.Generator, list, None] = None,
-        schema: dict = None,
+        schema: typing.Optional[RelationSchema] = None,
     ):
+        from orso import Row
+
         if dictionaries is not None:
             if schema is not None or rows is not None:
                 raise ValueError(
@@ -47,8 +35,6 @@ class DataFrame:
                 )
 
             from itertools import chain
-
-            from orso import Row
 
             # make the list of dicts iterable
             dicts = iter(dictionaries)
@@ -58,17 +44,18 @@ class DataFrame:
             first_dict = next(dicts)
             self._schema = {name: {"type": type(value)} for name, value in first_dict.items()}
 
-            row_factory = Row.create_class(self._schema)
+            self._row_factory = Row.create_class(self._schema)
             # create a list of tuples
             self._rows: list = (  # type:ignore
-                row_factory([row.get(k) for k in first_dict.keys()])
+                self._row_factory([row.get(k) for k in first_dict.keys()])
                 for row in chain([first_dict], dicts)
             )
         else:
             self._schema = schema
             self._rows = rows  # type:ignore
+            self._row_factory = Row.create_class(self._schema)
         self.arraysize = 100
-        self._cursor = iter(self._rows)
+        self._cursor = iter(self._rows or [])
 
     def __new__(cls, *args, **kwargs):
         return super().__new__(cls)
@@ -94,6 +81,17 @@ class DataFrame:
         from orso.converters import to_polars
 
         return to_polars(self, size)
+
+    def nbytes(self):
+        self.materialize()
+        for row in self._rows:
+            size += len(row.to_bytes())
+        return size
+
+    def append(self, entry):
+        self._schema.validate(entry)
+        self._rows.append(self._row_factory(entry))
+        self._cursor = None
 
     def head(self, size: int = 5):
         return self.slice(0, size)
@@ -135,7 +133,7 @@ class DataFrame:
 
     def materialize(self):
         if not isinstance(self._rows, list):
-            self._rows = list(self._rows)
+            self._rows = list(self._rows or [])
 
     def distinct(self):
         hash_list = {}
@@ -198,12 +196,16 @@ class DataFrame:
         return self._rows[i]
 
     def fetchone(self):
+        if self._cursor is None:
+            raise Exception("Cannot use fetchone and append on the same DataFrame")
         try:
             return next(self._cursor)
         except StopIteration:
             return None
 
     def fetchmany(self, size=None):
+        if self._cursor is None:
+            raise Exception("Cannot use fetchmany and append on the same DataFrame")
         fetch_size = self.arraysize if size is None else size
         entries = []
         for i in range(fetch_size):
@@ -215,6 +217,8 @@ class DataFrame:
         return entries
 
     def fetchall(self):
+        if self._cursor is None:
+            raise Exception("Cannot use fetchall and append on the same DataFrame")
         return list(self._cursor)
 
     def display(

@@ -135,7 +135,7 @@ def test_opteryx_arrow_medium():
     fake = opteryx.query("SELECT * FROM FAKE(100000, 100);")
     fake_arrow = fake.arrow()
     assert isinstance(fake_arrow, pyarrow.Table)
-    assert fake_arrow.shape == (100000, 100)
+    assert fake_arrow.shape == (100000, 100), fake_arrow.shape
 
     fake2 = orso.DataFrame.from_arrow(fake_arrow)
     assert isinstance(fake2, orso.DataFrame)

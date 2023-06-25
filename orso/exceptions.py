@@ -14,9 +14,24 @@
 class MissingDependencyError(Exception):
     def __init__(self, dependency):
         self.dependency = dependency
-        message = f"No module named '{dependency}' can be found, please install or include in requirements.txt"
+        message = f"No module named '{dependency}' can be found, "
+        "please install or include in requirements.txt"
         super().__init__(message)
 
 
 class DataError(Exception):
     pass
+
+
+class DataValidationError(DataError):
+    def __init__(self, column, value, error):
+        self.field = column.name
+        self.expected_type = column.type
+        self.value = value
+        self.nullable = column.nullable
+        self.error = error
+        message = f"Data did not pass validation checks; field `{self.field}` "
+        f"with value `{str(value)[16:]}` did not pass "
+        f"`{column.type}` {'(nullable)' if self.nullable else ''} check. "
+        f"({error})"
+        super().__init__(message)

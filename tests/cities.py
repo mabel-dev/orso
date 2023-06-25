@@ -1,4 +1,4 @@
-cities_list: list = [
+values: list = [
     {
         "name": "Tokyo",
         "population": 13929286,
@@ -160,3 +160,18 @@ cities_list: list = [
         "language": "Italian",
     },
 ]
+
+from orso.schema import RelationSchema, FlatColumn
+from orso.types import OrsoTypes
+
+schema = RelationSchema(
+    name="cities",
+    columns=[
+        FlatColumn(name="name", type=OrsoTypes.VARCHAR, nullable=False),
+        FlatColumn(name="population", type=OrsoTypes.INTEGER),
+        FlatColumn(name="country", type=OrsoTypes.VARCHAR, nullable=False),
+        FlatColumn(name="founded", type=OrsoTypes.VARCHAR, nullable=True),
+        FlatColumn(name="area", type=OrsoTypes.DOUBLE),
+        FlatColumn(name="language", type=OrsoTypes.VARCHAR),
+    ],
+)

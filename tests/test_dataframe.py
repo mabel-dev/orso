@@ -2,15 +2,15 @@ import os
 import sys
 
 import pyarrow
+import pytest
 
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
 import orso
 from orso.dataframe import DataFrame
+from orso.exceptions import DataValidationError
 from orso.row import Row
-from tests.cities import cities_list
-
-print(dir(orso))
+from tests import cities
 
 
 def create_schema():
@@ -73,13 +73,13 @@ def test_dataframe_len():
 
 
 def test_dataframe_user_init():
-    df = DataFrame(cities_list)
+    df = DataFrame(cities.values)
     assert df.column_names == ("name", "population", "country", "founded", "area", "language")
     assert df.rowcount == 20
 
 
 def test_dataframe_head():
-    df = DataFrame(cities_list)
+    df = DataFrame(cities.values)
 
     # Test default head() behavior (first 5 rows)
     head = df.head()
@@ -93,7 +93,7 @@ def test_dataframe_head():
 
 
 def test_dataframe_tail():
-    df = DataFrame(cities_list)
+    df = DataFrame(cities.values)
 
     # Test default tail() behavior (last 5 rows)
     head = df.tail()
@@ -198,6 +198,61 @@ def test_to_arrow_with_size():
     assert table.num_rows == 0, table
 
 
+def test_appending():
+    df = orso.DataFrame(schema=cities.schema)
+
+    assert len(df) == 0
+    # valid data item
+    df.append(
+        {
+            "name": "Perth",
+            "population": 2059484,
+            "country": "Australia",
+            "founded": "1829",
+            "area": 6412.3,
+            "language": "English",
+        }
+    )
+    assert len(df) == 1
+
+    # founded is nullable
+    df.append(
+        {
+            "name": "Hobart",
+            "population": 240342,
+            "country": "Australia",
+            "founded": None,  # actually 1804,
+            "area": 1357.7,
+            "language": "English",
+        }
+    )
+    # country is not nullable
+    with pytest.raises(DataValidationError):
+        df.append(
+            {
+                "name": "Darwin",
+                "population": 147255,
+                "country": None,
+                "founded": "1869",
+                "area": 112.01,
+                "language": "English",
+            }
+        )
+
+    # population is an int
+    with pytest.raises(DataValidationError):
+        df.append(
+            {
+                "name": "Brisbane",
+                "population": "2470394",  # is an int
+                "country": "Australia",
+                "founded": "1824",
+                "area": 5905.9,
+                "language": "English",
+            }
+        )
+
+
 if __name__ == "__main__":  # prgama: nocover
     test_dataframe_materialize()
     test_dataframe_collect()
@@ -212,5 +267,6 @@ if __name__ == "__main__":  # prgama: nocover
     test_to_arrow_with_size()
     test_dataframe_head()
     test_dataframe_tail()
+    test_appending()
 
     print("✅ okay")

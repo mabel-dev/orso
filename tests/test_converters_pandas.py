@@ -4,13 +4,13 @@ import sys
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
 from orso.dataframe import DataFrame
-from tests.cities import cities_list
+from tests import cities
 
 
 def test_to_pandas():
     import pandas
 
-    odf = DataFrame(cities_list)
+    odf = DataFrame(cities.values)
     pdf = odf.pandas()
 
     assert len(pdf) == 20

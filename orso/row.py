@@ -103,8 +103,8 @@ class Row(tuple):
         record_bytes = packb(tuple(self))
         parity = reduce(operator.xor, record_bytes, 0)
         record_size = len(record_bytes)
-        if record_size > 1024 * 1024:
-            raise DataError("Record too large")
+        if record_size > 16 * 1024 * 1024:
+            raise DataError("Record length cannot exceed 16Mb")
         return b"\x10" + parity.to_bytes(1, "big") + record_size.to_bytes(4, "big") + record_bytes
 
     def to_json(self) -> bytes:
@@ -114,4 +114,10 @@ class Row(tuple):
 
     @classmethod
     def create_class(cls, schema):
-        return type("RowFactory", (Row,), {"_fields": tuple(schema)})
+        from orso.schema import RelationSchema
+
+        if isinstance(schema, RelationSchema):
+            fields = tuple(c.name for c in schema.columns)
+        else:
+            fields = tuple(schema)
+        return type("RowFactory", (Row,), {"_fields": fields})
