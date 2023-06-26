@@ -18,6 +18,7 @@ from enum import Enum
 import numpy
 
 from orso.exceptions import DataValidationError
+from orso.tools import random_string
 from orso.types import ORSO_TO_PYTHON_MAP
 from orso.types import OrsoTypes
 
@@ -38,6 +39,7 @@ class FlatColumn:
     aliases: typing.Optional[typing.List[str]] = field(default_factory=list)
     nullable: bool = True
     expectations: typing.Optional[list] = field(default_factory=list)
+    identity: str = field(default_factory=random_string)
 
 
 @dataclass

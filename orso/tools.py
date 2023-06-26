@@ -11,6 +11,7 @@
 # limitations under the License.
 
 from functools import wraps
+from random import getrandbits
 
 
 def retry(
@@ -290,3 +291,21 @@ def parquet_type_map(parquet_type):
         return bytes
     # _UNION_TYPES = {lib.Type_SPARSE_UNION, lib.Type_DENSE_UNION}
     raise ValueError(f"Unable to map parquet type {parquet_type} ({parquet_type.id})")
+
+
+def random_int() -> int:
+    """
+    Select a random integer (32bit)
+    """
+    return getrandbits(32)
+
+
+def random_string(width: int = 16):
+    """
+    I've not been able to find a faster way to generate short random strings.
+    """
+    num_chars = ((width + 1) >> 1) << 3  # Convert length to number of bits
+    rand_bytes = getrandbits(num_chars)  # Generate random bytes
+    # Convert to hex string and truncate to desired length
+    rand_hex = hex(rand_bytes)[2 : width + 2]
+    return rand_hex

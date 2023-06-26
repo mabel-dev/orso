@@ -13,9 +13,9 @@
 
 Orso is not intended to compete with [Polars](https://www.pola.rs/) or [Pandas](https://pandas.pydata.org/) (or your favorite ~~bear~~ DataFrame technology), instead it is developed as a common layer for HadroDB and Opteryx.
 
-In Opteryx, orso provides much of the functionality of the Cursor.
+In Opteryx, Orso provides much of the functionality of the Cursor.
 
-In HadroDB, orso provides functionality for handling datasets.
+In HadroDB, Orso provides functionality for handling datasets.
 
 ## License
 
@@ -25,13 +25,13 @@ Orso is licensed under Apache 2.0 unless explicitly indicated otherwise.
 
 ## Status
 
-[![Status](https://img.shields.io/badge/Status-alpha-orange)](https://github.com/mabel-dev/orso)
+[![Status](https://img.shields.io/badge/Status-beta-orange)](https://github.com/mabel-dev/orso)
 
-Orso is in alpha. Alpha means different things to different people, to us, being alpha means:
+Orso is in beta. Beta means different things to different people, to us, being beta means:
 
-- Interfaces may be significantly changed
-- Expected functionality is missing
-- Things that worked yesterday, don't work today
-- The results of the system may be unreliable
+- Interfaces are generally stable but may still have breaking changes
+- Unit test are not reliable enough to capture breaks to functionality
+- Bugs are likely to exist in edge cases
+- Code may not be tuned for performance
 
-As such, we really don't recommend using Orso anywhere where your data matters.
+As such, we really don't recommend using Orso in critical applications.
