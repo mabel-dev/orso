@@ -18,6 +18,18 @@ class DataProfile(orso.DataFrame):
     def from_dataset(cls, dataset):
         _profile = table_profiler(dataset)
         profile = cls(_profile)
+        profile._schema = {
+            "name": {"type": str},
+            "type": {"type": str},
+            "count": {"type": int},
+            "missing": {"type": int},
+            "most_frequent_values": {"type": list},
+            "most_frequent_counts": {"type": list},
+            "numeric_range": {"type": list},
+            "varchar_range": {"type": list},
+            "distogram_values": {"type": list},
+            "distogram_counts": {"type": list},
+        }
         return profile
 
 
@@ -184,8 +196,8 @@ def table_profiler(dataframe):
                         numpy.double(dgram.max),
                     )
                     profile["distogram_values"], profile["distogram_counts"] = zip(*dgram.bins)
-                    profile["distogram_values"] = numpy.array(
-                        profile["distogram_values"], numpy.double
+                    profile["distogram_values"] = list(
+                        numpy.array(profile["distogram_values"], numpy.double)
                     )
 
                 counter = profile.pop("counter", None)

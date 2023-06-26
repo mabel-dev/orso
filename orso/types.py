@@ -32,18 +32,19 @@ class OrsoTypes(str, Enum):
     VARCHAR = "VARCHAR"
 
 
-PYTHON_TO_ORSO_MAP: dict = {
-    bool: OrsoTypes.BOOLEAN,
-    bytes: OrsoTypes.BLOB,
-    datetime.date: OrsoTypes.DATE,
-    datetime.datetime: OrsoTypes.TIMESTAMP,
-    datetime.time: OrsoTypes.TIME,
-    datetime.timedelta: OrsoTypes.INTERVAL,
-    dict: OrsoTypes.STRUCT,
-    float: OrsoTypes.DOUBLE,
-    int: OrsoTypes.INTEGER,
-    list: OrsoTypes.ARRAY,
-    str: OrsoTypes.VARCHAR,
+ORSO_TO_PYTHON_MAP: dict = {
+    OrsoTypes.BOOLEAN: bool,
+    OrsoTypes.BLOB: bytes,
+    OrsoTypes.DATE: datetime.date,
+    OrsoTypes.TIMESTAMP: datetime.datetime,
+    OrsoTypes.TIME: datetime.time,
+    OrsoTypes.INTERVAL: datetime.timedelta,
+    OrsoTypes.STRUCT: dict,
+    OrsoTypes.DOUBLE: float,
+    OrsoTypes.INTEGER: int,
+    OrsoTypes.ARRAY: list,
+    OrsoTypes.VARCHAR: str,
 }
 
-ORSO_TO_PYTHON_MAP: dict = {value: key for key, value in PYTHON_TO_ORSO_MAP.items()}
+PYTHON_TO_ORSO_MAP: dict = {value: key for key, value in ORSO_TO_PYTHON_MAP.items()}
+PYTHON_TO_ORSO_MAP.update({tuple: OrsoTypes.ARRAY, set: OrsoTypes.ARRAY})

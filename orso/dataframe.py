@@ -276,13 +276,16 @@ class DataFrame:
         scale
         null_ok
         """
+        from orso.types import PYTHON_TO_ORSO_MAP
+
         result = []
         for column in self.column_names:
             column_data = self._schema.get(column, {})
+            data_type = PYTHON_TO_ORSO_MAP.get(column_data.get("type"))
             result.append(
                 (
                     column,
-                    TYPE_MAP.get(column_data.get("type"), str(column_data.get("type"))),
+                    None if data_type is None else data_type.name,
                     None,
                     None,
                     None,

@@ -253,6 +253,24 @@ def test_appending():
         )
 
 
+def test_profile():
+    df = create_dataframe()
+    profile = df.profile
+    print(profile)
+    assert isinstance(profile, DataFrame)
+
+
+def test_describe():
+    df = create_dataframe()
+    desc = df.description
+    assert len(desc) == df.columncount
+    assert desc == [
+        ("A", "INTEGER", None, None, None, None, False),
+        ("B", "VARCHAR", None, None, None, None, True),
+        ("C", "DOUBLE", None, None, None, None, False),
+    ]
+
+
 if __name__ == "__main__":  # prgama: nocover
     test_dataframe_materialize()
     test_dataframe_collect()
@@ -268,5 +286,8 @@ if __name__ == "__main__":  # prgama: nocover
     test_dataframe_head()
     test_dataframe_tail()
     test_appending()
+
+    test_profile()
+    test_describe()
 
     print("✅ okay")
