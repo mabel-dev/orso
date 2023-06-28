@@ -47,4 +47,4 @@ ORSO_TO_PYTHON_MAP: dict = {
 }
 
 PYTHON_TO_ORSO_MAP: dict = {value: key for key, value in ORSO_TO_PYTHON_MAP.items()}
-PYTHON_TO_ORSO_MAP.update({tuple: OrsoTypes.ARRAY, set: OrsoTypes.ARRAY})
+PYTHON_TO_ORSO_MAP.update({tuple: OrsoTypes.ARRAY, set: OrsoTypes.ARRAY})  # map other python types

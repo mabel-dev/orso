@@ -23,10 +23,6 @@ from orso.types import ORSO_TO_PYTHON_MAP
 from orso.types import OrsoTypes
 
 
-def _converter(obj):
-    return {key: value.value if isinstance(value, Enum) else value for key, value in obj}
-
-
 @dataclass
 class FlatColumn:
     # This is a standard column type.
@@ -41,40 +37,55 @@ class FlatColumn:
     expectations: typing.Optional[list] = field(default_factory=list)
     identity: str = field(default_factory=random_string)
 
+    def __str__(self):
+        return self.identity
+
 
 @dataclass
 class ConstantColumn(FlatColumn):
-    # Rather than pass around columns of constant values, where we can we should
-    # replace them with this column type.
+    """
+    Rather than pass around columns of constant values, where we can we should
+    replace them with this column type.
 
-    # note we don't implement anything here which deals with doing operations on
-    # two constant columns; whilst that would be a good optimization, the better
-    # way to do this is in the query optimizer, do operations on two constants
-    # while we're still working with a query plan.
+    note we don't implement anything here which deals with doing operations on
+    two constant columns; whilst that would be a good optimization, the better
+    way to do this is in the query optimizer, do operations on two constants
+    while we're still working with a query plan.
+    """
 
     length: int = 0
     value: typing.Any = None
 
     def materialize(self):
-        # when we need to expand this column out
+        """
+        Turn this virtual column into a list
+        """
         return numpy.array([self.value] * self.length)
 
 
 @dataclass
 class DictionaryColumn(FlatColumn):
-    # If we know a column has a small amount of unique values AND is a large column
-    # AND we're going to perform an operation on the values, we should dictionary
-    # encode the column. This allows us to operate once on each unique value in the
-    # column, rather than each value in the column individually. At the cost of
-    # constructing and materializing the dictionary encoding.
+    """
+    If we know a column has a small amount of unique values AND is a large column
+    AND we're going to perform an operation on the values, we should dictionary
+    encode the column. This allows us to operate once on each unique value in the
+    column, rather than each value in the column individually. At the cost of
+    constructing and materializing the dictionary encoding.
+    """
 
     values: typing.List[typing.Any] = field(default_factory=list)
 
     def __post_init__(self):
+        """
+        Perform the encoding for this column
+        """
         values = numpy.asarray(self.values)
         self.dictionary, self.encoding = numpy.unique(values, return_inverse=True)
 
     def materialize(self):
+        """
+        Turn this virtual column into a list
+        """
         return self.dictionary[self.encoding]
 
 
@@ -84,8 +95,12 @@ class RelationSchema:
     aliases: typing.List[str] = field(default_factory=list)
     columns: typing.List[FlatColumn] = field(default_factory=list)
 
+    @property
+    def num_columns(self):
+        return len(self.columns)
+
     def find_column(self, column_name: str):
-        # this is a simple match, this returns the column object
+        """find a column by name or alias"""
         for column in self.columns:
             if column.name == column_name:
                 return column
@@ -94,7 +109,8 @@ class RelationSchema:
         return None
 
     def all_column_names(self):
-        # this returns all the names for columns in this relation, including aliases
+        """return all the names for columns in this relation"""
+
         def _inner():
             for column in self.columns:
                 yield column.name
@@ -103,18 +119,25 @@ class RelationSchema:
         return list(_inner())
 
     def column(self, i):
+        """get column by name or index"""
         if isinstance(i, int):
-            return self.columns[list(self.columns.keys())[i]]
-        else:
             return self.columns[i]
+        else:
+            return self.find_column(i)
 
     def to_dict(self):
+        """Convert a Schema to a dictionary"""
         from dataclasses import asdict
+
+        def _converter(obj):
+            """handle enum serialization"""
+            return {key: value.value if isinstance(value, Enum) else value for key, value in obj}
 
         return asdict(self, dict_factory=_converter)
 
     @classmethod
     def from_dict(cls, dic):
+        """Create a Schema from a dictionary"""
         schema = RelationSchema(
             name=dic["name"],
             aliases=dic.get("aliases", []),
@@ -123,7 +146,10 @@ class RelationSchema:
             schema.columns.append(FlatColumn(**column))
         return schema
 
-    def validate(self, data):
+    def validate(self, data: dict):
+        """
+        Perform schema validation against a dictionary formatted record
+        """
         # If it's not dictionary-like, it's not valid
         if not isinstance(data, typing.MutableMapping):
             raise TypeError("Cannot validate non Dictionary-type value")

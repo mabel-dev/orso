@@ -333,7 +333,7 @@ class DataFrame:
 
         return (
             ascii_table(self, show_types=True)
-            + f"\n [ {self.rowcount} rows x {self.columncount} columns ]"
+            + f"\n[ {self.rowcount} rows x {self.columncount} columns ]"
         )
 
     def __repr__(self) -> str:

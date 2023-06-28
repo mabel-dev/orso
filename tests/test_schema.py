@@ -107,10 +107,21 @@ def test_validate_with_invalid_data_type():
         cities.schema.validate(data)
 
 
+def test_schema_iterations():
+    schema = cities.schema
+
+    assert schema.num_columns == 6
+
+    for i, column in enumerate(schema.columns):
+        assert column == schema.column(i)
+        assert column == schema.column(column.name)
+
+
 if __name__ == "__main__":  # prgama: nocover
     test_find_column()
     test_all_column_names()
     test_schema_persistance()
+    test_schema_iterations()
 
     test_validate_with_valid_data()
     test_validate_with_missing_column()
