@@ -306,6 +306,6 @@ def random_string(width: int = 16):
     """
     num_chars = ((width + 1) >> 1) << 3  # Convert length to number of bits
     rand_bytes = getrandbits(num_chars)  # Generate random bytes
-    # Convert to hex string and truncate to desired length
-    # we take the end so we can zero fill the start of the string
-    return ("0000" + hex(rand_bytes))[-width:]
+    # Convert to hex string and truncate to desired length, we clip the '0x'
+    # the start of the hex string, and zero-fill the start of the string
+    return ("000000" + hex(rand_bytes)[2:])[-width:]

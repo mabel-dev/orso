@@ -14,7 +14,7 @@ def test_random():
 
     collected = [random_string() for i in range(1000000)]
     # allow one collisions, they're not impossible, but are unlikely
-    assert len(set(collected)) == len(collected) - 1
+    assert len(set(collected)) >= len(collected) - 1
     assert all(len(c) == 16 for c in collected)
 
 
