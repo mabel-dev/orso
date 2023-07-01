@@ -6,7 +6,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       CIBW_BEFORE_BUILD: >-
-        python -m pip install --upgrade cython wheel numpy setuptools_rust
+        pip install --upgrade cython wheel numpy setuptools_rust
       CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: >-
         delvewheel repair -w {dest_dir} {wheel}
       CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
