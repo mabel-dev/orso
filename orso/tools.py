@@ -277,7 +277,9 @@ def parquet_type_map(parquet_type):
         return float
     if parquet_type.id in {lib.Type_DECIMAL128, lib.Type_DECIMAL256}:
         return decimal.Decimal
-    if parquet_type.id in {lib.Type_DATE32, lib.Type_DATE64, 18}:  # not sure what 18 maps to
+    if parquet_type.id in {lib.Type_DATE32}:
+        return datetime.date
+    if parquet_type.id in {lib.Type_DATE64, 18}:  # not sure what 18 maps to
         return datetime.datetime
     if parquet_type.id in {lib.Type_TIME32, lib.Type_TIME64}:
         return datetime.time

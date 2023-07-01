@@ -211,6 +211,9 @@ def ascii_table(
         if isinstance(value, datetime.datetime):
             value = f"{value.strftime('%Y-%m-%d')} \001TIMEm{value.strftime('%H:%M:%S')}"
             return "\001DATEm" + trunc_printable(value.rjust(width), width) + "\001OFFm"
+        if isinstance(value, datetime.date):
+            value = f"{value.strftime('%Y-%m-%d')}"
+            return "\001DATEm" + trunc_printable(value.rjust(width), width) + "\001OFFm"
         if isinstance(value, (bytes, bytearray)):
             return "\001BLOBm" + trunc_printable(str(value).ljust(width), width) + "\001OFFm"
         if isinstance(value, dict):
