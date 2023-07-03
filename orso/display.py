@@ -341,7 +341,13 @@ def ascii_table(
                 if i >= limit:
                     i += len(table) - (limit * 2)
             formatted = [type_formatter(v, w) for v, w in zip(row, col_width)]
-            yield ("│" + str(i + 1).rjust(index_width - 1) + " │ " + " │ ".join(formatted) + " │")
+            yield (
+                "│\001TYPEm"
+                + str(i + 1).rjust(index_width - 1)
+                + "\001OFFm │ "
+                + " │ ".join(formatted)
+                + " │"
+            )
         yield ("└" + ("─" * index_width) + "┴─" + "─┴─".join("─" * cw for cw in col_width) + "─┘")
 
     return "\n".join(
