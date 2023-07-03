@@ -281,11 +281,17 @@ class DataFrame:
         result = []
         for column in self.column_names:
             column_data = self._schema.get(column, {})
-            data_type = PYTHON_TO_ORSO_MAP.get(column_data.get("type"))
+            column_type = column_data.get("type")
+            if column_type is None:
+                data_type = "NULL"
+            elif column_type.__class__.__name__.startswith("Decimal"):
+                data_type = f"DECIMAL({column_type.precision},{column_type.scale})"
+            else:
+                data_type = PYTHON_TO_ORSO_MAP.get(column_data.get("type")).name
             result.append(
                 (
                     column,
-                    None if data_type is None else data_type.name,
+                    data_type,
                     None,
                     None,
                     None,

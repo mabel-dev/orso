@@ -10,6 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import decimal
 from functools import wraps
 from random import getrandbits
 
@@ -245,9 +246,28 @@ def islice(iterator, size):
         yield next(iterator)
 
 
+class DecimalFactory(decimal.Decimal):
+    scale = 0
+    precision = 0
+
+    def __call__(self, value):
+        context = decimal.Context(prec=self.precision)
+        quantized_value = context.create_decimal(value).quantize(decimal.Decimal(10) ** -self.scale)
+        return decimal.Decimal(quantized_value)
+
+    def __str__(self):
+        return f"Decimal({self.scale},{self.precision})"
+
+    @classmethod
+    def new_factory(cls, precision: int, scale: int):
+        factory = DecimalFactory.__new__(cls)
+        factory.scale = scale
+        factory.precision = precision
+        return factory
+
+
 def parquet_type_map(parquet_type):
     import datetime
-    import decimal
 
     from orso.exceptions import MissingDependencyError
 
@@ -276,7 +296,7 @@ def parquet_type_map(parquet_type):
     if parquet_type.id in {lib.Type_HALF_FLOAT, lib.Type_FLOAT, lib.Type_DOUBLE}:
         return float
     if parquet_type.id in {lib.Type_DECIMAL128, lib.Type_DECIMAL256}:
-        return decimal.Decimal
+        return DecimalFactory.new_factory(parquet_type.precision, parquet_type.scale)
     if parquet_type.id in {lib.Type_DATE32}:
         return datetime.date
     if parquet_type.id in {lib.Type_DATE64, 18}:  # not sure what 18 maps to

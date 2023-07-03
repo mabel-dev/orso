@@ -11,6 +11,7 @@
 # limitations under the License.
 
 import datetime
+import decimal
 from enum import Enum
 
 
@@ -23,6 +24,7 @@ class OrsoTypes(str, Enum):
     BLOB = "BLOB"
     BOOLEAN = "BOOLEAN"
     DATE = "DATE"
+    DECIMAL = "DECIMAL"
     DOUBLE = "DOUBLE"
     INTEGER = "INTEGER"
     INTERVAL = "INTERVAL"
@@ -40,6 +42,7 @@ ORSO_TO_PYTHON_MAP: dict = {
     OrsoTypes.TIME: datetime.time,
     OrsoTypes.INTERVAL: datetime.timedelta,
     OrsoTypes.STRUCT: dict,
+    OrsoTypes.DECIMAL: decimal.Decimal,
     OrsoTypes.DOUBLE: float,
     OrsoTypes.INTEGER: int,
     OrsoTypes.ARRAY: list,

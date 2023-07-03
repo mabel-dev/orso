@@ -11,6 +11,7 @@
 # limitations under the License.
 
 import datetime
+import decimal
 from typing import Iterable
 from typing import Union
 
@@ -204,7 +205,7 @@ def ascii_table(
             return "\001CONSTm" + str(value).rjust(width)[:width] + "\001OFFm"
         if isinstance(value, int):
             return "\001INTEGERm" + str(value).rjust(width)[:width] + "\001OFFm"
-        if isinstance(value, float):
+        if isinstance(value, (float, decimal.Decimal)):
             return "\001FLOATm" + str(value).rjust(width)[:width] + "\001OFFm"
         if isinstance(value, str):
             return "\001VARCHARm" + trunc_printable(str(value).ljust(width), width) + "\001OFFm"
