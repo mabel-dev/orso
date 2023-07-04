@@ -25,9 +25,11 @@ from orso.types import OrsoTypes
 
 @dataclass
 class FlatColumn:
-    # This is a standard column type.
-    # Unlike the other column types, we don't store the values for this Column
-    # here, we read them from the underlying data structure (orso/pyarrow/velox).
+    """
+    This is a standard column type.
+    Unlike the other column types, we don't store the values for this Column
+    here, we read them from the underlying data structure (orso/pyarrow/velox).
+    """
 
     name: str
     type: OrsoTypes
@@ -39,6 +41,28 @@ class FlatColumn:
 
     def __str__(self):
         return self.identity
+
+    def materialize(self):
+        raise TypeError("Cannot materialize FlatColumns")
+
+
+@dataclass
+class FunctionColumn(FlatColumn):
+    """
+    This is a virtual column, it's nominally a column where the value is
+    derived from a function.
+    """
+
+    binding: typing.Optional[typing.Callable] = lambda: None
+    configuration: typing.Tuple = field(default_factory=tuple)
+    length: int = 1
+
+    def materialize(self):
+        """
+        Turn this virtual column into a list
+        """
+        value = self.binding(*self.configuration)
+        return numpy.array([value] * self.length)
 
 
 @dataclass
@@ -53,7 +77,7 @@ class ConstantColumn(FlatColumn):
     while we're still working with a query plan.
     """
 
-    length: int = 0
+    length: int = 1
     value: typing.Any = None
 
     def materialize(self):
