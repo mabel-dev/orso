@@ -15,14 +15,8 @@ jobs:
     steps:
     - uses: actions/checkout@master
 
-    - name: Install rust toolchain
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        override: true
-
     - name: Install Python package dependencies
-      run: /opt/python/cp38-cp38/bin/python -m pip install --upgrade cython wheel numpy setuptools_rust
+      run: /opt/python/cp38-cp38/bin/python -m pip install --upgrade cython wheel numpy
 
     - name: Build binary wheel
       run: /opt/python/cp38-cp38/bin/python setup.py bdist_wheel

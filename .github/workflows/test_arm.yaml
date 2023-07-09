@@ -5,9 +5,9 @@ jobs:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     env:
-      CIBW_BEFORE_BUILD: >-
-        pip install --upgrade cython wheel numpy setuptools_rust
-      CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: >-
+      CIBW_BEFORE_BUILD: |
+        pip install --upgrade cython wheel numpy
+      CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: |
         delvewheel repair -w {dest_dir} {wheel}
       CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
       CIBW_SKIP: "*-musllinux*"
@@ -31,11 +31,6 @@ jobs:
         uses: docker/setup-qemu-action@v2
         with:
           platforms: arm64
-      - name: Install rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
