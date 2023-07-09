@@ -87,9 +87,6 @@ def test_dict_column():
 
 
 if __name__ == "__main__":  # prgama: nocover
-    test_flat_column_materialize()
-    test_function_column()
-    test_constant_column()
-    test_dict_column()
+    from tests import run_tests
 
-    print("✅ okay")
+    run_tests()

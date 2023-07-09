@@ -272,22 +272,6 @@ def test_describe():
 
 
 if __name__ == "__main__":  # prgama: nocover
-    test_dataframe_materialize()
-    test_dataframe_collect()
-    test_dataframe_slice()
-    test_dataframe_iter()
-    test_dataframe_len()
-    test_dataframe_user_init()
-    test_dataframe_filter()
-    test_take()
-    test_dataframe_hash()
-    test_to_arrow()
-    test_to_arrow_with_size()
-    test_dataframe_head()
-    test_dataframe_tail()
-    test_appending()
+    from tests import run_tests
 
-    test_profile()
-    test_describe()
-
-    print("✅ okay")
+    run_tests()

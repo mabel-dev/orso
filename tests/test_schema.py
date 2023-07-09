@@ -118,15 +118,6 @@ def test_schema_iterations():
 
 
 if __name__ == "__main__":  # prgama: nocover
-    test_find_column()
-    test_all_column_names()
-    test_schema_persistance()
-    test_schema_iterations()
+    from tests import run_tests
 
-    test_validate_with_valid_data()
-    test_validate_with_missing_column()
-    test_validate_with_nullable_column()
-    test_validate_with_wrong_type()
-    test_validate_with_invalid_data_type()
-
-    print("✅ okay")
+    run_tests()

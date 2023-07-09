@@ -44,11 +44,7 @@ def test_bits_representation():
     assert b.array == bytearray([20]), b.array
 
 
-if __name__ == "__main__":  # pragma: no cover
-    test_bits_representation()
-    test_get_index_error()
-    test_get_set()
-    test_init_size()
-    test_set_index_error()
+if __name__ == "__main__":  # prgama: nocover
+    from tests import run_tests
 
-    print("✅ okay")
+    run_tests()

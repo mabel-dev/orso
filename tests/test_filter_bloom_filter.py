@@ -1,7 +1,7 @@
 import os
 import sys
 
-sys.path.insert(1, os.path.join(sys.path[0], "../.."))
+sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
 from orso.filters.bloom_filter import BloomFilter, _get_hash_count, _get_size
 
@@ -69,11 +69,7 @@ def test_init():
     assert sum(bf.bits.array) == 0
 
 
-if __name__ == "__main__":  # pragma: no cover
-    test_bloom_filter()
-    test_bloom_contains()
-    test_get_size()
-    test_get_hash_count()
-    test_init()
+if __name__ == "__main__":  # prgama: nocover
+    from tests import run_tests
 
-    print("✅ okay")
+    run_tests()

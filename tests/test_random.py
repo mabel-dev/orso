@@ -18,7 +18,7 @@ def test_random():
     assert all(len(c) == 16 for c in collected)
 
 
-if __name__ == "__main__":  # pragma: no cover
-    test_random()
+if __name__ == "__main__":  # prgama: nocover
+    from tests import run_tests
 
-    print("✅ okay")
+    run_tests()

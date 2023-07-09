@@ -30,8 +30,7 @@ def test_cityhash_64():
         assert cityhash.CityHash64(data) == expected_hash
 
 
-if __name__ == "__main__":  # pragma: no cover
-    test_cityhash_32()
-    test_cityhash_64()
+if __name__ == "__main__":  # prgama: nocover
+    from tests import run_tests
 
-    print("✅ okay")
+    run_tests()

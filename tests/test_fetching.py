@@ -79,9 +79,7 @@ def test_fetch_methods():
     assert result3 == expected3
 
 
-if __name__ == "__main__":  # pragma: no cover
-    test_fetchone()
-    test_fetchmany()
-    test_fetchall()
-    test_fetch_methods()
-    print("✅ okay")
+if __name__ == "__main__":  # prgama: nocover
+    from tests import run_tests
+
+    run_tests()

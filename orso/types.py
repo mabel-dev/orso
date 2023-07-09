@@ -33,6 +33,14 @@ class OrsoTypes(str, Enum):
     TIME = "TIME"
     VARCHAR = "VARCHAR"
 
+    def is_numeric(self):
+        """is the typle number-based"""
+        return self in (self.INTEGER, self.DOUBLE, self.DECIMAL)
+
+    def is_temporal(self):
+        """is the type time-based"""
+        return self in (self.DATE, self.TIME, self.TIMESTAMP)
+
 
 ORSO_TO_PYTHON_MAP: dict = {
     OrsoTypes.BOOLEAN: bool,

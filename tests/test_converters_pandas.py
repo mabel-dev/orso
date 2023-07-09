@@ -23,6 +23,7 @@ def test_to_pandas():
     assert type(pdf) == pandas.DataFrame
 
 
-if __name__ == "__main__":  # pragma: no cover
-    test_to_pandas()
-    print("✅ okay")
+if __name__ == "__main__":  # prgama: nocover
+    from tests import run_tests
+
+    run_tests()

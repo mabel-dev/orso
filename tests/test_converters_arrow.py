@@ -4,8 +4,7 @@ import sys
 import pyarrow
 
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
-sys.path.insert(1, os.path.join(sys.path[0], "../.."))
-sys.path.insert(1, os.path.join(sys.path[0], "../../opteryx"))
+
 
 from orso import converters
 from orso.dataframe import DataFrame
@@ -142,11 +141,7 @@ def test_opteryx_arrow_medium():
     assert fake2.shape == (100000, 100)
 
 
-if __name__ == "__main__":  # pragma: no cover
-    test_from_arrow()
-    test_from_arrow_with_single_table()
-    test_from_arrow_with_multiple_tables()
-    test_from_arrow_none()
-    test_opteryx_arrow_small()
-    test_opteryx_arrow_medium()
-    print("✅ okay")
+if __name__ == "__main__":  # prgama: nocover
+    from tests import run_tests
+
+    run_tests()

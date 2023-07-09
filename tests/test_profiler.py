@@ -35,8 +35,7 @@ def test_opteryx_profile():
         pass
 
 
-if __name__ == "__main__":  # pragma: no cover
-    test_can_profile()
-    test_opteryx_profile()
+if __name__ == "__main__":  # prgama: nocover
+    from tests import run_tests
 
-    print("✅ okay")
+    run_tests()

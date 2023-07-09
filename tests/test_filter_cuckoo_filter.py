@@ -45,8 +45,7 @@ def test_cuckoo_contains():
     assert "nonexistent" not in bf
 
 
-if __name__ == "__main__":  # pragma: no cover
-    test_cuckoo_filter()
-    test_cuckoo_contains()
+if __name__ == "__main__":  # prgama: nocover
+    from tests import run_tests
 
-    print("✅ okay")
+    run_tests()
