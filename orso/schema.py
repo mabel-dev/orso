@@ -65,7 +65,7 @@ class FlatColumn:
                 self.type = OrsoTypes.ARRAY
             elif type_name == "NUMERIC":
                 warn(
-                    "Column type NUMERIC will be deprecated in a future version, use DECIMAL, FLOAT or INTEGER instead. Mapped to DECIMAL."
+                    "Column type NUMERIC will be deprecated in a future version, use DECIMAL, DOUBLE or INTEGER instead. Mapped to DOUBLE, this may not be compatible with all values NUMERIC was compatible with."
                 )
                 self.type = OrsoTypes.DOUBLE
             elif self.type != 0:
