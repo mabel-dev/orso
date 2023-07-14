@@ -71,7 +71,7 @@ def test_type_checks():
         OrsoTypes.BLOB: b"blob",
         OrsoTypes.DECIMAL: Decimal("3.7"),
         OrsoTypes.STRUCT: {"a": 1},
-        OrsoTypes.INTERVAL: datetime.timedelta(days=1)
+        OrsoTypes.INTERVAL: datetime.timedelta(days=1),
     }
 
     columns = []
@@ -79,8 +79,7 @@ def test_type_checks():
         columns.append(FlatColumn(name=str(t), type=t))
 
     schema = RelationSchema(name="test", columns=columns)
-    schema.validate({str(k):v for k,v in TEST_DATA.items()})
-
+    schema.validate({str(k): v for k, v in TEST_DATA.items()})
 
 
 def test_function_column():
