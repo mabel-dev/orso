@@ -30,9 +30,13 @@ class DataValidationError(DataError):
         self.value = value
         self.nullable = column.nullable
         self.error = error
+
+        text = str(value)
+        truncated_text = f"{text[:16]}{'...' if len(text) > 16 else ''}... [{len(text) - 16} more]" if len(text) > 16 else text
+
         message = (
             f"Data did not pass validation checks; field `{self.field}` "
-            f"with value `{str(value)[16:]}` did not pass "
+            f"with value `{truncated_text}` did not pass "
             f"`{column.type}` {'(nullable)' if self.nullable else ''} check. "
             f"({error})"
         )
