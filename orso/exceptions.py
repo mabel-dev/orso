@@ -32,7 +32,11 @@ class DataValidationError(DataError):
         self.error = error
 
         text = str(value)
-        truncated_text = f"{text[:16]}{'...' if len(text) > 16 else ''}... [{len(text) - 16} more]" if len(text) > 16 else text
+        truncated_text = (
+            f"{text[:16]}{'...' if len(text) > 16 else ''}... [{len(text) - 16} more]"
+            if len(text) > 16
+            else text
+        )
 
         message = (
             f"Data did not pass validation checks; field `{self.field}` "
