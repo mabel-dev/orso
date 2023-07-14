@@ -30,10 +30,10 @@ class DataValidationError(DataError):
         self.value = value
         self.nullable = column.nullable
         self.error = error
-        message = f"Data did not pass validation checks; field `{self.field}` "
-        f"with value `{str(value)[16:]}` did not pass "
-        f"`{column.type}` {'(nullable)' if self.nullable else ''} check. "
-        f"({error})"
+        message = (f"Data did not pass validation checks; field `{self.field}` "
+            f"with value `{str(value)[16:]}` did not pass "
+            f"`{column.type}` {'(nullable)' if self.nullable else ''} check. "
+            f"({error})")
         super().__init__(message)
 
 

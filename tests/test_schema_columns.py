@@ -55,6 +55,34 @@ def test_missing_columns():
         FlatColumn(name="brian")
 
 
+def test_type_checks():
+    from decimal import Decimal
+    from orso.schema import RelationSchema
+
+    TEST_DATA = {
+        OrsoTypes.VARCHAR: "string",
+        OrsoTypes.INTEGER: 100,
+        OrsoTypes.BOOLEAN: True,
+        OrsoTypes.DATE: datetime.date.today(),
+        OrsoTypes.ARRAY: ["a", "b", "c"],
+        OrsoTypes.DOUBLE: 10.00,
+        OrsoTypes.TIMESTAMP: datetime.datetime.utcnow(),
+        OrsoTypes.TIME: datetime.time.min,
+        OrsoTypes.BLOB: b"blob",
+        OrsoTypes.DECIMAL: Decimal("3.7"),
+        OrsoTypes.STRUCT: {"a": 1},
+        OrsoTypes.INTERVAL: datetime.timedelta(days=1)
+    }
+
+    columns = []
+    for t, v in TEST_DATA.items():
+        columns.append(FlatColumn(name=str(t), type=t))
+
+    schema = RelationSchema(name="test", columns=columns)
+    schema.validate({str(k):v for k,v in TEST_DATA.items()})
+
+
+
 def test_function_column():
     func_column = FunctionColumn(name="aries", type=OrsoTypes.DATE, binding=datetime.date.today)
 
