@@ -32,6 +32,21 @@ def test_columns_with_unknown_parameters():
     FunctionColumn(name="aries", type=OrsoTypes.DATE, binding=datetime.date.today, sketty="yum")
 
 
+def test_column_type_mapping():
+    fc = FlatColumn(name="athena", type="INTEGER")
+    assert fc.type == OrsoTypes.INTEGER
+    assert fc.type.__class__ == OrsoTypes
+
+    dc = FlatColumn(name="athens", type="LIST")
+    assert dc.type == OrsoTypes.ARRAY, dc.type
+
+    rc = FlatColumn(name="athled", type=0)
+    assert rc.type == 0
+
+    with pytest.raises(ValueError):
+        bc = FlatColumn(name="able", type="LEFT")
+
+
 def test_missing_columns():
     with pytest.raises(ColumnDefinitionError):
         FlatColumn(name="brian")

@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from dataclasses import field
 from dataclasses import fields
 from enum import Enum
+from warnings import warn
 
 import numpy
 
@@ -53,6 +54,16 @@ class FlatColumn:
                 setattr(self, attribute, attributes[attribute].default_factory())
             else:
                 raise ColumnDefinitionError(attribute)
+
+        # map literals to OrsoTypes
+        if self.type.__class__ is not OrsoTypes:
+            if str(self.type).upper() in OrsoTypes.__members__.keys():
+                self.type = OrsoTypes[str(self.type).upper()]
+            elif self.type == "LIST":
+                warn("Column type of LIST should be replaced with ARRAY")
+                self.type = OrsoTypes.ARRAY
+            elif self.type != 0:
+                raise ValueError(f"Unknown column type {self.type} for column {self.name}")
 
     def __str__(self):
         return self.identity
