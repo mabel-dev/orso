@@ -37,14 +37,17 @@ def test_column_type_mapping():
     assert fc.type == OrsoTypes.INTEGER
     assert fc.type.__class__ == OrsoTypes
 
-    dc = FlatColumn(name="athens", type="LIST")
-    assert dc.type == OrsoTypes.ARRAY, dc.type
+    fc = FlatColumn(name="athens", type="LIST")
+    assert fc.type == OrsoTypes.ARRAY, fc.type
 
-    rc = FlatColumn(name="athled", type=0)
-    assert rc.type == 0
+    fc = FlatColumn(name="athens", type="NUMERIC")
+    assert fc.type == OrsoTypes.DOUBLE, fc.type
+
+    fc = FlatColumn(name="athled", type=0)
+    assert fc.type == 0
 
     with pytest.raises(ValueError):
-        bc = FlatColumn(name="able", type="LEFT")
+        FlatColumn(name="able", type="LEFT")
 
 
 def test_missing_columns():

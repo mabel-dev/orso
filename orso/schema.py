@@ -57,11 +57,17 @@ class FlatColumn:
 
         # map literals to OrsoTypes
         if self.type.__class__ is not OrsoTypes:
-            if str(self.type).upper() in OrsoTypes.__members__.keys():
-                self.type = OrsoTypes[str(self.type).upper()]
-            elif self.type == "LIST":
-                warn("Column type of LIST should be replaced with ARRAY")
+            type_name = str(self.type).upper()
+            if type_name in OrsoTypes.__members__.keys():
+                self.type = OrsoTypes[type_name]
+            elif type_name == "LIST":
+                warn("Column type LIST will be deprecated in a future version, use ARRAY instead.")
                 self.type = OrsoTypes.ARRAY
+            elif type_name == "NUMERIC":
+                warn(
+                    "Column type NUMERIC will be deprecated in a future version, use FLOAT or INTEGER instead. Mapped to FLOAT."
+                )
+                self.type = OrsoTypes.DOUBLE
             elif self.type != 0:
                 raise ValueError(f"Unknown column type {self.type} for column {self.name}")
 
