@@ -14,15 +14,27 @@ from orso.schema import FunctionColumn
 from orso.schema import ConstantColumn
 from orso.schema import DictionaryColumn
 
+from orso.exceptions import ColumnDefinitionError
+
 
 def test_flat_column_materialize():
-    flat_column = FlatColumn("athena", OrsoTypes.INTEGER)
+    flat_column = FlatColumn(name="athena", type=OrsoTypes.INTEGER)
 
     with pytest.raises(TypeError):
         flat_column.materialize()
 
     assert flat_column.name == "athena"
     assert flat_column.type == OrsoTypes.INTEGER
+
+
+def test_columns_with_unknown_parameters():
+    FlatColumn(name="athena", type=OrsoTypes.INTEGER, alpha="betty")
+    FunctionColumn(name="aries", type=OrsoTypes.DATE, binding=datetime.date.today, sketty="yum")
+
+
+def test_missing_columns():
+    with pytest.raises(ColumnDefinitionError):
+        FlatColumn(name="brian")
 
 
 def test_function_column():

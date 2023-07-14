@@ -11,19 +11,22 @@
 # limitations under the License.
 
 import typing
+from dataclasses import _MISSING_TYPE
 from dataclasses import dataclass
 from dataclasses import field
+from dataclasses import fields
 from enum import Enum
 
 import numpy
 
+from orso.exceptions import ColumnDefinitionError
 from orso.exceptions import DataValidationError
 from orso.tools import random_string
 from orso.types import ORSO_TO_PYTHON_MAP
 from orso.types import OrsoTypes
 
 
-@dataclass
+@dataclass(init=False)
 class FlatColumn:
     """
     This is a standard column type.
@@ -39,6 +42,18 @@ class FlatColumn:
     expectations: typing.Optional[list] = field(default_factory=list)
     identity: str = field(default_factory=random_string)
 
+    def __init__(self, **kwargs):
+        attributes = {f.name: f for f in fields(self.__class__)}
+        for attribute in attributes:
+            if attribute in kwargs:
+                setattr(self, attribute, kwargs[attribute])
+            elif not isinstance(attributes[attribute].default, _MISSING_TYPE):
+                setattr(self, attribute, attributes[attribute].default)
+            elif not isinstance(attributes[attribute].default_factory, _MISSING_TYPE):
+                setattr(self, attribute, attributes[attribute].default_factory())
+            else:
+                raise ColumnDefinitionError(attribute)
+
     def __str__(self):
         return self.identity
 
@@ -46,7 +61,7 @@ class FlatColumn:
         raise TypeError("Cannot materialize FlatColumns")
 
 
-@dataclass
+@dataclass(init=False)
 class FunctionColumn(FlatColumn):
     """
     This is a virtual column, it's nominally a column where the value is
@@ -57,6 +72,9 @@ class FunctionColumn(FlatColumn):
     configuration: typing.Tuple = field(default_factory=tuple)
     length: int = 1
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def materialize(self):
         """
         Turn this virtual column into a list
@@ -65,7 +83,7 @@ class FunctionColumn(FlatColumn):
         return numpy.array([value] * self.length)
 
 
-@dataclass
+@dataclass(init=False)
 class ConstantColumn(FlatColumn):
     """
     Rather than pass around columns of constant values, where we can we should
@@ -80,6 +98,9 @@ class ConstantColumn(FlatColumn):
     length: int = 1
     value: typing.Any = None
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def materialize(self):
         """
         Turn this virtual column into a list
@@ -87,7 +108,7 @@ class ConstantColumn(FlatColumn):
         return numpy.array([self.value] * self.length)
 
 
-@dataclass
+@dataclass(init=False)
 class DictionaryColumn(FlatColumn):
     """
     If we know a column has a small amount of unique values AND is a large column
@@ -99,10 +120,9 @@ class DictionaryColumn(FlatColumn):
 
     values: typing.List[typing.Any] = field(default_factory=list)
 
-    def __post_init__(self):
-        """
-        Perform the encoding for this column
-        """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
         values = numpy.asarray(self.values)
         self.dictionary, self.encoding = numpy.unique(values, return_inverse=True)
 

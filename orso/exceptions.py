@@ -35,3 +35,9 @@ class DataValidationError(DataError):
         f"`{column.type}` {'(nullable)' if self.nullable else ''} check. "
         f"({error})"
         super().__init__(message)
+
+
+class ColumnDefinitionError(DataError):
+    def __init__(self, attribute):
+        self.attribute = attribute
+        message = f"Column is missing attribute {attribute}"
