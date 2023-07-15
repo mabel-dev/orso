@@ -13,6 +13,7 @@
 
 import typing
 
+from orso import Row
 from orso.schema import RelationSchema
 
 try:
@@ -25,17 +26,39 @@ except ImportError:
 
 
 class DataFrame:
+    """
+    Orso DataFrames are a lightweight container for tabular data.
+    """
+
     __slots__ = ("_schema", "_rows", "_cursor", "arraysize", "_row_factory")
 
     def __init__(
         self,
-        dictionaries: typing.Optional[typing.List[dict]] = None,
+        dictionaries: typing.Optional[typing.Iterable[dict]] = None,
         *,
-        rows: typing.Union[typing.Generator, list, None] = None,
+        rows: typing.Union[typing.Iterable, None] = None,
         schema: typing.Optional[RelationSchema] = None,
     ):
-        from orso import Row
+        """
+        Create an orso DataFrame. DataFrames are a representation of a table with
+        rows of records which have the same fields of the same data types.
 
+        Parameters:
+            dictionaries: iterable of dicts (optional)
+                An iterable of dictionaries. The schema for the frame is determined
+                from the first dictionary in the iterable. Schemas for dictionary
+                defined DataFrames are forgiving, missing fields are substituted with
+                None and common types are not enforced.
+            rows: iterable of tuples (optional, keyworded)
+                An iterable of tuples representing a row in the DataFrame. Rows should
+                conform to the schema, this is not enforced at creation. Must be used
+                with 'schema' and cannot be used with 'dictionaries'.
+            schema: RelationSchema or list of column names (optional, keyworded)
+                A RelationSchema describing the schema of the DataFrame or a list of
+                the column names. Must be used with 'rows' and cannot be used with
+                'dictionaries'
+
+        """
         if dictionaries is not None:
             if schema is not None or rows is not None:
                 raise ValueError(
@@ -56,10 +79,10 @@ class DataFrame:
 
             self._row_factory = Row.create_class(self._schema)
             # create a list of tuples
-            self._rows: list = [  # type:ignore
+            self._rows: list = (  # type:ignore
                 self._row_factory([row.get(k) for k in first_dict.keys()])
                 for row in chain([first_dict], dicts)
-            ]
+            )
         else:
             self._schema = schema
             self._rows = rows or []  # type:ignore
@@ -72,12 +95,17 @@ class DataFrame:
 
     @classmethod
     def from_arrow(cls, tables):
+        """Convert a PyArrow Table, or list of Tables, to an Orso DataFrame."""
         from orso.converters import from_arrow
 
         rows, schema = from_arrow(tables)
         return cls(rows=rows, schema=schema)
 
     def arrow(self, size=None):
+        """
+        Convert an Orso DataFrame to a PyArrow Table, optionally limit the number
+        of records.
+        """
         from orso.converters import to_arrow
 
         return to_arrow(self, size=size)
@@ -127,6 +155,9 @@ class DataFrame:
         return DataFrame(rows=(r for r in filter(predicate, self._rows)), schema=new_schema)
 
     def select(self, attributes):
+        """
+        Create a new Orso DataFrame with a subset of columns of an existing DataFrame
+        """
         if not isinstance(attributes, (list, tuple)):
             attributes = [attributes]
         attribute_indices = []
@@ -142,6 +173,9 @@ class DataFrame:
         return DataFrame(rows=_inner_projection(), schema=new_header)
 
     def materialize(self):
+        """
+        Convert a Lazy DataFrame to an Eager DataFrame
+        """
         if not isinstance(self._rows, list):
             self._rows = list(self._rows or [])
 

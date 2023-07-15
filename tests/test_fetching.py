@@ -9,7 +9,7 @@ from orso.dataframe import DataFrame
 def test_fetchall():
     dataframe = DataFrame(
         rows=[(1, "John"), (2, "Jane"), (3, "Bob")],
-        schema={"id": {"type": int}, "name": {"type": str}},
+        schema=["id", "name"],
     )
     result = dataframe.fetchall()
     expected = [(1, "John"), (2, "Jane"), (3, "Bob")]
@@ -20,7 +20,7 @@ def test_fetchall():
 def test_fetchone():
     dataframe = DataFrame(
         rows=[(1, "John"), (2, "Jane"), (3, "Bob")],
-        schema={"id": {"type": int}, "name": {"type": str}},
+        schema=["id", "name"],
     )
     result1 = dataframe.fetchone()
     expected1 = (1, "John")
@@ -42,7 +42,7 @@ def test_fetchone():
 def test_fetchmany():
     dataframe = DataFrame(
         rows=[(1, "John"), (2, "Jane"), (3, "Bob")],
-        schema={"id": {"type": int}, "name": {"type": str}},
+        schema=["id", "name"],
     )
     result1 = dataframe.fetchmany(2)
     expected1 = [(1, "John"), (2, "Jane")]
@@ -60,7 +60,7 @@ def test_fetchmany():
 def test_fetch_methods():
     dataframe = DataFrame(
         rows=[(1, "John"), (2, "Jane"), (3, "Bob")],
-        schema={"id": {"type": int}, "name": {"type": str}},
+        schema=["id", "name"],
     )
 
     # Test fetchone
