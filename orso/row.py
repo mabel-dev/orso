@@ -121,7 +121,7 @@ class Row(tuple):
     def create_class(cls, schema: typing.Union[RelationSchema, tuple, list, set]):
         if isinstance(schema, RelationSchema):
             fields = tuple(c.name for c in schema.columns)
-        elif schema:
+        elif isinstance(schema, (list, tuple)):
             fields = tuple(schema)
         else:
             raise ValueError("Row requires either a list of field names of a RelationSchema")
