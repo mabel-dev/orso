@@ -15,6 +15,10 @@ import typing
 
 from orso.exceptions import MissingDependencyError
 from orso.row import Row
+from orso.schema import FlatColumn
+from orso.schema import RelationSchema
+from orso.types import PYTHON_TO_ORSO_MAP
+from orso.types import OrsoTypes
 
 
 def to_arrow(dataset, size=None):
@@ -56,14 +60,21 @@ def from_arrow(tables, size=None):
     if first_table is None:
         return [], {}
 
-    schema = first_table.schema
-    fields = {
-        str(field.name): {"type": parquet_type_map(field.type), "nullable": field.nullable}
-        for field in schema
-    }
+    parquet_schema = first_table.schema
+    orso_schema = RelationSchema(
+        name="parquet",
+        columns=[
+            FlatColumn(
+                name=str(field.name),
+                type=PYTHON_TO_ORSO_MAP.get(parquet_type_map(field.type)),
+                nullable=field.nullable,
+            )
+            for field in parquet_schema
+        ],
+    )
 
     # Create a generator of tuples from the columns
-    row_factory = Row.create_class(fields)
+    row_factory = Row.create_class(orso_schema)
 
     BATCH_SIZE: int = 10000
     if size:
@@ -74,7 +85,7 @@ def from_arrow(tables, size=None):
         batches = table.to_batches(max_chunksize=BATCH_SIZE)
         for batch in batches:
             column_data_dict = batch.to_pydict()
-            column_data = [column_data_dict[name] for name in schema.names]
+            column_data = [column_data_dict[name] for name in parquet_schema.names]
             new_rows: typing.Iterable = [tuple()] * batch.num_rows
             for i, row_data in enumerate(zip(*column_data)):
                 new_rows[i] = row_factory(row_data)
@@ -86,7 +97,7 @@ def from_arrow(tables, size=None):
     if size:
         rows = itertools.islice(rows, size)
 
-    return rows, fields
+    return rows, orso_schema
 
 
 def to_pandas(dataset, size=None):

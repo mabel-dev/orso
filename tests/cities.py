@@ -1,10 +1,12 @@
+__all__ = ("values", "schema")
+
 values: list = [
     {
         "name": "Tokyo",
         "population": 13929286,
         "country": "Japan",
         "founded": "1457",
-        "area": 2191,
+        "area": 2191.0,
         "language": "Japanese",
     },
     {
@@ -12,7 +14,7 @@ values: list = [
         "population": 8982000,
         "country": "United Kingdom",
         "founded": "43 AD",
-        "area": 1572,
+        "area": 1572.0,
         "language": "English",
     },
     {
@@ -36,7 +38,7 @@ values: list = [
         "population": 433688,
         "country": "South Africa",
         "founded": "1652",
-        "area": 400,
+        "area": 400.0,
         "language": "Afrikaans, English",
     },
     {
@@ -60,7 +62,7 @@ values: list = [
         "population": 6747815,
         "country": "Brazil",
         "founded": "1 March 1565",
-        "area": 1264,
+        "area": 1264.0,
         "language": "Portuguese",
     },
     {
@@ -68,7 +70,7 @@ values: list = [
         "population": 12506468,
         "country": "Russia",
         "founded": "1147",
-        "area": 2511,
+        "area": 2511.0,
         "language": "Russian",
     },
     {
@@ -92,7 +94,7 @@ values: list = [
         "population": 15462482,
         "country": "Turkey",
         "founded": "660 BC",
-        "area": 5461,
+        "area": 5461.0,
         "language": "Turkish",
     },
     {
@@ -124,7 +126,7 @@ values: list = [
         "population": 3013000,
         "country": "United Arab Emirates",
         "founded": "1833",
-        "area": 4114,
+        "area": 4114.0,
         "language": "Arabic",
     },
     {
@@ -132,7 +134,7 @@ values: list = [
         "population": 8918653,
         "country": "Mexico",
         "founded": "1325",
-        "area": 1485,
+        "area": 1485.0,
         "language": "Spanish",
     },
     {
@@ -140,7 +142,7 @@ values: list = [
         "population": 975551,
         "country": "Sweden",
         "founded": "1187",
-        "area": 188,
+        "area": 188.0,
         "language": "Swedish",
     },
     {
@@ -156,7 +158,7 @@ values: list = [
         "population": 2870500,
         "country": "Italy",
         "founded": "753 BC",
-        "area": 1285,
+        "area": 1285.0,
         "language": "Italian",
     },
 ]

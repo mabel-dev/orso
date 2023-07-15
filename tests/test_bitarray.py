@@ -44,6 +44,30 @@ def test_bits_representation():
     assert b.array == bytearray([20]), b.array
 
 
+def test_load_and_unload():
+    b = BitArray(12)
+    b.set(1, 1)
+    b.set(5, 1)
+    b.set(11, 1)
+
+    d = BitArray.from_array(b.array, 12)
+
+    assert b.array.hex() == d.array.hex()
+
+    assert d.get(0) == 0
+    assert d.get(1) == 1
+    assert d.get(2) == 0
+    assert d.get(3) == 0
+    assert d.get(4) == 0
+    assert d.get(5) == 1
+    assert d.get(6) == 0
+    assert d.get(7) == 0
+    assert d.get(8) == 0
+    assert d.get(9) == 0
+    assert d.get(10) == 0
+    assert d.get(11) == 1
+
+
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests
 

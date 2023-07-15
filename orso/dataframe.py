@@ -15,6 +15,14 @@ import typing
 
 from orso.schema import RelationSchema
 
+try:
+    # added 3.9
+    from functools import cache
+except ImportError:
+    from functools import lru_cache
+
+    cache = lru_cache(1)
+
 
 class DataFrame:
     __slots__ = ("_schema", "_rows", "_cursor", "arraysize", "_row_factory")
@@ -42,17 +50,19 @@ class DataFrame:
             # extract the first of the list, and get the types from it
             first_dict = {}
             first_dict = next(dicts)
-            self._schema = {name: {"type": type(value)} for name, value in first_dict.items()}
+
+            # if we have an explicit schema, use that, otherwise guess from the first entry
+            self._schema = list(first_dict.keys())
 
             self._row_factory = Row.create_class(self._schema)
             # create a list of tuples
-            self._rows: list = (  # type:ignore
+            self._rows: list = [  # type:ignore
                 self._row_factory([row.get(k) for k in first_dict.keys()])
                 for row in chain([first_dict], dicts)
-            )
+            ]
         else:
             self._schema = schema
-            self._rows = rows  # type:ignore
+            self._rows = rows or []  # type:ignore
             self._row_factory = Row.create_class(self._schema)
         self.arraysize = 100
         self._cursor = iter(self._rows or [])
@@ -280,14 +290,14 @@ class DataFrame:
 
         result = []
         for column in self.column_names:
-            column_data = self._schema.get(column, {})
-            column_type = column_data.get("type")
+            column_data = self._schema.find_column(column)
+            column_type = column_data.type
             if column_type is None:
                 data_type = "NULL"
             elif column_type.__class__.__name__.startswith("Decimal"):
                 data_type = f"DECIMAL({column_type.precision},{column_type.scale})"
             else:
-                data_type = PYTHON_TO_ORSO_MAP.get(column_data.get("type")).name
+                data_type = str(column_data.type.value)
             result.append(
                 (
                     column,
@@ -296,18 +306,24 @@ class DataFrame:
                     None,
                     None,
                     None,
-                    column_data.get("nullable"),
+                    column_data.nullable,
                 )
             )
         return result
 
     @property
+    @cache
     def column_names(self):
-        return tuple(self._schema.keys())
+        if isinstance(self._schema, (tuple, list)):
+            return tuple(self._schema)
+        return tuple([col.name for col in self._schema.columns])
 
     @property
+    @cache
     def columncount(self):
-        return len(self._schema.keys())
+        if isinstance(self._schema, (tuple, list)):
+            return len(self._schema)
+        return len(self._schema.columns)
 
     @property
     def shape(self):

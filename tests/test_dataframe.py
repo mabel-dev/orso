@@ -11,24 +11,23 @@ from orso.dataframe import DataFrame
 from orso.exceptions import DataValidationError
 from orso.row import Row
 from tests import cities
+from orso.schema import RelationSchema, FlatColumn
+from orso.types import OrsoTypes
 
 
 def create_schema():
-    return {
-        "A": {"type": int, "nullable": False},
-        "B": {"type": str, "nullable": True},
-        "C": {"type": float, "nullable": False},
-    }
+    return RelationSchema(
+        name="dataset",
+        columns=[
+            FlatColumn(name="A", type=OrsoTypes.INTEGER, nullable=False),
+            FlatColumn(name="B", type=OrsoTypes.VARCHAR),
+            FlatColumn(name="C", type=OrsoTypes.DOUBLE, nullable=False),
+        ],
+    )
 
 
 def create_rows():
-    row_factory = Row.create_class(
-        {
-            "A": {"type": int, "nullable": False},
-            "B": {"type": str, "nullable": True},
-            "C": {"type": float, "nullable": False},
-        }
-    )
+    row_factory = Row.create_class(schema=create_schema())
     return (
         row_factory([1, "a", 1.1]),
         row_factory([2, "b", 2.2]),
@@ -75,7 +74,7 @@ def test_dataframe_len():
 def test_dataframe_user_init():
     df = DataFrame(cities.values)
     assert df.column_names == ("name", "population", "country", "founded", "area", "language")
-    assert df.rowcount == 20
+    assert df.rowcount == 20, df
 
 
 def test_dataframe_head():
@@ -127,7 +126,6 @@ def test_take():
         (5, "e", 5.5),
     ]
     result = df.take(indexes)
-    assert result._schema == create_schema()
     result_rows = result.fetchall()
     assert result_rows == expected_rows, result_rows
 
@@ -142,7 +140,6 @@ def test_take():
         (5, "e", 5.5),
     ]
     result = df.take(indexes)
-    assert result._schema == create_schema()
     result_rows = result.fetchall()
     assert result_rows == expected_rows, result_rows
 
@@ -150,7 +147,6 @@ def test_take():
     indexes = []
     expected_rows = []
     result = df.take(indexes)
-    assert result._schema == create_schema()
     assert result.fetchall() == expected_rows
 
 
@@ -256,8 +252,17 @@ def test_appending():
 def test_profile():
     df = create_dataframe()
     profile = df.profile
-    print(profile)
     assert isinstance(profile, DataFrame)
+
+
+def test_build_and_then_profile():
+    df = orso.DataFrame(schema=cities.schema)
+    for city in cities.values:
+        df.append(city)
+
+    p = df.profile
+    assert p.rowcount == df.columncount
+    assert p.collect("count") == [df.rowcount] * df.columncount
 
 
 def test_describe():

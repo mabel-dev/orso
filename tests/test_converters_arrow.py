@@ -8,6 +8,7 @@ sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
 from orso import converters
 from orso.dataframe import DataFrame
+from orso.types import OrsoTypes
 
 
 def test_from_arrow():
@@ -54,13 +55,12 @@ def test_from_arrow_with_single_table():
 
     # Check that the instance has the correct rows and schema
     expected_rows = [("Alice", 25), ("Bob", 30), ("Charlie", 35)]
-    expected_schema = {
-        "name": {"type": str, "nullable": True},
-        "age": {"type": int, "nullable": True},
-    }
+    expected_columns = ["name", "age"]
+    expected_types = [OrsoTypes.VARCHAR, OrsoTypes.INTEGER]
     obj.materialize()
     assert obj._rows == expected_rows, obj._rows
-    assert obj._schema == expected_schema, obj._schema
+    assert [c.name for c in obj._schema.columns] == expected_columns
+    assert [c.type for c in obj._schema.columns] == expected_types
 
 
 def test_from_arrow_with_multiple_tables():
@@ -98,13 +98,12 @@ def test_from_arrow_with_multiple_tables():
         ("Ethan", 20),
         ("Olivia", 55),
     ]
-    expected_schema = {
-        "name": {"type": str, "nullable": True},
-        "age": {"type": int, "nullable": True},
-    }
+    expected_columns = ["name", "age"]
+    expected_types = [OrsoTypes.VARCHAR, OrsoTypes.INTEGER]
     obj.materialize()
     assert obj._rows == expected_rows, obj._rows
-    assert obj._schema == expected_schema
+    assert [c.name for c in obj._schema.columns] == expected_columns
+    assert [c.type for c in obj._schema.columns] == expected_types
 
 
 def test_from_arrow_none():

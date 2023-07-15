@@ -23,7 +23,10 @@
 # Row object looks and acts like a Tuple where possible, but has additional features
 # such as as_dict() to render as a dictionary.
 
+import typing
+
 from orso.exceptions import DataError
+from orso.schema import RelationSchema
 
 HEADER_SIZE: int = 6
 
@@ -45,6 +48,8 @@ class Row(tuple):
     _fields: tuple = None
 
     def __new__(cls, data):
+        if isinstance(data, dict):
+            data = data.values()
         return super().__new__(cls, data)
 
     @property
@@ -113,11 +118,11 @@ class Row(tuple):
         return orjson.dumps(self.as_dict, default=str)
 
     @classmethod
-    def create_class(cls, schema):
-        from orso.schema import RelationSchema
-
+    def create_class(cls, schema: typing.Union[RelationSchema, tuple, list, set]):
         if isinstance(schema, RelationSchema):
             fields = tuple(c.name for c in schema.columns)
-        else:
+        elif schema:
             fields = tuple(schema)
+        else:
+            raise ValueError("Row requires either a list of field names of a RelationSchema")
         return type("RowFactory", (Row,), {"_fields": fields})

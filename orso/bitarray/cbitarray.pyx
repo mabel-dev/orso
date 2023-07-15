@@ -33,7 +33,8 @@ cdef class BitArray:
         memset(self.bits, 0, n_bytes * sizeof(int))
 
     def __dealloc__(self):
-        PyMem_Free(self.bits)
+        with nogil:
+            PyMem_Free(self.bits)
 
     def get(self, int index):
         if 0 > index or index >= self.size:
@@ -56,3 +57,12 @@ cdef class BitArray:
                 if i * 8 + j < self.size:
                     ba[i] |= ((self.bits[i] >> j) & 1) << j
         return ba
+
+    @classmethod
+    def from_array(cls, array, int length):
+        bit_array = cls(length)
+        for index in range(length):
+            bit = (array[index >> 3] & (1 << (index & 7))) != 0
+            if index < length and bit:
+                bit_array.set(index, 1)
+        return bit_array

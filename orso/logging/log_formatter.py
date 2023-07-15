@@ -3,10 +3,15 @@ import json
 import logging
 import os
 import re
-from functools import lru_cache
 
-from orso.display import COLORS
-from orso.display import colorizer
+try:
+    # added 3.9
+    from functools import cache
+except ImportError:
+    from functools import lru_cache
+
+    cache = lru_cache(1)
+
 
 # if we find a key which matches these strings, we hash the contents
 KEYS_TO_SANITIZE = [
@@ -54,7 +59,7 @@ class LogFormatter(logging.Formatter):
             msg = re.sub(r":\/\/(.*?)\@", r"://\001BOLD_PURLEm<redacted>\001OFFm", msg)
         return msg
 
-    @lru_cache(1)
+    @cache
     def _can_colorize(self):
         if self.suppress_color:
             return False

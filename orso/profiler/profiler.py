@@ -5,6 +5,10 @@ import numpy
 import orjson
 
 import orso
+from orso.schema import FlatColumn
+from orso.schema import RelationSchema
+from orso.types import PYTHON_TO_ORSO_MAP
+from orso.types import OrsoTypes
 
 MAX_STRING_SIZE: int = 64
 MAX_UNIQUE_COLLECTOR: int = 8
@@ -16,37 +20,27 @@ class DataProfile(orso.DataFrame):
 
     @classmethod
     def from_dataset(cls, dataset):
-        _profile = table_profiler(dataset)
-        profile = cls(_profile)
-        profile._schema = {
-            "name": {"type": str},
-            "type": {"type": str},
-            "count": {"type": int},
-            "missing": {"type": int},
-            "most_frequent_values": {"type": list},
-            "most_frequent_counts": {"type": list},
-            "numeric_range": {"type": list},
-            "varchar_range": {"type": list},
-            "distogram_values": {"type": list},
-            "distogram_counts": {"type": list},
-        }
+        rows = table_profiler(dataset)
+        schema = RelationSchema(
+            name="profile",
+            columns=[
+                FlatColumn(name="name", type=OrsoTypes.VARCHAR),
+                FlatColumn(name="type", type=OrsoTypes.VARCHAR),
+                FlatColumn(name="count", type=OrsoTypes.INTEGER),
+                FlatColumn(name="missing", type=OrsoTypes.INTEGER),
+                FlatColumn(name="most_frequent_values", type=OrsoTypes.ARRAY),
+                FlatColumn(name="most_frequent_counts", type=OrsoTypes.ARRAY),
+                FlatColumn(name="numeric_range", type=OrsoTypes.ARRAY),
+                FlatColumn(name="varchar_range", type=OrsoTypes.ARRAY),
+                FlatColumn(name="distogram_values", type=OrsoTypes.ARRAY),
+                FlatColumn(name="distogram_counts", type=OrsoTypes.ARRAY),
+            ],
+        )
+        profile = cls(rows=rows, schema=schema)
         return profile
 
 
 UNIX_EPOCH = datetime.datetime(1970, 1, 1)
-
-TYPE_MAP = {
-    "bool": "BOOLEAN",
-    "bytes": "BLOB",
-    "date": "DATE",
-    "datetime": "TIMESTAMP",
-    "dict": "STRUCT",
-    "float": "DOUBLE",
-    "int": "INTEGER",
-    "list": "ARRAY",
-    "str": "VARCHAR",
-    "time": "TIME",
-}
 
 
 def _to_unix_epoch(date):
@@ -185,7 +179,9 @@ def table_profiler(dataframe):
 
         for column, profile in profile_collector.items():
             profile["name"] = column
-            profile["type"] = ", ".join([TYPE_MAP.get(t, "OTHER") for t in profile["type"]])
+            profile["type"] = ", ".join(
+                [PYTHON_TO_ORSO_MAP.get(t, "OTHER") for t in profile["type"]]
+            )
 
             if column not in uncollected_columns:
                 dgram = profile.pop("dgram", None)
@@ -211,7 +207,7 @@ def table_profiler(dataframe):
             profile.pop("dgram", None)
             profile.pop("counter", None)
 
-            buffer.append(profile)
+            buffer.append(tuple(profile.values()))
 
         return buffer
 
