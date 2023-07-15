@@ -4,6 +4,8 @@ import logging
 import os
 import re
 
+from orso.display import colorizer
+
 try:
     # added 3.9
     from functools import cache

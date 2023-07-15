@@ -38,7 +38,7 @@ class FlatColumn:
     name: str
     type: OrsoTypes
     description: typing.Optional[str] = None
-    aliases: typing.Optional[typing.List[str]] = field(default_factory=list)
+    aliases: typing.Optional[typing.List[str]] = field(default_factory=list)  # type: ignore
     nullable: bool = True
     expectations: typing.Optional[list] = field(default_factory=list)
     identity: str = field(default_factory=random_string)
@@ -51,7 +51,7 @@ class FlatColumn:
             elif not isinstance(attributes[attribute].default, _MISSING_TYPE):
                 setattr(self, attribute, attributes[attribute].default)
             elif not isinstance(attributes[attribute].default_factory, _MISSING_TYPE):
-                setattr(self, attribute, attributes[attribute].default_factory())
+                setattr(self, attribute, attributes[attribute].default_factory())  # type:ignore
             else:
                 raise ColumnDefinitionError(attribute)
 
@@ -155,6 +155,10 @@ class RelationSchema:
     name: str
     aliases: typing.List[str] = field(default_factory=list)
     columns: typing.List[FlatColumn] = field(default_factory=list)
+
+    def __iter__(self):
+        """Return an iterator over column names"""
+        return iter([col.name for col in self.columns])
 
     @property
     def num_columns(self):

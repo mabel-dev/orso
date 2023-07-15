@@ -36,8 +36,8 @@ class DataFrame:
         self,
         dictionaries: typing.Optional[typing.Iterable[dict]] = None,
         *,
-        rows: typing.Union[typing.Iterable, None] = None,
-        schema: typing.Optional[RelationSchema] = None,
+        rows: typing.Union[typing.List[tuple], typing.Generator[tuple, None, None], None] = None,
+        schema: typing.Union[RelationSchema, typing.List[str], typing.Tuple[str], None] = None,
     ):
         """
         Create an orso DataFrame. DataFrames are a representation of a table with
@@ -75,16 +75,16 @@ class DataFrame:
             first_dict = next(dicts)
 
             # if we have an explicit schema, use that, otherwise guess from the first entry
-            self._schema = list(first_dict.keys())
+            self._schema = list(map(str, first_dict.keys()))  # type: ignore
 
             self._row_factory = Row.create_class(self._schema)
             # create a list of tuples
-            self._rows: list = (  # type:ignore
+            self._rows: list = [  # type:ignore
                 self._row_factory([row.get(k) for k in first_dict.keys()])
                 for row in chain([first_dict], dicts)
-            )
+            ]
         else:
-            self._schema = schema
+            self._schema = schema  # type:ignore
             self._rows = rows or []  # type:ignore
             self._row_factory = Row.create_class(self._schema)
         self.arraysize = 100
@@ -121,13 +121,16 @@ class DataFrame:
         return to_polars(self, size)
 
     def nbytes(self):
+        """Approximate the number of bytes used by the DataFrame"""
         self.materialize()
+        size = 0
         for row in self._rows:
             size += len(row.to_bytes())
         return size
 
     def append(self, entry):
-        self._schema.validate(entry)
+        if isinstance(self._schema, RelationSchema):
+            self._schema.validate(entry)
         self._rows.append(self._row_factory(entry))
         self._cursor = None
 
@@ -137,7 +140,7 @@ class DataFrame:
     def tail(self, size: int = 5):
         return self.slice(offset=0 - size, length=size)
 
-    def query(self, predicate):
+    def query(self, predicate) -> "DataFrame":
         """
         Apply a Selection operation to a Relation, this filters the data in the
         Relation to just the entries which match the predicate.
@@ -148,21 +151,19 @@ class DataFrame:
                 should be returned in the target Relation.
 
         Returns:
-
+            DataFrame
         """
-        # selection invalidates what we thought we knew about counts etc
-        new_schema = {k: {"type": v.get("type")} for k, v in self._schema.items()}
-        return DataFrame(rows=(r for r in filter(predicate, self._rows)), schema=new_schema)
+        return DataFrame(rows=(r for r in filter(predicate, self._rows)), schema=self._schema)
 
-    def select(self, attributes):
+    def select(self, attributes) -> "DataFrame":
         """
         Create a new Orso DataFrame with a subset of columns of an existing DataFrame
         """
         if not isinstance(attributes, (list, tuple)):
             attributes = [attributes]
         attribute_indices = []
-        new_header = {k: v for k, v in self._schema.items() if k in attributes}
-        for index, attribute in enumerate(self._schema.keys()):
+        new_header = attributes
+        for index, attribute in enumerate(self._schema):
             if attribute in attributes:
                 attribute_indices.append(index)
 
@@ -179,7 +180,7 @@ class DataFrame:
         if not isinstance(self._rows, list):
             self._rows = list(self._rows or [])
 
-    def distinct(self):
+    def distinct(self) -> "DataFrame":
         hash_list = {}
 
         def do_dedupe(data):
@@ -191,7 +192,7 @@ class DataFrame:
 
         return DataFrame(rows=do_dedupe(self._rows), schema=self._schema)
 
-    def collect(self, columns):
+    def collect(self, columns) -> typing.Union[list, tuple]:
         single = False
         if not isinstance(columns, typing.Iterable) or isinstance(columns, str):
             single = True
@@ -212,7 +213,7 @@ class DataFrame:
             return result[0]
         return result
 
-    def slice(self, offset: int = 0, length: int = None):
+    def slice(self, offset: int = 0, length: int = None) -> "DataFrame":
         self.materialize()
         if offset < 0:
             offset = len(self._rows) + offset
@@ -220,13 +221,13 @@ class DataFrame:
             return DataFrame(schema=self._schema, rows=self._rows[offset:])
         return DataFrame(schema=self._schema, rows=self._rows[offset : offset + length])
 
-    def filter(self, mask):
+    def filter(self, mask) -> "DataFrame":
         """
         Select rows from the DataFRame. The DataFrame is filtered based on boolean array.
         """
         return DataFrame(schema=self._schema, rows=(t for t, m in zip(self._rows, mask) if m))
 
-    def take(self, indexes):
+    def take(self, indexes) -> "DataFrame":
         """
         Select rows from the DataFrame. Rows are selected based on their appearance in the indexes
         list
@@ -235,11 +236,11 @@ class DataFrame:
             schema=self._schema, rows=(m for i, m in enumerate(self._rows) if i in indexes)
         )
 
-    def row(self, i):
+    def row(self, i) -> Row:
         self.materialize()
         return self._rows[i]
 
-    def fetchone(self):
+    def fetchone(self) -> Row:
         if self._cursor is None:
             raise Exception("Cannot use fetchone and append on the same DataFrame")
         try:
@@ -247,7 +248,7 @@ class DataFrame:
         except StopIteration:
             return None
 
-    def fetchmany(self, size=None):
+    def fetchmany(self, size=None) -> typing.List[Row]:
         if self._cursor is None:
             raise Exception("Cannot use fetchmany and append on the same DataFrame")
         fetch_size = self.arraysize if size is None else size
@@ -260,7 +261,7 @@ class DataFrame:
                 break
         return entries
 
-    def fetchall(self):
+    def fetchall(self) -> typing.List[Row]:
         if self._cursor is None:
             raise Exception("Cannot use fetchall and append on the same DataFrame")
         return list(self._cursor)
@@ -272,7 +273,7 @@ class DataFrame:
         max_column_width: int = 32,
         colorize: bool = True,
         show_types: bool = True,
-    ):
+    ) -> str:
         from .display import ascii_table
 
         return ascii_table(
@@ -284,12 +285,12 @@ class DataFrame:
             show_types=show_types,
         )
 
-    def markdown(self, limit: int = 5, max_column_width: int = 30):
+    def markdown(self, limit: int = 5, max_column_width: int = 30) -> str:
         from .display import markdown
 
         return "\n".join(markdown(self, limit=limit, max_column_width=max_column_width))
 
-    def to_batches(self, batch_size: int = 1000):
+    def to_batches(self, batch_size: int = 1000) -> typing.Generator["DataFrame", None, None]:
         """
         Batch a DataFrame into batches of `size` records.
 
@@ -304,13 +305,25 @@ class DataFrame:
             yield DataFrame(rows=self._rows[i : i + batch_size], schema=self._schema)
 
     @property
-    def profile(self):
+    def profile(self) -> "DataFrame":
         from orso.profiler import DataProfile
 
         return DataProfile.from_dataset(self)
 
     @property
-    def description(self):
+    def description(
+        self,
+    ) -> typing.List[
+        typing.Tuple[
+            str,
+            typing.Optional[str],
+            None,
+            None,
+            typing.Optional[int],
+            typing.Optional[int],
+            typing.Optional[bool],
+        ]
+    ]:
         """
         name
         type_code
@@ -324,47 +337,53 @@ class DataFrame:
 
         result = []
         for column in self.column_names:
-            column_data = self._schema.find_column(column)
-            column_type = column_data.type
-            if column_type is None:
-                data_type = "NULL"
-            elif column_type.__class__.__name__.startswith("Decimal"):
-                data_type = f"DECIMAL({column_type.precision},{column_type.scale})"
-            else:
-                data_type = str(column_data.type.value)
+            nullable = None
+            data_type = None
+            data_precision = None
+            data_scale = None
+            if isinstance(self._schema, RelationSchema):
+                column_data = self._schema.find_column(column)
+                column_type = column_data.type
+                if column_type is not None:
+                    data_type = str(column_data.type.value)
+                if column_type.__class__.__name__.startswith("Decimal"):
+                    data_type = "DECIMAL"
+                    data_precision = column_type.precision
+                    data_scale = column_type.scale
+                nullable = column_data.nullable
             result.append(
                 (
                     column,
                     data_type,
                     None,
                     None,
-                    None,
-                    None,
-                    column_data.nullable,
+                    data_precision,
+                    data_scale,
+                    nullable,
                 )
             )
         return result
 
     @property
     @cache
-    def column_names(self):
+    def column_names(self) -> tuple:
         if isinstance(self._schema, (tuple, list)):
-            return tuple(self._schema)
+            return tuple(map(str, self._schema))
         return tuple([col.name for col in self._schema.columns])
 
     @property
     @cache
-    def columncount(self):
+    def columncount(self) -> int:
         if isinstance(self._schema, (tuple, list)):
             return len(self._schema)
         return len(self._schema.columns)
 
     @property
-    def shape(self):
-        return (self.rowcount, self.columncount)
+    def shape(self) -> typing.Tuple[int, int]:
+        return (self.rowcount, self.columncount)  # type: ignore
 
     @property
-    def rowcount(self):
+    def rowcount(self) -> int:
         self.materialize()
         return len(self._rows)
 

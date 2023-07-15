@@ -160,6 +160,7 @@ def throttle(calls_per_second: float):
 
         @wraps(func)
         def rate_limited_function(*args, **kargs):
+            nonlocal last_time_called
             elapsed = time.monotonic() - last_time_called
             left_to_wait = min_interval - elapsed
             if left_to_wait > 0:

@@ -18,7 +18,6 @@ from orso.row import Row
 from orso.schema import FlatColumn
 from orso.schema import RelationSchema
 from orso.types import PYTHON_TO_ORSO_MAP
-from orso.types import OrsoTypes
 
 
 def to_arrow(dataset, size=None):
@@ -80,7 +79,7 @@ def from_arrow(tables, size=None):
     if size:
         BATCH_SIZE = min(size, BATCH_SIZE)
 
-    rows = []
+    rows: typing.List[Row] = []
     for table in [first_table] + list(tables):
         batches = table.to_batches(max_chunksize=BATCH_SIZE)
         for batch in batches:
@@ -88,14 +87,14 @@ def from_arrow(tables, size=None):
             column_data = [column_data_dict[name] for name in parquet_schema.names]
             new_rows: typing.Iterable = [tuple()] * batch.num_rows
             for i, row_data in enumerate(zip(*column_data)):
-                new_rows[i] = row_factory(row_data)
+                new_rows[i] = row_factory(row_data)  # type:ignore
             rows.extend(new_rows)
             if size and len(rows) >= size:
                 break
 
     # Limit the number of rows to 'size'
     if size:
-        rows = itertools.islice(rows, size)
+        rows = itertools.islice(rows, size)  # type:ignore
 
     return rows, orso_schema
 
