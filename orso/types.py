@@ -32,6 +32,7 @@ class OrsoTypes(str, Enum):
     TIMESTAMP = "TIMESTAMP"
     TIME = "TIME"
     VARCHAR = "VARCHAR"
+    NULL = "NULL"
 
     def is_numeric(self):
         """is the typle number-based"""
@@ -55,6 +56,7 @@ ORSO_TO_PYTHON_MAP: dict = {
     OrsoTypes.INTEGER: int,
     OrsoTypes.ARRAY: list,
     OrsoTypes.VARCHAR: str,
+    OrsoTypes.NULL: None,
 }
 
 PYTHON_TO_ORSO_MAP: dict = {value: key for key, value in ORSO_TO_PYTHON_MAP.items()}
