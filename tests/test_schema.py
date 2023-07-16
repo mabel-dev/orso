@@ -7,6 +7,7 @@ sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
 from orso.exceptions import DataValidationError
 from orso.schema import RelationSchema
+from orso.schema import FlatColumn
 from tests import cities
 
 
@@ -115,6 +116,58 @@ def test_schema_iterations():
     for i, column in enumerate(schema.columns):
         assert column == schema.column(i)
         assert column == schema.column(column.name)
+
+
+import pytest
+
+
+def test_add_method_combines_columns():
+    # Arrange
+    col1 = FlatColumn(name="col1", type=0)
+    col2 = FlatColumn(name="col2", type=0)
+    col3 = FlatColumn(name="col3", type=0)
+
+    schema1 = RelationSchema(name="Schema1", columns=[col1, col2])
+    schema2 = RelationSchema(name="Schema2", columns=[col2, col3])
+
+    # Act
+    combined_schema = schema1 + schema2
+
+    # Assert
+    expected_columns = [col1, col2, col3]
+    assert combined_schema.columns == expected_columns
+
+
+def test_add_method_preserves_original_schemas():
+    # Arrange
+    col1 = FlatColumn(name="col1", type=0)
+    col2 = FlatColumn(name="col2", type=0)
+    col3 = FlatColumn(name="col3", type=0)
+    schema1 = RelationSchema(name="Schema1", columns=[col1, col2])
+    schema2 = RelationSchema(name="Schema2", columns=[col2, col3])
+
+    # Act
+    combined_schema = schema1 + schema2
+
+    # Assert
+    assert schema1.columns == [col1, col2]
+    assert schema2.columns == [col2, col3]
+
+
+def test_add_method_with_duplicate_columns():
+    # Arrange
+    col1 = FlatColumn(name="col1", type=0)
+    col2 = FlatColumn(name="col2", type=0)
+    col3 = FlatColumn(name="col3", type=0)
+    schema1 = RelationSchema(name="Schema1", columns=[col1, col2])
+    schema2 = RelationSchema(name="Schema2", columns=[col1, col2, col3])
+
+    # Act
+    combined_schema = schema1 + schema2
+
+    # Assert
+    expected_columns = [col1, col2, col3]
+    assert combined_schema.columns == expected_columns
 
 
 if __name__ == "__main__":  # prgama: nocover

@@ -160,6 +160,26 @@ class RelationSchema:
         """Return an iterator over column names"""
         return iter([col.name for col in self.columns])
 
+    def __add__(self, other):
+        """When we add schemas together we combine the se of columns"""
+        new_schema = RelationSchema(name=self.name, aliases=self.aliases, columns=[])
+
+        # Create a new list to hold the merged columns
+        new_columns = self.columns[:]
+
+        # Keep track of the seen identities - preload with the current set
+        seen_identities = [col.identity for col in self.columns]
+
+        for column in other.columns:
+            if column.identity not in seen_identities:
+                seen_identities.append(column.identity)
+                new_columns.append(column)
+
+        # Assign the new list of columns to the new schema
+        new_schema.columns = new_columns
+
+        return new_schema
+
     @property
     def num_columns(self):
         return len(self.columns)
