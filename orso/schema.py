@@ -42,6 +42,8 @@ class FlatColumn:
     nullable: bool = True
     expectations: typing.Optional[list] = field(default_factory=list)
     identity: str = field(default_factory=random_string)
+    precision: typing.Optional[int] = None
+    scale: typing.Optional[int] = None
 
     def __init__(self, **kwargs):
         attributes = {f.name: f for f in fields(self.__class__)}
