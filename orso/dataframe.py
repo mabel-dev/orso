@@ -346,9 +346,9 @@ class DataFrame:
                 column_type = column_data.type
                 if column_type is not None:
                     data_type = str(column_data.type.value)
-                if column_type.__class__.__name__.startswith("Decimal"):
-                    data_precision = column_type.precision
-                    data_scale = column_type.scale
+                if column_type.value == "DECIMAL":
+                    data_precision = column_data.precision
+                    data_scale = column_data.scale
                     data_type = f"DECIMAL({data_precision},{data_scale})"
                 nullable = column_data.nullable
             result.append(

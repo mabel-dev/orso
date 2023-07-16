@@ -15,6 +15,7 @@ from dataclasses import _MISSING_TYPE
 from dataclasses import dataclass
 from dataclasses import field
 from dataclasses import fields
+from decimal import Decimal
 from enum import Enum
 from warnings import warn
 
@@ -22,8 +23,10 @@ import numpy
 
 from orso.exceptions import ColumnDefinitionError
 from orso.exceptions import DataValidationError
+from orso.tools import arrow_type_map
 from orso.tools import random_string
 from orso.types import ORSO_TO_PYTHON_MAP
+from orso.types import PYTHON_TO_ORSO_MAP
 from orso.types import OrsoTypes
 
 
@@ -78,6 +81,28 @@ class FlatColumn:
 
     def materialize(self):
         raise TypeError("Cannot materialize FlatColumns")
+
+    @classmethod
+    def from_arrow(cls, arrow_field):
+        """
+        Help converting from from Arrow to Orso
+        """
+        native_type = arrow_type_map(arrow_field.type)
+        scale = None
+        precision = None
+        if isinstance(native_type, Decimal):
+            field_type = OrsoTypes.DECIMAL
+            scale = native_type.scale
+            precision = native_type.precision
+        else:
+            field_type = PYTHON_TO_ORSO_MAP.get(native_type)
+        return cls(
+            name=str(arrow_field.name),
+            type=field_type,
+            nullable=arrow_field.nullable,
+            scale=scale,
+            precision=precision,
+        )
 
 
 @dataclass(init=False)

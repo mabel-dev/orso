@@ -267,7 +267,7 @@ class DecimalFactory(decimal.Decimal):
         return factory
 
 
-def parquet_type_map(parquet_type):
+def arrow_type_map(parquet_type):
     import datetime
 
     from orso.exceptions import MissingDependencyError

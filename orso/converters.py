@@ -12,6 +12,7 @@
 
 import itertools
 import typing
+from decimal import Decimal
 
 from orso.exceptions import MissingDependencyError
 from orso.row import Row
@@ -46,8 +47,6 @@ def from_arrow(tables, size=None):
     Convert an Arrow table or an iterable of Arrow tables to a generator of
     Python objects.
     """
-    from orso.tools import parquet_type_map
-
     if not isinstance(tables, (typing.Generator, list, tuple)):
         tables = [tables]
 
@@ -59,17 +58,11 @@ def from_arrow(tables, size=None):
     if first_table is None:
         return [], {}
 
-    parquet_schema = first_table.schema
+    arrow_schema = first_table.schema
+
     orso_schema = RelationSchema(
-        name="parquet",
-        columns=[
-            FlatColumn(
-                name=str(field.name),
-                type=PYTHON_TO_ORSO_MAP.get(parquet_type_map(field.type)),
-                nullable=field.nullable,
-            )
-            for field in parquet_schema
-        ],
+        name="arrow",
+        columns=[FlatColumn.from_arrow(field) for field in arrow_schema],
     )
 
     # Create a generator of tuples from the columns
@@ -84,7 +77,7 @@ def from_arrow(tables, size=None):
         batches = table.to_batches(max_chunksize=BATCH_SIZE)
         for batch in batches:
             column_data_dict = batch.to_pydict()
-            column_data = [column_data_dict[name] for name in parquet_schema.names]
+            column_data = [column_data_dict[name] for name in arrow_schema.names]
             new_rows: typing.Iterable = [tuple()] * batch.num_rows
             for i, row_data in enumerate(zip(*column_data)):
                 new_rows[i] = row_factory(row_data)  # type:ignore
