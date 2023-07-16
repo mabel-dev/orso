@@ -2,7 +2,7 @@
 
 ![Orso](https://raw.githubusercontent.com/mabel-dev/orso/main/orso.png)
 
-**Orso is a shared DataFrame library for [Opteryx](https://opteryx.dev/) and [HadroDB](https://github.com/mabel-dev/hadrodb).**
+**Orso is a shared DataFrame library for [Opteryx](https://opteryx.dev/), [Mabel](https://github.com/mabel-dev/mabel) and [HadroDB](https://github.com/mabel-dev/hadrodb).**
 
 [![PyPI Latest Release](https://img.shields.io/pypi/v/orso.svg)](https://pypi.org/project/orso/)
 [![Downloads](https://static.pepy.tech/badge/orso)](https://pepy.tech/project/orso)
@@ -13,7 +13,9 @@
 
 Orso is not intended to compete with [Polars](https://www.pola.rs/) or [Pandas](https://pandas.pydata.org/) (or your favorite ~~bear~~ DataFrame technology), instead it is developed as a common layer for HadroDB and Opteryx.
 
-In Opteryx, Orso provides much of the functionality of the Cursor.
+In Opteryx, Orso provides most of the database Cursor functionality.
+
+In Mabel, Orso provides the data schema and validation functionality.
 
 In HadroDB, Orso provides functionality for handling datasets.
 
