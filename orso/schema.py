@@ -92,8 +92,8 @@ class FlatColumn:
         precision = None
         if isinstance(native_type, Decimal):
             field_type = OrsoTypes.DECIMAL
-            scale = native_type.scale
-            precision = native_type.precision
+            scale = native_type.scale  # type:ignore
+            precision = native_type.precision  # type:ignore
         else:
             field_type = PYTHON_TO_ORSO_MAP.get(native_type)
         return cls(
