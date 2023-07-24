@@ -238,6 +238,4 @@ if __name__ == "__main__":  # pragme: no cover
     df = opteryx.query("SELECT graduate_major, len(graduate_major) FROM $astronauts")
     print(df)
 
-    from pprint import pprint
-
-    pprint(table_profiler(df))
+    print(table_profiler(df))

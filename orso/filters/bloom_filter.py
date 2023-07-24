@@ -131,7 +131,6 @@ class BloomFilter:
 
 if __name__ == "__main__":  # pragma: no cover
     b = BloomFilter()
-    import random
     import time
 
     from opteryx.utils import random_string
