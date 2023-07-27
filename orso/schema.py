@@ -230,6 +230,11 @@ class RelationSchema:
 
         return list(_inner())
 
+    @property
+    def column_names(self):
+        """return all the names for columns in this relation"""
+        return [column.name for column in self.columns]
+
     def column(self, i):
         """get column by name or index"""
         if isinstance(i, int):

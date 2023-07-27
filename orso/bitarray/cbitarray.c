@@ -1374,7 +1374,7 @@ static const char *__pyx_f[] = {
 /*--- Type declarations ---*/
 struct __pyx_obj_4orso_8bitarray_9cbitarray_BitArray;
 
-/* "orso/bitarray/cbitarray.pyx":24
+/* "orso/bitarray/cbitarray.pyx":23
  *     void memset(void *s, int c, int n)
  * 
  * cdef class BitArray:             # <<<<<<<<<<<<<<
@@ -2483,7 +2483,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_codeobj__11 __pyx_mstate_global->__pyx_codeobj__11
 /* #### Code section: module_code ### */
 
-/* "orso/bitarray/cbitarray.pyx":28
+/* "orso/bitarray/cbitarray.pyx":27
  *     cdef int *bits
  * 
  *     def __init__(self, int size):             # <<<<<<<<<<<<<<
@@ -2518,23 +2518,23 @@ static int __pyx_pw_4orso_8bitarray_9cbitarray_8BitArray_1__init__(PyObject *__p
       switch (__pyx_nargs) {
         case  0:
         if (likely((values[0] = __Pyx_GetKwValue_VARARGS(__pyx_kwds, __pyx_kwvalues, __pyx_n_s_size)) != 0)) kw_args--;
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 28, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 27, __pyx_L3_error)
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
         const Py_ssize_t kwd_pos_args = __pyx_nargs;
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "__init__") < 0)) __PYX_ERR(0, 28, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "__init__") < 0)) __PYX_ERR(0, 27, __pyx_L3_error)
       }
     } else if (unlikely(__pyx_nargs != 1)) {
       goto __pyx_L5_argtuple_error;
     } else {
       values[0] = __Pyx_Arg_VARARGS(__pyx_args, 0);
     }
-    __pyx_v_size = __Pyx_PyInt_As_int(values[0]); if (unlikely((__pyx_v_size == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 28, __pyx_L3_error)
+    __pyx_v_size = __Pyx_PyInt_As_int(values[0]); if (unlikely((__pyx_v_size == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 27, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, __pyx_nargs); __PYX_ERR(0, 28, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, __pyx_nargs); __PYX_ERR(0, 27, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("orso.bitarray.cbitarray.BitArray.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -2557,7 +2557,7 @@ static int __pyx_pf_4orso_8bitarray_9cbitarray_8BitArray___init__(struct __pyx_o
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "orso/bitarray/cbitarray.pyx":29
+  /* "orso/bitarray/cbitarray.pyx":28
  * 
  *     def __init__(self, int size):
  *         assert size > 0, "bitarray size must be a positive integer"             # <<<<<<<<<<<<<<
@@ -2569,14 +2569,14 @@ static int __pyx_pf_4orso_8bitarray_9cbitarray_8BitArray___init__(struct __pyx_o
     __pyx_t_1 = (__pyx_v_size > 0);
     if (unlikely(!__pyx_t_1)) {
       __Pyx_Raise(__pyx_builtin_AssertionError, __pyx_kp_u_bitarray_size_must_be_a_positive, 0, 0);
-      __PYX_ERR(0, 29, __pyx_L1_error)
+      __PYX_ERR(0, 28, __pyx_L1_error)
     }
   }
   #else
-  if ((1)); else __PYX_ERR(0, 29, __pyx_L1_error)
+  if ((1)); else __PYX_ERR(0, 28, __pyx_L1_error)
   #endif
 
-  /* "orso/bitarray/cbitarray.pyx":30
+  /* "orso/bitarray/cbitarray.pyx":29
  *     def __init__(self, int size):
  *         assert size > 0, "bitarray size must be a positive integer"
  *         self.size = size             # <<<<<<<<<<<<<<
@@ -2585,7 +2585,7 @@ static int __pyx_pf_4orso_8bitarray_9cbitarray_8BitArray___init__(struct __pyx_o
  */
   __pyx_v_self->size = __pyx_v_size;
 
-  /* "orso/bitarray/cbitarray.pyx":31
+  /* "orso/bitarray/cbitarray.pyx":30
  *         assert size > 0, "bitarray size must be a positive integer"
  *         self.size = size
  *         cdef int n_bytes = (size + 7) >> 3             # <<<<<<<<<<<<<<
@@ -2594,7 +2594,7 @@ static int __pyx_pf_4orso_8bitarray_9cbitarray_8BitArray___init__(struct __pyx_o
  */
   __pyx_v_n_bytes = ((__pyx_v_size + 7) >> 3);
 
-  /* "orso/bitarray/cbitarray.pyx":32
+  /* "orso/bitarray/cbitarray.pyx":31
  *         self.size = size
  *         cdef int n_bytes = (size + 7) >> 3
  *         self.bits = <int *> PyMem_Malloc(n_bytes * sizeof(int))             # <<<<<<<<<<<<<<
@@ -2603,7 +2603,7 @@ static int __pyx_pf_4orso_8bitarray_9cbitarray_8BitArray___init__(struct __pyx_o
  */
   __pyx_v_self->bits = ((int *)PyMem_Malloc((__pyx_v_n_bytes * (sizeof(int)))));
 
-  /* "orso/bitarray/cbitarray.pyx":33
+  /* "orso/bitarray/cbitarray.pyx":32
  *         cdef int n_bytes = (size + 7) >> 3
  *         self.bits = <int *> PyMem_Malloc(n_bytes * sizeof(int))
  *         memset(self.bits, 0, n_bytes * sizeof(int))             # <<<<<<<<<<<<<<
@@ -2612,7 +2612,7 @@ static int __pyx_pf_4orso_8bitarray_9cbitarray_8BitArray___init__(struct __pyx_o
  */
   memset(__pyx_v_self->bits, 0, (__pyx_v_n_bytes * (sizeof(int))));
 
-  /* "orso/bitarray/cbitarray.pyx":28
+  /* "orso/bitarray/cbitarray.pyx":27
  *     cdef int *bits
  * 
  *     def __init__(self, int size):             # <<<<<<<<<<<<<<
@@ -2631,7 +2631,7 @@ static int __pyx_pf_4orso_8bitarray_9cbitarray_8BitArray___init__(struct __pyx_o
   return __pyx_r;
 }
 
-/* "orso/bitarray/cbitarray.pyx":35
+/* "orso/bitarray/cbitarray.pyx":34
  *         memset(self.bits, 0, n_bytes * sizeof(int))
  * 
  *     def __dealloc__(self):             # <<<<<<<<<<<<<<
@@ -2655,7 +2655,7 @@ static void __pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_2__dealloc__(struct __
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__dealloc__", 0);
 
-  /* "orso/bitarray/cbitarray.pyx":36
+  /* "orso/bitarray/cbitarray.pyx":35
  * 
  *     def __dealloc__(self):
  *         with nogil:             # <<<<<<<<<<<<<<
@@ -2671,7 +2671,7 @@ static void __pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_2__dealloc__(struct __
       #endif
       /*try:*/ {
 
-        /* "orso/bitarray/cbitarray.pyx":37
+        /* "orso/bitarray/cbitarray.pyx":36
  *     def __dealloc__(self):
  *         with nogil:
  *             PyMem_Free(self.bits)             # <<<<<<<<<<<<<<
@@ -2681,7 +2681,7 @@ static void __pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_2__dealloc__(struct __
         PyMem_Free(__pyx_v_self->bits);
       }
 
-      /* "orso/bitarray/cbitarray.pyx":36
+      /* "orso/bitarray/cbitarray.pyx":35
  * 
  *     def __dealloc__(self):
  *         with nogil:             # <<<<<<<<<<<<<<
@@ -2700,7 +2700,7 @@ static void __pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_2__dealloc__(struct __
       }
   }
 
-  /* "orso/bitarray/cbitarray.pyx":35
+  /* "orso/bitarray/cbitarray.pyx":34
  *         memset(self.bits, 0, n_bytes * sizeof(int))
  * 
  *     def __dealloc__(self):             # <<<<<<<<<<<<<<
@@ -2712,7 +2712,7 @@ static void __pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_2__dealloc__(struct __
   __Pyx_RefNannyFinishContext();
 }
 
-/* "orso/bitarray/cbitarray.pyx":39
+/* "orso/bitarray/cbitarray.pyx":38
  *             PyMem_Free(self.bits)
  * 
  *     def get(self, int index):             # <<<<<<<<<<<<<<
@@ -2762,23 +2762,23 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
       switch (__pyx_nargs) {
         case  0:
         if (likely((values[0] = __Pyx_GetKwValue_FASTCALL(__pyx_kwds, __pyx_kwvalues, __pyx_n_s_index)) != 0)) kw_args--;
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 39, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 38, __pyx_L3_error)
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
         const Py_ssize_t kwd_pos_args = __pyx_nargs;
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "get") < 0)) __PYX_ERR(0, 39, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "get") < 0)) __PYX_ERR(0, 38, __pyx_L3_error)
       }
     } else if (unlikely(__pyx_nargs != 1)) {
       goto __pyx_L5_argtuple_error;
     } else {
       values[0] = __Pyx_Arg_FASTCALL(__pyx_args, 0);
     }
-    __pyx_v_index = __Pyx_PyInt_As_int(values[0]); if (unlikely((__pyx_v_index == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 39, __pyx_L3_error)
+    __pyx_v_index = __Pyx_PyInt_As_int(values[0]); if (unlikely((__pyx_v_index == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 38, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("get", 1, 1, 1, __pyx_nargs); __PYX_ERR(0, 39, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("get", 1, 1, 1, __pyx_nargs); __PYX_ERR(0, 38, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("orso.bitarray.cbitarray.BitArray.get", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -2802,7 +2802,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_4get(struct __pyx
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("get", 0);
 
-  /* "orso/bitarray/cbitarray.pyx":40
+  /* "orso/bitarray/cbitarray.pyx":39
  * 
  *     def get(self, int index):
  *         if 0 > index or index >= self.size:             # <<<<<<<<<<<<<<
@@ -2820,20 +2820,20 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_4get(struct __pyx
   __pyx_L4_bool_binop_done:;
   if (unlikely(__pyx_t_1)) {
 
-    /* "orso/bitarray/cbitarray.pyx":41
+    /* "orso/bitarray/cbitarray.pyx":40
  *     def get(self, int index):
  *         if 0 > index or index >= self.size:
  *             raise IndexError("Index out of range")             # <<<<<<<<<<<<<<
  *         return (self.bits[index >> 3] & (1 << (index & 7))) != 0
  * 
  */
-    __pyx_t_3 = __Pyx_PyObject_Call(__pyx_builtin_IndexError, __pyx_tuple_, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 41, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyObject_Call(__pyx_builtin_IndexError, __pyx_tuple_, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 40, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_Raise(__pyx_t_3, 0, 0, 0);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __PYX_ERR(0, 41, __pyx_L1_error)
+    __PYX_ERR(0, 40, __pyx_L1_error)
 
-    /* "orso/bitarray/cbitarray.pyx":40
+    /* "orso/bitarray/cbitarray.pyx":39
  * 
  *     def get(self, int index):
  *         if 0 > index or index >= self.size:             # <<<<<<<<<<<<<<
@@ -2842,7 +2842,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_4get(struct __pyx
  */
   }
 
-  /* "orso/bitarray/cbitarray.pyx":42
+  /* "orso/bitarray/cbitarray.pyx":41
  *         if 0 > index or index >= self.size:
  *             raise IndexError("Index out of range")
  *         return (self.bits[index >> 3] & (1 << (index & 7))) != 0             # <<<<<<<<<<<<<<
@@ -2850,13 +2850,13 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_4get(struct __pyx
  *     def set(self, int index, bint value):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_3 = __Pyx_PyBool_FromLong((((__pyx_v_self->bits[(__pyx_v_index >> 3)]) & (1 << (__pyx_v_index & 7))) != 0)); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 42, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyBool_FromLong((((__pyx_v_self->bits[(__pyx_v_index >> 3)]) & (1 << (__pyx_v_index & 7))) != 0)); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 41, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __pyx_r = __pyx_t_3;
   __pyx_t_3 = 0;
   goto __pyx_L0;
 
-  /* "orso/bitarray/cbitarray.pyx":39
+  /* "orso/bitarray/cbitarray.pyx":38
  *             PyMem_Free(self.bits)
  * 
  *     def get(self, int index):             # <<<<<<<<<<<<<<
@@ -2875,7 +2875,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_4get(struct __pyx
   return __pyx_r;
 }
 
-/* "orso/bitarray/cbitarray.pyx":44
+/* "orso/bitarray/cbitarray.pyx":43
  *         return (self.bits[index >> 3] & (1 << (index & 7))) != 0
  * 
  *     def set(self, int index, bint value):             # <<<<<<<<<<<<<<
@@ -2928,19 +2928,19 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
       switch (__pyx_nargs) {
         case  0:
         if (likely((values[0] = __Pyx_GetKwValue_FASTCALL(__pyx_kwds, __pyx_kwvalues, __pyx_n_s_index)) != 0)) kw_args--;
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 44, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 43, __pyx_L3_error)
         else goto __pyx_L5_argtuple_error;
         CYTHON_FALLTHROUGH;
         case  1:
         if (likely((values[1] = __Pyx_GetKwValue_FASTCALL(__pyx_kwds, __pyx_kwvalues, __pyx_n_s_value)) != 0)) kw_args--;
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 44, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 43, __pyx_L3_error)
         else {
-          __Pyx_RaiseArgtupleInvalid("set", 1, 2, 2, 1); __PYX_ERR(0, 44, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("set", 1, 2, 2, 1); __PYX_ERR(0, 43, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
         const Py_ssize_t kwd_pos_args = __pyx_nargs;
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "set") < 0)) __PYX_ERR(0, 44, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "set") < 0)) __PYX_ERR(0, 43, __pyx_L3_error)
       }
     } else if (unlikely(__pyx_nargs != 2)) {
       goto __pyx_L5_argtuple_error;
@@ -2948,12 +2948,12 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
       values[0] = __Pyx_Arg_FASTCALL(__pyx_args, 0);
       values[1] = __Pyx_Arg_FASTCALL(__pyx_args, 1);
     }
-    __pyx_v_index = __Pyx_PyInt_As_int(values[0]); if (unlikely((__pyx_v_index == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 44, __pyx_L3_error)
-    __pyx_v_value = __Pyx_PyObject_IsTrue(values[1]); if (unlikely((__pyx_v_value == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 44, __pyx_L3_error)
+    __pyx_v_index = __Pyx_PyInt_As_int(values[0]); if (unlikely((__pyx_v_index == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 43, __pyx_L3_error)
+    __pyx_v_value = __Pyx_PyObject_IsTrue(values[1]); if (unlikely((__pyx_v_value == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 43, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("set", 1, 2, 2, __pyx_nargs); __PYX_ERR(0, 44, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("set", 1, 2, 2, __pyx_nargs); __PYX_ERR(0, 43, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("orso.bitarray.cbitarray.BitArray.set", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -2978,7 +2978,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_6set(struct __pyx
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("set", 0);
 
-  /* "orso/bitarray/cbitarray.pyx":45
+  /* "orso/bitarray/cbitarray.pyx":44
  * 
  *     def set(self, int index, bint value):
  *         if 0 > index or index >= self.size:             # <<<<<<<<<<<<<<
@@ -2996,20 +2996,20 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_6set(struct __pyx
   __pyx_L4_bool_binop_done:;
   if (unlikely(__pyx_t_1)) {
 
-    /* "orso/bitarray/cbitarray.pyx":46
+    /* "orso/bitarray/cbitarray.pyx":45
  *     def set(self, int index, bint value):
  *         if 0 > index or index >= self.size:
  *             raise IndexError("Index out of range")             # <<<<<<<<<<<<<<
  *         if value:
  *             self.bits[index >> 3] |= (1 << (index & 7))
  */
-    __pyx_t_3 = __Pyx_PyObject_Call(__pyx_builtin_IndexError, __pyx_tuple_, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 46, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyObject_Call(__pyx_builtin_IndexError, __pyx_tuple_, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 45, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_Raise(__pyx_t_3, 0, 0, 0);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __PYX_ERR(0, 46, __pyx_L1_error)
+    __PYX_ERR(0, 45, __pyx_L1_error)
 
-    /* "orso/bitarray/cbitarray.pyx":45
+    /* "orso/bitarray/cbitarray.pyx":44
  * 
  *     def set(self, int index, bint value):
  *         if 0 > index or index >= self.size:             # <<<<<<<<<<<<<<
@@ -3018,7 +3018,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_6set(struct __pyx
  */
   }
 
-  /* "orso/bitarray/cbitarray.pyx":47
+  /* "orso/bitarray/cbitarray.pyx":46
  *         if 0 > index or index >= self.size:
  *             raise IndexError("Index out of range")
  *         if value:             # <<<<<<<<<<<<<<
@@ -3027,7 +3027,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_6set(struct __pyx
  */
   if (__pyx_v_value) {
 
-    /* "orso/bitarray/cbitarray.pyx":48
+    /* "orso/bitarray/cbitarray.pyx":47
  *             raise IndexError("Index out of range")
  *         if value:
  *             self.bits[index >> 3] |= (1 << (index & 7))             # <<<<<<<<<<<<<<
@@ -3037,7 +3037,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_6set(struct __pyx
     __pyx_t_4 = (__pyx_v_index >> 3);
     (__pyx_v_self->bits[__pyx_t_4]) = ((__pyx_v_self->bits[__pyx_t_4]) | (1 << (__pyx_v_index & 7)));
 
-    /* "orso/bitarray/cbitarray.pyx":47
+    /* "orso/bitarray/cbitarray.pyx":46
  *         if 0 > index or index >= self.size:
  *             raise IndexError("Index out of range")
  *         if value:             # <<<<<<<<<<<<<<
@@ -3047,7 +3047,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_6set(struct __pyx
     goto __pyx_L6;
   }
 
-  /* "orso/bitarray/cbitarray.pyx":50
+  /* "orso/bitarray/cbitarray.pyx":49
  *             self.bits[index >> 3] |= (1 << (index & 7))
  *         else:
  *             self.bits[index >> 3] &= ~(1 << (index & 7))             # <<<<<<<<<<<<<<
@@ -3060,7 +3060,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_6set(struct __pyx
   }
   __pyx_L6:;
 
-  /* "orso/bitarray/cbitarray.pyx":44
+  /* "orso/bitarray/cbitarray.pyx":43
  *         return (self.bits[index >> 3] & (1 << (index & 7))) != 0
  * 
  *     def set(self, int index, bint value):             # <<<<<<<<<<<<<<
@@ -3081,7 +3081,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_6set(struct __pyx
   return __pyx_r;
 }
 
-/* "orso/bitarray/cbitarray.pyx":52
+/* "orso/bitarray/cbitarray.pyx":51
  *             self.bits[index >> 3] &= ~(1 << (index & 7))
  * 
  *     @property             # <<<<<<<<<<<<<<
@@ -3124,40 +3124,40 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_5array___get__(st
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__get__", 0);
 
-  /* "orso/bitarray/cbitarray.pyx":54
+  /* "orso/bitarray/cbitarray.pyx":53
  *     @property
  *     def array(self):
  *         ba = bytearray((self.size + 7) >> 3)             # <<<<<<<<<<<<<<
  *         for i in range((self.size + 7) >> 3):
  *             for j in range(8):
  */
-  __pyx_t_1 = __Pyx_PyInt_From_long(((__pyx_v_self->size + 7) >> 3)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 54, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyInt_From_long(((__pyx_v_self->size + 7) >> 3)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 53, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyObject_CallOneArg(((PyObject *)(&PyByteArray_Type)), __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 54, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_CallOneArg(((PyObject *)(&PyByteArray_Type)), __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 53, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_v_ba = ((PyObject*)__pyx_t_2);
   __pyx_t_2 = 0;
 
-  /* "orso/bitarray/cbitarray.pyx":55
+  /* "orso/bitarray/cbitarray.pyx":54
  *     def array(self):
  *         ba = bytearray((self.size + 7) >> 3)
  *         for i in range((self.size + 7) >> 3):             # <<<<<<<<<<<<<<
  *             for j in range(8):
  *                 if i * 8 + j < self.size:
  */
-  __pyx_t_2 = __Pyx_PyInt_From_long(((__pyx_v_self->size + 7) >> 3)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 55, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyInt_From_long(((__pyx_v_self->size + 7) >> 3)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 54, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_builtin_range, __pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 55, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_builtin_range, __pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 54, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   if (likely(PyList_CheckExact(__pyx_t_1)) || PyTuple_CheckExact(__pyx_t_1)) {
     __pyx_t_2 = __pyx_t_1; __Pyx_INCREF(__pyx_t_2); __pyx_t_3 = 0;
     __pyx_t_4 = NULL;
   } else {
-    __pyx_t_3 = -1; __pyx_t_2 = PyObject_GetIter(__pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 55, __pyx_L1_error)
+    __pyx_t_3 = -1; __pyx_t_2 = PyObject_GetIter(__pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 54, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
-    __pyx_t_4 = __Pyx_PyObject_GetIterNextFunc(__pyx_t_2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 55, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyObject_GetIterNextFunc(__pyx_t_2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 54, __pyx_L1_error)
   }
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   for (;;) {
@@ -3165,17 +3165,17 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_5array___get__(st
       if (likely(PyList_CheckExact(__pyx_t_2))) {
         if (__pyx_t_3 >= PyList_GET_SIZE(__pyx_t_2)) break;
         #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-        __pyx_t_1 = PyList_GET_ITEM(__pyx_t_2, __pyx_t_3); __Pyx_INCREF(__pyx_t_1); __pyx_t_3++; if (unlikely((0 < 0))) __PYX_ERR(0, 55, __pyx_L1_error)
+        __pyx_t_1 = PyList_GET_ITEM(__pyx_t_2, __pyx_t_3); __Pyx_INCREF(__pyx_t_1); __pyx_t_3++; if (unlikely((0 < 0))) __PYX_ERR(0, 54, __pyx_L1_error)
         #else
-        __pyx_t_1 = PySequence_ITEM(__pyx_t_2, __pyx_t_3); __pyx_t_3++; if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 55, __pyx_L1_error)
+        __pyx_t_1 = PySequence_ITEM(__pyx_t_2, __pyx_t_3); __pyx_t_3++; if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 54, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_1);
         #endif
       } else {
         if (__pyx_t_3 >= PyTuple_GET_SIZE(__pyx_t_2)) break;
         #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-        __pyx_t_1 = PyTuple_GET_ITEM(__pyx_t_2, __pyx_t_3); __Pyx_INCREF(__pyx_t_1); __pyx_t_3++; if (unlikely((0 < 0))) __PYX_ERR(0, 55, __pyx_L1_error)
+        __pyx_t_1 = PyTuple_GET_ITEM(__pyx_t_2, __pyx_t_3); __Pyx_INCREF(__pyx_t_1); __pyx_t_3++; if (unlikely((0 < 0))) __PYX_ERR(0, 54, __pyx_L1_error)
         #else
-        __pyx_t_1 = PySequence_ITEM(__pyx_t_2, __pyx_t_3); __pyx_t_3++; if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 55, __pyx_L1_error)
+        __pyx_t_1 = PySequence_ITEM(__pyx_t_2, __pyx_t_3); __pyx_t_3++; if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 54, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_1);
         #endif
       }
@@ -3185,7 +3185,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_5array___get__(st
         PyObject* exc_type = PyErr_Occurred();
         if (exc_type) {
           if (likely(__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();
-          else __PYX_ERR(0, 55, __pyx_L1_error)
+          else __PYX_ERR(0, 54, __pyx_L1_error)
         }
         break;
       }
@@ -3194,7 +3194,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_5array___get__(st
     __Pyx_XDECREF_SET(__pyx_v_i, __pyx_t_1);
     __pyx_t_1 = 0;
 
-    /* "orso/bitarray/cbitarray.pyx":56
+    /* "orso/bitarray/cbitarray.pyx":55
  *         ba = bytearray((self.size + 7) >> 3)
  *         for i in range((self.size + 7) >> 3):
  *             for j in range(8):             # <<<<<<<<<<<<<<
@@ -3202,33 +3202,33 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_5array___get__(st
  *                     ba[i] |= ((self.bits[i] >> j) & 1) << j
  */
     for (__pyx_t_5 = 0; __pyx_t_5 < 8; __pyx_t_5+=1) {
-      __pyx_t_1 = __Pyx_PyInt_From_long(__pyx_t_5); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 56, __pyx_L1_error)
+      __pyx_t_1 = __Pyx_PyInt_From_long(__pyx_t_5); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 55, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
       __Pyx_XDECREF_SET(__pyx_v_j, __pyx_t_1);
       __pyx_t_1 = 0;
 
-      /* "orso/bitarray/cbitarray.pyx":57
+      /* "orso/bitarray/cbitarray.pyx":56
  *         for i in range((self.size + 7) >> 3):
  *             for j in range(8):
  *                 if i * 8 + j < self.size:             # <<<<<<<<<<<<<<
  *                     ba[i] |= ((self.bits[i] >> j) & 1) << j
  *         return ba
  */
-      __pyx_t_1 = __Pyx_PyInt_MultiplyObjC(__pyx_v_i, __pyx_int_8, 8, 0, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 57, __pyx_L1_error)
+      __pyx_t_1 = __Pyx_PyInt_MultiplyObjC(__pyx_v_i, __pyx_int_8, 8, 0, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 56, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
-      __pyx_t_6 = PyNumber_Add(__pyx_t_1, __pyx_v_j); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 57, __pyx_L1_error)
+      __pyx_t_6 = PyNumber_Add(__pyx_t_1, __pyx_v_j); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 56, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_6);
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-      __pyx_t_1 = __Pyx_PyInt_From_int(__pyx_v_self->size); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 57, __pyx_L1_error)
+      __pyx_t_1 = __Pyx_PyInt_From_int(__pyx_v_self->size); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 56, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
-      __pyx_t_7 = PyObject_RichCompare(__pyx_t_6, __pyx_t_1, Py_LT); __Pyx_XGOTREF(__pyx_t_7); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 57, __pyx_L1_error)
+      __pyx_t_7 = PyObject_RichCompare(__pyx_t_6, __pyx_t_1, Py_LT); __Pyx_XGOTREF(__pyx_t_7); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 56, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-      __pyx_t_8 = __Pyx_PyObject_IsTrue(__pyx_t_7); if (unlikely((__pyx_t_8 < 0))) __PYX_ERR(0, 57, __pyx_L1_error)
+      __pyx_t_8 = __Pyx_PyObject_IsTrue(__pyx_t_7); if (unlikely((__pyx_t_8 < 0))) __PYX_ERR(0, 56, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
       if (__pyx_t_8) {
 
-        /* "orso/bitarray/cbitarray.pyx":58
+        /* "orso/bitarray/cbitarray.pyx":57
  *             for j in range(8):
  *                 if i * 8 + j < self.size:
  *                     ba[i] |= ((self.bits[i] >> j) & 1) << j             # <<<<<<<<<<<<<<
@@ -3237,29 +3237,29 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_5array___get__(st
  */
         __Pyx_INCREF(__pyx_v_i);
         __pyx_t_7 = __pyx_v_i;
-        __pyx_t_1 = __Pyx_PyObject_GetItem(__pyx_v_ba, __pyx_t_7); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 58, __pyx_L1_error)
+        __pyx_t_1 = __Pyx_PyObject_GetItem(__pyx_v_ba, __pyx_t_7); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 57, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_1);
-        __pyx_t_9 = __Pyx_PyIndex_AsSsize_t(__pyx_v_i); if (unlikely((__pyx_t_9 == (Py_ssize_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 58, __pyx_L1_error)
-        __pyx_t_6 = __Pyx_PyInt_From_int((__pyx_v_self->bits[__pyx_t_9])); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 58, __pyx_L1_error)
+        __pyx_t_9 = __Pyx_PyIndex_AsSsize_t(__pyx_v_i); if (unlikely((__pyx_t_9 == (Py_ssize_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 57, __pyx_L1_error)
+        __pyx_t_6 = __Pyx_PyInt_From_int((__pyx_v_self->bits[__pyx_t_9])); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 57, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_6);
-        __pyx_t_10 = PyNumber_Rshift(__pyx_t_6, __pyx_v_j); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 58, __pyx_L1_error)
+        __pyx_t_10 = PyNumber_Rshift(__pyx_t_6, __pyx_v_j); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 57, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_10);
         __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-        __pyx_t_6 = __Pyx_PyInt_AndObjC(__pyx_t_10, __pyx_int_1, 1, 0, 0); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 58, __pyx_L1_error)
+        __pyx_t_6 = __Pyx_PyInt_AndObjC(__pyx_t_10, __pyx_int_1, 1, 0, 0); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 57, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_6);
         __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
-        __pyx_t_10 = PyNumber_Lshift(__pyx_t_6, __pyx_v_j); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 58, __pyx_L1_error)
+        __pyx_t_10 = PyNumber_Lshift(__pyx_t_6, __pyx_v_j); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 57, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_10);
         __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-        __pyx_t_6 = PyNumber_InPlaceOr(__pyx_t_1, __pyx_t_10); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 58, __pyx_L1_error)
+        __pyx_t_6 = PyNumber_InPlaceOr(__pyx_t_1, __pyx_t_10); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 57, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_6);
         __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
         __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
-        if (unlikely((PyObject_SetItem(__pyx_v_ba, __pyx_t_7, __pyx_t_6) < 0))) __PYX_ERR(0, 58, __pyx_L1_error)
+        if (unlikely((PyObject_SetItem(__pyx_v_ba, __pyx_t_7, __pyx_t_6) < 0))) __PYX_ERR(0, 57, __pyx_L1_error)
         __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
         __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
 
-        /* "orso/bitarray/cbitarray.pyx":57
+        /* "orso/bitarray/cbitarray.pyx":56
  *         for i in range((self.size + 7) >> 3):
  *             for j in range(8):
  *                 if i * 8 + j < self.size:             # <<<<<<<<<<<<<<
@@ -3269,7 +3269,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_5array___get__(st
       }
     }
 
-    /* "orso/bitarray/cbitarray.pyx":55
+    /* "orso/bitarray/cbitarray.pyx":54
  *     def array(self):
  *         ba = bytearray((self.size + 7) >> 3)
  *         for i in range((self.size + 7) >> 3):             # <<<<<<<<<<<<<<
@@ -3279,7 +3279,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_5array___get__(st
   }
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "orso/bitarray/cbitarray.pyx":59
+  /* "orso/bitarray/cbitarray.pyx":58
  *                 if i * 8 + j < self.size:
  *                     ba[i] |= ((self.bits[i] >> j) & 1) << j
  *         return ba             # <<<<<<<<<<<<<<
@@ -3291,7 +3291,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_5array___get__(st
   __pyx_r = __pyx_v_ba;
   goto __pyx_L0;
 
-  /* "orso/bitarray/cbitarray.pyx":52
+  /* "orso/bitarray/cbitarray.pyx":51
  *             self.bits[index >> 3] &= ~(1 << (index & 7))
  * 
  *     @property             # <<<<<<<<<<<<<<
@@ -3317,7 +3317,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_5array___get__(st
   return __pyx_r;
 }
 
-/* "orso/bitarray/cbitarray.pyx":61
+/* "orso/bitarray/cbitarray.pyx":60
  *         return ba
  * 
  *     @classmethod             # <<<<<<<<<<<<<<
@@ -3370,19 +3370,19 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
       switch (__pyx_nargs) {
         case  0:
         if (likely((values[0] = __Pyx_GetKwValue_FASTCALL(__pyx_kwds, __pyx_kwvalues, __pyx_n_s_array)) != 0)) kw_args--;
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 61, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 60, __pyx_L3_error)
         else goto __pyx_L5_argtuple_error;
         CYTHON_FALLTHROUGH;
         case  1:
         if (likely((values[1] = __Pyx_GetKwValue_FASTCALL(__pyx_kwds, __pyx_kwvalues, __pyx_n_s_length)) != 0)) kw_args--;
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 61, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 60, __pyx_L3_error)
         else {
-          __Pyx_RaiseArgtupleInvalid("from_array", 1, 2, 2, 1); __PYX_ERR(0, 61, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("from_array", 1, 2, 2, 1); __PYX_ERR(0, 60, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
         const Py_ssize_t kwd_pos_args = __pyx_nargs;
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "from_array") < 0)) __PYX_ERR(0, 61, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "from_array") < 0)) __PYX_ERR(0, 60, __pyx_L3_error)
       }
     } else if (unlikely(__pyx_nargs != 2)) {
       goto __pyx_L5_argtuple_error;
@@ -3391,11 +3391,11 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
       values[1] = __Pyx_Arg_FASTCALL(__pyx_args, 1);
     }
     __pyx_v_array = values[0];
-    __pyx_v_length = __Pyx_PyInt_As_int(values[1]); if (unlikely((__pyx_v_length == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 62, __pyx_L3_error)
+    __pyx_v_length = __Pyx_PyInt_As_int(values[1]); if (unlikely((__pyx_v_length == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 61, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("from_array", 1, 2, 2, __pyx_nargs); __PYX_ERR(0, 61, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("from_array", 1, 2, 2, __pyx_nargs); __PYX_ERR(0, 60, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("orso.bitarray.cbitarray.BitArray.from_array", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -3428,40 +3428,40 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_8from_array(PyTyp
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("from_array", 0);
 
-  /* "orso/bitarray/cbitarray.pyx":63
+  /* "orso/bitarray/cbitarray.pyx":62
  *     @classmethod
  *     def from_array(cls, array, int length):
  *         bit_array = cls(length)             # <<<<<<<<<<<<<<
  *         for index in range(length):
  *             bit = (array[index >> 3] & (1 << (index & 7))) != 0
  */
-  __pyx_t_1 = __Pyx_PyInt_From_int(__pyx_v_length); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 63, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyInt_From_int(__pyx_v_length); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 62, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyObject_CallOneArg(((PyObject *)__pyx_v_cls), __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 63, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_CallOneArg(((PyObject *)__pyx_v_cls), __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 62, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_v_bit_array = __pyx_t_2;
   __pyx_t_2 = 0;
 
-  /* "orso/bitarray/cbitarray.pyx":64
+  /* "orso/bitarray/cbitarray.pyx":63
  *     def from_array(cls, array, int length):
  *         bit_array = cls(length)
  *         for index in range(length):             # <<<<<<<<<<<<<<
  *             bit = (array[index >> 3] & (1 << (index & 7))) != 0
  *             if index < length and bit:
  */
-  __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_length); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 64, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_length); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 63, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_builtin_range, __pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 64, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_builtin_range, __pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 63, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   if (likely(PyList_CheckExact(__pyx_t_1)) || PyTuple_CheckExact(__pyx_t_1)) {
     __pyx_t_2 = __pyx_t_1; __Pyx_INCREF(__pyx_t_2); __pyx_t_3 = 0;
     __pyx_t_4 = NULL;
   } else {
-    __pyx_t_3 = -1; __pyx_t_2 = PyObject_GetIter(__pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 64, __pyx_L1_error)
+    __pyx_t_3 = -1; __pyx_t_2 = PyObject_GetIter(__pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 63, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
-    __pyx_t_4 = __Pyx_PyObject_GetIterNextFunc(__pyx_t_2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 64, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyObject_GetIterNextFunc(__pyx_t_2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 63, __pyx_L1_error)
   }
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   for (;;) {
@@ -3469,17 +3469,17 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_8from_array(PyTyp
       if (likely(PyList_CheckExact(__pyx_t_2))) {
         if (__pyx_t_3 >= PyList_GET_SIZE(__pyx_t_2)) break;
         #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-        __pyx_t_1 = PyList_GET_ITEM(__pyx_t_2, __pyx_t_3); __Pyx_INCREF(__pyx_t_1); __pyx_t_3++; if (unlikely((0 < 0))) __PYX_ERR(0, 64, __pyx_L1_error)
+        __pyx_t_1 = PyList_GET_ITEM(__pyx_t_2, __pyx_t_3); __Pyx_INCREF(__pyx_t_1); __pyx_t_3++; if (unlikely((0 < 0))) __PYX_ERR(0, 63, __pyx_L1_error)
         #else
-        __pyx_t_1 = PySequence_ITEM(__pyx_t_2, __pyx_t_3); __pyx_t_3++; if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 64, __pyx_L1_error)
+        __pyx_t_1 = PySequence_ITEM(__pyx_t_2, __pyx_t_3); __pyx_t_3++; if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 63, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_1);
         #endif
       } else {
         if (__pyx_t_3 >= PyTuple_GET_SIZE(__pyx_t_2)) break;
         #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-        __pyx_t_1 = PyTuple_GET_ITEM(__pyx_t_2, __pyx_t_3); __Pyx_INCREF(__pyx_t_1); __pyx_t_3++; if (unlikely((0 < 0))) __PYX_ERR(0, 64, __pyx_L1_error)
+        __pyx_t_1 = PyTuple_GET_ITEM(__pyx_t_2, __pyx_t_3); __Pyx_INCREF(__pyx_t_1); __pyx_t_3++; if (unlikely((0 < 0))) __PYX_ERR(0, 63, __pyx_L1_error)
         #else
-        __pyx_t_1 = PySequence_ITEM(__pyx_t_2, __pyx_t_3); __pyx_t_3++; if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 64, __pyx_L1_error)
+        __pyx_t_1 = PySequence_ITEM(__pyx_t_2, __pyx_t_3); __pyx_t_3++; if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 63, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_1);
         #endif
       }
@@ -3489,7 +3489,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_8from_array(PyTyp
         PyObject* exc_type = PyErr_Occurred();
         if (exc_type) {
           if (likely(__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();
-          else __PYX_ERR(0, 64, __pyx_L1_error)
+          else __PYX_ERR(0, 63, __pyx_L1_error)
         }
         break;
       }
@@ -3498,63 +3498,63 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_8from_array(PyTyp
     __Pyx_XDECREF_SET(__pyx_v_index, __pyx_t_1);
     __pyx_t_1 = 0;
 
-    /* "orso/bitarray/cbitarray.pyx":65
+    /* "orso/bitarray/cbitarray.pyx":64
  *         bit_array = cls(length)
  *         for index in range(length):
  *             bit = (array[index >> 3] & (1 << (index & 7))) != 0             # <<<<<<<<<<<<<<
  *             if index < length and bit:
  *                 bit_array.set(index, 1)
  */
-    __pyx_t_1 = __Pyx_PyInt_RshiftObjC(__pyx_v_index, __pyx_int_3, 3, 0, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 65, __pyx_L1_error)
+    __pyx_t_1 = __Pyx_PyInt_RshiftObjC(__pyx_v_index, __pyx_int_3, 3, 0, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 64, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
-    __pyx_t_5 = __Pyx_PyObject_GetItem(__pyx_v_array, __pyx_t_1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 65, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_PyObject_GetItem(__pyx_v_array, __pyx_t_1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 64, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __pyx_t_1 = __Pyx_PyInt_AndObjC(__pyx_v_index, __pyx_int_7, 7, 0, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 65, __pyx_L1_error)
+    __pyx_t_1 = __Pyx_PyInt_AndObjC(__pyx_v_index, __pyx_int_7, 7, 0, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 64, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
-    __pyx_t_6 = PyNumber_Lshift(__pyx_int_1, __pyx_t_1); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 65, __pyx_L1_error)
+    __pyx_t_6 = PyNumber_Lshift(__pyx_int_1, __pyx_t_1); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 64, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_6);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __pyx_t_1 = PyNumber_And(__pyx_t_5, __pyx_t_6); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 65, __pyx_L1_error)
+    __pyx_t_1 = PyNumber_And(__pyx_t_5, __pyx_t_6); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 64, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
     __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-    __pyx_t_6 = __Pyx_PyInt_NeObjC(__pyx_t_1, __pyx_int_0, 0, 0); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 65, __pyx_L1_error)
+    __pyx_t_6 = __Pyx_PyInt_NeObjC(__pyx_t_1, __pyx_int_0, 0, 0); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 64, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_6);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
     __Pyx_XDECREF_SET(__pyx_v_bit, __pyx_t_6);
     __pyx_t_6 = 0;
 
-    /* "orso/bitarray/cbitarray.pyx":66
+    /* "orso/bitarray/cbitarray.pyx":65
  *         for index in range(length):
  *             bit = (array[index >> 3] & (1 << (index & 7))) != 0
  *             if index < length and bit:             # <<<<<<<<<<<<<<
  *                 bit_array.set(index, 1)
  *         return bit_array
  */
-    __pyx_t_6 = __Pyx_PyInt_From_int(__pyx_v_length); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 66, __pyx_L1_error)
+    __pyx_t_6 = __Pyx_PyInt_From_int(__pyx_v_length); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 65, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_6);
-    __pyx_t_1 = PyObject_RichCompare(__pyx_v_index, __pyx_t_6, Py_LT); __Pyx_XGOTREF(__pyx_t_1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 66, __pyx_L1_error)
+    __pyx_t_1 = PyObject_RichCompare(__pyx_v_index, __pyx_t_6, Py_LT); __Pyx_XGOTREF(__pyx_t_1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 65, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-    __pyx_t_8 = __Pyx_PyObject_IsTrue(__pyx_t_1); if (unlikely((__pyx_t_8 < 0))) __PYX_ERR(0, 66, __pyx_L1_error)
+    __pyx_t_8 = __Pyx_PyObject_IsTrue(__pyx_t_1); if (unlikely((__pyx_t_8 < 0))) __PYX_ERR(0, 65, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
     if (__pyx_t_8) {
     } else {
       __pyx_t_7 = __pyx_t_8;
       goto __pyx_L6_bool_binop_done;
     }
-    __pyx_t_8 = __Pyx_PyObject_IsTrue(__pyx_v_bit); if (unlikely((__pyx_t_8 < 0))) __PYX_ERR(0, 66, __pyx_L1_error)
+    __pyx_t_8 = __Pyx_PyObject_IsTrue(__pyx_v_bit); if (unlikely((__pyx_t_8 < 0))) __PYX_ERR(0, 65, __pyx_L1_error)
     __pyx_t_7 = __pyx_t_8;
     __pyx_L6_bool_binop_done:;
     if (__pyx_t_7) {
 
-      /* "orso/bitarray/cbitarray.pyx":67
+      /* "orso/bitarray/cbitarray.pyx":66
  *             bit = (array[index >> 3] & (1 << (index & 7))) != 0
  *             if index < length and bit:
  *                 bit_array.set(index, 1)             # <<<<<<<<<<<<<<
  *         return bit_array
  */
-      __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_v_bit_array, __pyx_n_s_set); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 67, __pyx_L1_error)
+      __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_v_bit_array, __pyx_n_s_set); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 66, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_6);
       __pyx_t_5 = NULL;
       __pyx_t_9 = 0;
@@ -3572,13 +3572,13 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_8from_array(PyTyp
         PyObject *__pyx_callargs[3] = {__pyx_t_5, __pyx_v_index, __pyx_int_1};
         __pyx_t_1 = __Pyx_PyObject_FastCall(__pyx_t_6, __pyx_callargs+1-__pyx_t_9, 2+__pyx_t_9);
         __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
-        if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 67, __pyx_L1_error)
+        if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 66, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_1);
         __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
       }
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-      /* "orso/bitarray/cbitarray.pyx":66
+      /* "orso/bitarray/cbitarray.pyx":65
  *         for index in range(length):
  *             bit = (array[index >> 3] & (1 << (index & 7))) != 0
  *             if index < length and bit:             # <<<<<<<<<<<<<<
@@ -3587,7 +3587,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_8from_array(PyTyp
  */
     }
 
-    /* "orso/bitarray/cbitarray.pyx":64
+    /* "orso/bitarray/cbitarray.pyx":63
  *     def from_array(cls, array, int length):
  *         bit_array = cls(length)
  *         for index in range(length):             # <<<<<<<<<<<<<<
@@ -3597,7 +3597,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_8from_array(PyTyp
   }
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "orso/bitarray/cbitarray.pyx":68
+  /* "orso/bitarray/cbitarray.pyx":67
  *             if index < length and bit:
  *                 bit_array.set(index, 1)
  *         return bit_array             # <<<<<<<<<<<<<<
@@ -3607,7 +3607,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_8from_array(PyTyp
   __pyx_r = __pyx_v_bit_array;
   goto __pyx_L0;
 
-  /* "orso/bitarray/cbitarray.pyx":61
+  /* "orso/bitarray/cbitarray.pyx":60
  *         return ba
  * 
  *     @classmethod             # <<<<<<<<<<<<<<
@@ -3632,7 +3632,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_8from_array(PyTyp
   return __pyx_r;
 }
 
-/* "orso/bitarray/cbitarray.pyx":25
+/* "orso/bitarray/cbitarray.pyx":24
  * 
  * cdef class BitArray:
  *     cdef public int size             # <<<<<<<<<<<<<<
@@ -3663,7 +3663,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_4size___get__(str
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__get__", 0);
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_int(__pyx_v_self->size); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 25, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyInt_From_int(__pyx_v_self->size); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 24, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -3702,7 +3702,7 @@ static int __pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_4size_2__set__(struct _
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__set__", 0);
-  __pyx_t_1 = __Pyx_PyInt_As_int(__pyx_v_value); if (unlikely((__pyx_t_1 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 25, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyInt_As_int(__pyx_v_value); if (unlikely((__pyx_t_1 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 24, __pyx_L1_error)
   __pyx_v_self->size = __pyx_t_1;
 
   /* function exit code */
@@ -4134,9 +4134,9 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
 }
 /* #### Code section: cached_builtins ### */
 static CYTHON_SMALL_CODE int __Pyx_InitCachedBuiltins(void) {
-  __pyx_builtin_AssertionError = __Pyx_GetBuiltinName(__pyx_n_s_AssertionError); if (!__pyx_builtin_AssertionError) __PYX_ERR(0, 29, __pyx_L1_error)
-  __pyx_builtin_IndexError = __Pyx_GetBuiltinName(__pyx_n_s_IndexError); if (!__pyx_builtin_IndexError) __PYX_ERR(0, 41, __pyx_L1_error)
-  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 55, __pyx_L1_error)
+  __pyx_builtin_AssertionError = __Pyx_GetBuiltinName(__pyx_n_s_AssertionError); if (!__pyx_builtin_AssertionError) __PYX_ERR(0, 28, __pyx_L1_error)
+  __pyx_builtin_IndexError = __Pyx_GetBuiltinName(__pyx_n_s_IndexError); if (!__pyx_builtin_IndexError) __PYX_ERR(0, 40, __pyx_L1_error)
+  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 54, __pyx_L1_error)
   __pyx_builtin_TypeError = __Pyx_GetBuiltinName(__pyx_n_s_TypeError); if (!__pyx_builtin_TypeError) __PYX_ERR(1, 2, __pyx_L1_error)
   return 0;
   __pyx_L1_error:;
@@ -4148,52 +4148,52 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__Pyx_InitCachedConstants", 0);
 
-  /* "orso/bitarray/cbitarray.pyx":41
+  /* "orso/bitarray/cbitarray.pyx":40
  *     def get(self, int index):
  *         if 0 > index or index >= self.size:
  *             raise IndexError("Index out of range")             # <<<<<<<<<<<<<<
  *         return (self.bits[index >> 3] & (1 << (index & 7))) != 0
  * 
  */
-  __pyx_tuple_ = PyTuple_Pack(1, __pyx_kp_u_Index_out_of_range); if (unlikely(!__pyx_tuple_)) __PYX_ERR(0, 41, __pyx_L1_error)
+  __pyx_tuple_ = PyTuple_Pack(1, __pyx_kp_u_Index_out_of_range); if (unlikely(!__pyx_tuple_)) __PYX_ERR(0, 40, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple_);
   __Pyx_GIVEREF(__pyx_tuple_);
 
-  /* "orso/bitarray/cbitarray.pyx":39
+  /* "orso/bitarray/cbitarray.pyx":38
  *             PyMem_Free(self.bits)
  * 
  *     def get(self, int index):             # <<<<<<<<<<<<<<
  *         if 0 > index or index >= self.size:
  *             raise IndexError("Index out of range")
  */
-  __pyx_tuple__2 = PyTuple_Pack(2, __pyx_n_s_self, __pyx_n_s_index); if (unlikely(!__pyx_tuple__2)) __PYX_ERR(0, 39, __pyx_L1_error)
+  __pyx_tuple__2 = PyTuple_Pack(2, __pyx_n_s_self, __pyx_n_s_index); if (unlikely(!__pyx_tuple__2)) __PYX_ERR(0, 38, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__2);
   __Pyx_GIVEREF(__pyx_tuple__2);
-  __pyx_codeobj__3 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__2, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_orso_bitarray_cbitarray_pyx, __pyx_n_s_get, 39, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__3)) __PYX_ERR(0, 39, __pyx_L1_error)
+  __pyx_codeobj__3 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__2, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_orso_bitarray_cbitarray_pyx, __pyx_n_s_get, 38, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__3)) __PYX_ERR(0, 38, __pyx_L1_error)
 
-  /* "orso/bitarray/cbitarray.pyx":44
+  /* "orso/bitarray/cbitarray.pyx":43
  *         return (self.bits[index >> 3] & (1 << (index & 7))) != 0
  * 
  *     def set(self, int index, bint value):             # <<<<<<<<<<<<<<
  *         if 0 > index or index >= self.size:
  *             raise IndexError("Index out of range")
  */
-  __pyx_tuple__4 = PyTuple_Pack(3, __pyx_n_s_self, __pyx_n_s_index, __pyx_n_s_value); if (unlikely(!__pyx_tuple__4)) __PYX_ERR(0, 44, __pyx_L1_error)
+  __pyx_tuple__4 = PyTuple_Pack(3, __pyx_n_s_self, __pyx_n_s_index, __pyx_n_s_value); if (unlikely(!__pyx_tuple__4)) __PYX_ERR(0, 43, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__4);
   __Pyx_GIVEREF(__pyx_tuple__4);
-  __pyx_codeobj__5 = (PyObject*)__Pyx_PyCode_New(3, 0, 0, 3, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__4, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_orso_bitarray_cbitarray_pyx, __pyx_n_s_set, 44, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__5)) __PYX_ERR(0, 44, __pyx_L1_error)
+  __pyx_codeobj__5 = (PyObject*)__Pyx_PyCode_New(3, 0, 0, 3, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__4, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_orso_bitarray_cbitarray_pyx, __pyx_n_s_set, 43, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__5)) __PYX_ERR(0, 43, __pyx_L1_error)
 
-  /* "orso/bitarray/cbitarray.pyx":61
+  /* "orso/bitarray/cbitarray.pyx":60
  *         return ba
  * 
  *     @classmethod             # <<<<<<<<<<<<<<
  *     def from_array(cls, array, int length):
  *         bit_array = cls(length)
  */
-  __pyx_tuple__6 = PyTuple_Pack(6, __pyx_n_s_cls, __pyx_n_s_array, __pyx_n_s_length, __pyx_n_s_bit_array, __pyx_n_s_index, __pyx_n_s_bit); if (unlikely(!__pyx_tuple__6)) __PYX_ERR(0, 61, __pyx_L1_error)
+  __pyx_tuple__6 = PyTuple_Pack(6, __pyx_n_s_cls, __pyx_n_s_array, __pyx_n_s_length, __pyx_n_s_bit_array, __pyx_n_s_index, __pyx_n_s_bit); if (unlikely(!__pyx_tuple__6)) __PYX_ERR(0, 60, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__6);
   __Pyx_GIVEREF(__pyx_tuple__6);
-  __pyx_codeobj__7 = (PyObject*)__Pyx_PyCode_New(3, 0, 0, 6, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__6, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_orso_bitarray_cbitarray_pyx, __pyx_n_s_from_array, 61, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__7)) __PYX_ERR(0, 61, __pyx_L1_error)
+  __pyx_codeobj__7 = (PyObject*)__Pyx_PyCode_New(3, 0, 0, 6, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__6, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_orso_bitarray_cbitarray_pyx, __pyx_n_s_from_array, 60, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__7)) __PYX_ERR(0, 60, __pyx_L1_error)
 
   /* "(tree fragment)":1
  * def __reduce_cython__(self):             # <<<<<<<<<<<<<<
@@ -4288,15 +4288,15 @@ static int __Pyx_modinit_type_init_code(void) {
   __Pyx_RefNannySetupContext("__Pyx_modinit_type_init_code", 0);
   /*--- Type init code ---*/
   #if CYTHON_USE_TYPE_SPECS
-  __pyx_ptype_4orso_8bitarray_9cbitarray_BitArray = (PyTypeObject *) __Pyx_PyType_FromModuleAndSpec(__pyx_m, &__pyx_type_4orso_8bitarray_9cbitarray_BitArray_spec, NULL); if (unlikely(!__pyx_ptype_4orso_8bitarray_9cbitarray_BitArray)) __PYX_ERR(0, 24, __pyx_L1_error)
-  if (__Pyx_fix_up_extension_type_from_spec(&__pyx_type_4orso_8bitarray_9cbitarray_BitArray_spec, __pyx_ptype_4orso_8bitarray_9cbitarray_BitArray) < 0) __PYX_ERR(0, 24, __pyx_L1_error)
+  __pyx_ptype_4orso_8bitarray_9cbitarray_BitArray = (PyTypeObject *) __Pyx_PyType_FromModuleAndSpec(__pyx_m, &__pyx_type_4orso_8bitarray_9cbitarray_BitArray_spec, NULL); if (unlikely(!__pyx_ptype_4orso_8bitarray_9cbitarray_BitArray)) __PYX_ERR(0, 23, __pyx_L1_error)
+  if (__Pyx_fix_up_extension_type_from_spec(&__pyx_type_4orso_8bitarray_9cbitarray_BitArray_spec, __pyx_ptype_4orso_8bitarray_9cbitarray_BitArray) < 0) __PYX_ERR(0, 23, __pyx_L1_error)
   #else
   __pyx_ptype_4orso_8bitarray_9cbitarray_BitArray = &__pyx_type_4orso_8bitarray_9cbitarray_BitArray;
   #endif
   #if !CYTHON_COMPILING_IN_LIMITED_API
   #endif
   #if !CYTHON_USE_TYPE_SPECS
-  if (__Pyx_PyType_Ready(__pyx_ptype_4orso_8bitarray_9cbitarray_BitArray) < 0) __PYX_ERR(0, 24, __pyx_L1_error)
+  if (__Pyx_PyType_Ready(__pyx_ptype_4orso_8bitarray_9cbitarray_BitArray) < 0) __PYX_ERR(0, 23, __pyx_L1_error)
   #endif
   #if PY_MAJOR_VERSION < 3
   __pyx_ptype_4orso_8bitarray_9cbitarray_BitArray->tp_print = 0;
@@ -4306,9 +4306,9 @@ static int __Pyx_modinit_type_init_code(void) {
     __pyx_ptype_4orso_8bitarray_9cbitarray_BitArray->tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
   #endif
-  if (PyObject_SetAttr(__pyx_m, __pyx_n_s_BitArray, (PyObject *) __pyx_ptype_4orso_8bitarray_9cbitarray_BitArray) < 0) __PYX_ERR(0, 24, __pyx_L1_error)
+  if (PyObject_SetAttr(__pyx_m, __pyx_n_s_BitArray, (PyObject *) __pyx_ptype_4orso_8bitarray_9cbitarray_BitArray) < 0) __PYX_ERR(0, 23, __pyx_L1_error)
   #if !CYTHON_COMPILING_IN_LIMITED_API
-  if (__Pyx_setup_reduce((PyObject *) __pyx_ptype_4orso_8bitarray_9cbitarray_BitArray) < 0) __PYX_ERR(0, 24, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject *) __pyx_ptype_4orso_8bitarray_9cbitarray_BitArray) < 0) __PYX_ERR(0, 23, __pyx_L1_error)
   #endif
   __Pyx_RefNannyFinishContext();
   return 0;
@@ -4622,50 +4622,50 @@ if (!__Pyx_RefNanny) {
   if (__Pyx_patch_abc() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #endif
 
-  /* "orso/bitarray/cbitarray.pyx":39
+  /* "orso/bitarray/cbitarray.pyx":38
  *             PyMem_Free(self.bits)
  * 
  *     def get(self, int index):             # <<<<<<<<<<<<<<
  *         if 0 > index or index >= self.size:
  *             raise IndexError("Index out of range")
  */
-  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_4orso_8bitarray_9cbitarray_8BitArray_5get, __Pyx_CYFUNCTION_CCLASS, __pyx_n_s_BitArray_get, NULL, __pyx_n_s_orso_bitarray_cbitarray, __pyx_d, ((PyObject *)__pyx_codeobj__3)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 39, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_4orso_8bitarray_9cbitarray_8BitArray_5get, __Pyx_CYFUNCTION_CCLASS, __pyx_n_s_BitArray_get, NULL, __pyx_n_s_orso_bitarray_cbitarray, __pyx_d, ((PyObject *)__pyx_codeobj__3)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 38, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem((PyObject *)__pyx_ptype_4orso_8bitarray_9cbitarray_BitArray->tp_dict, __pyx_n_s_get, __pyx_t_2) < 0) __PYX_ERR(0, 39, __pyx_L1_error)
+  if (PyDict_SetItem((PyObject *)__pyx_ptype_4orso_8bitarray_9cbitarray_BitArray->tp_dict, __pyx_n_s_get, __pyx_t_2) < 0) __PYX_ERR(0, 38, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   PyType_Modified(__pyx_ptype_4orso_8bitarray_9cbitarray_BitArray);
 
-  /* "orso/bitarray/cbitarray.pyx":44
+  /* "orso/bitarray/cbitarray.pyx":43
  *         return (self.bits[index >> 3] & (1 << (index & 7))) != 0
  * 
  *     def set(self, int index, bint value):             # <<<<<<<<<<<<<<
  *         if 0 > index or index >= self.size:
  *             raise IndexError("Index out of range")
  */
-  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_4orso_8bitarray_9cbitarray_8BitArray_7set, __Pyx_CYFUNCTION_CCLASS, __pyx_n_s_BitArray_set, NULL, __pyx_n_s_orso_bitarray_cbitarray, __pyx_d, ((PyObject *)__pyx_codeobj__5)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 44, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_4orso_8bitarray_9cbitarray_8BitArray_7set, __Pyx_CYFUNCTION_CCLASS, __pyx_n_s_BitArray_set, NULL, __pyx_n_s_orso_bitarray_cbitarray, __pyx_d, ((PyObject *)__pyx_codeobj__5)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 43, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem((PyObject *)__pyx_ptype_4orso_8bitarray_9cbitarray_BitArray->tp_dict, __pyx_n_s_set, __pyx_t_2) < 0) __PYX_ERR(0, 44, __pyx_L1_error)
+  if (PyDict_SetItem((PyObject *)__pyx_ptype_4orso_8bitarray_9cbitarray_BitArray->tp_dict, __pyx_n_s_set, __pyx_t_2) < 0) __PYX_ERR(0, 43, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   PyType_Modified(__pyx_ptype_4orso_8bitarray_9cbitarray_BitArray);
 
-  /* "orso/bitarray/cbitarray.pyx":61
+  /* "orso/bitarray/cbitarray.pyx":60
  *         return ba
  * 
  *     @classmethod             # <<<<<<<<<<<<<<
  *     def from_array(cls, array, int length):
  *         bit_array = cls(length)
  */
-  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_4orso_8bitarray_9cbitarray_8BitArray_9from_array, __Pyx_CYFUNCTION_CLASSMETHOD | __Pyx_CYFUNCTION_CCLASS, __pyx_n_s_BitArray_from_array, NULL, __pyx_n_s_orso_bitarray_cbitarray, __pyx_d, ((PyObject *)__pyx_codeobj__7)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 61, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_4orso_8bitarray_9cbitarray_8BitArray_9from_array, __Pyx_CYFUNCTION_CLASSMETHOD | __Pyx_CYFUNCTION_CCLASS, __pyx_n_s_BitArray_from_array, NULL, __pyx_n_s_orso_bitarray_cbitarray, __pyx_d, ((PyObject *)__pyx_codeobj__7)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 60, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem((PyObject *)__pyx_ptype_4orso_8bitarray_9cbitarray_BitArray->tp_dict, __pyx_n_s_from_array, __pyx_t_2) < 0) __PYX_ERR(0, 61, __pyx_L1_error)
+  if (PyDict_SetItem((PyObject *)__pyx_ptype_4orso_8bitarray_9cbitarray_BitArray->tp_dict, __pyx_n_s_from_array, __pyx_t_2) < 0) __PYX_ERR(0, 60, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   PyType_Modified(__pyx_ptype_4orso_8bitarray_9cbitarray_BitArray);
-  __Pyx_GetNameInClass(__pyx_t_2, (PyObject *)__pyx_ptype_4orso_8bitarray_9cbitarray_BitArray, __pyx_n_s_from_array); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 61, __pyx_L1_error)
+  __Pyx_GetNameInClass(__pyx_t_2, (PyObject *)__pyx_ptype_4orso_8bitarray_9cbitarray_BitArray, __pyx_n_s_from_array); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 60, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_Method_ClassMethod(__pyx_t_2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 61, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_Method_ClassMethod(__pyx_t_2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 60, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  if (PyDict_SetItem((PyObject *)__pyx_ptype_4orso_8bitarray_9cbitarray_BitArray->tp_dict, __pyx_n_s_from_array, __pyx_t_3) < 0) __PYX_ERR(0, 61, __pyx_L1_error)
+  if (PyDict_SetItem((PyObject *)__pyx_ptype_4orso_8bitarray_9cbitarray_BitArray->tp_dict, __pyx_n_s_from_array, __pyx_t_3) < 0) __PYX_ERR(0, 60, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   PyType_Modified(__pyx_ptype_4orso_8bitarray_9cbitarray_BitArray);
 
