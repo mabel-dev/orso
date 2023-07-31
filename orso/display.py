@@ -25,7 +25,7 @@ COLORS = {
     "\001OFFm": "\033[0m",  # Text Reset
     # Opteryx named colors
     "\001PUNCm": "\033[38;5;102m",
-    "\001CRLFm": "\033[7;38;2;98;114;164m\033[3m",
+    "\001CRLFm": "\033[38;2;98;114;164m",
     "\001HEADm": "\033[1m",
     "\001VARCHARm": "\033[38;2;255;171;82m",  # orange
     "\001CONSTm": "\033[38;2;139;233;253m\033[3m",  # cyan, italic
@@ -276,7 +276,7 @@ def ascii_table(
 
         for char in value:
             if char == "\n":
-                emit += "\001CRLFm↵"
+                emit += "\001CRLFm↵\001VARCHARm"
                 offset += 1
                 continue
             if char == "\r":

@@ -54,7 +54,7 @@ class Row(tuple):
 
     @property
     def as_dict(self):
-        return {k: v for k, v in zip(self._fields, self)}
+        return dict(zip(self._fields, self))
 
     @property
     def values(self):

@@ -73,15 +73,12 @@ def from_arrow(tables, size=None):
         BATCH_SIZE = min(size, BATCH_SIZE)
 
     rows: typing.List[Row] = []
-    for table in [first_table] + list(tables):
+    for table in itertools.chain([first_table], tables):
         batches = table.to_batches(max_chunksize=BATCH_SIZE)
         for batch in batches:
-            column_data_dict = batch.to_pydict()
-            column_data = [column_data_dict[name] for name in arrow_schema.names]
-            new_rows: typing.Iterable = [tuple()] * batch.num_rows
-            for i, row_data in enumerate(zip(*column_data)):
-                new_rows[i] = row_factory(row_data)  # type:ignore
-            rows.extend(new_rows)
+            column_data = (column.to_pylist() for column in batch.columns)
+            for row_data in zip(*column_data):
+                rows.append(row_factory(row_data))  # type:ignore
             if size and len(rows) >= size:
                 break
 
