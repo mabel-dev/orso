@@ -5,8 +5,9 @@ jobs:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     env:
-      CIBW_BEFORE_ALL: "pip install --upgrade cython wheel numpy delvewheel"
+      CIBW_BEFORE_ALL: "pip install --upgrade cython wheel numpy"
       CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: |
+        pip install delvewheel
         delvewheel repair -w {dest_dir} {wheel}
       CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
       CIBW_SKIP: "*-musllinux*"
