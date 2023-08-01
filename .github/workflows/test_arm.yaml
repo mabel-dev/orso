@@ -20,7 +20,7 @@ jobs:
           - os: ubuntu-20.04
             cibw_archs: "aarch64"
           - os: windows-latest
-            cibw_archs: "auto"
+            cibw_archs: "x86_64"
           - os: macos-11
             cibw_archs: "x86_64 universal2 arm64"
 
@@ -52,6 +52,18 @@ jobs:
           CIBW_BUILD: "cp39-*"
           CIBW_ARCHS: ${{ matrix.cibw_archs }}
 
+      - name: Build wheels for CPython 3.8
+        uses: pypa/cibuildwheel@v2.12.1
+        env:
+          CIBW_BUILD: "cp38-*"
+          CIBW_ARCHS: ${{ matrix.cibw_archs }}
+
       - uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
+
+      - name: Publish distribution 📦 to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+  
