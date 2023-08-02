@@ -242,6 +242,25 @@ def monitor(time_limit=10, interval=1):
     return decorator
 
 
+def single_item_cache(func):
+    cache_args = None
+    cache_kwargs = None
+    cache_result = None
+
+    def wrapper(*args, **kwargs):
+        nonlocal cache_args, cache_kwargs, cache_result
+        if cache_args == args and cache_kwargs == kwargs:
+            return cache_result
+        else:
+            result = func(*args, **kwargs)
+            cache_args = args
+            cache_kwargs = kwargs
+            cache_result = result
+            return result
+
+    return wrapper
+
+
 def islice(iterator, size):
     for i in range(size):
         yield next(iterator)
