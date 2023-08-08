@@ -6,6 +6,7 @@ import pytest
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
 import datetime
+import pyarrow
 
 from orso.types import OrsoTypes
 
@@ -15,6 +16,51 @@ from orso.schema import ConstantColumn
 from orso.schema import DictionaryColumn
 
 from orso.exceptions import ColumnDefinitionError
+
+
+def test_flat_column_basic_init():
+    column = FlatColumn(name="test", type=OrsoTypes.VARCHAR)
+    assert column.name == "test"
+    assert column.type == OrsoTypes.VARCHAR
+    assert column.description is None
+    assert column.aliases == []
+    assert column.nullable is True
+
+
+def test_flat_column_custom_values():
+    column = FlatColumn(
+        name="test",
+        type="varchar",
+        description="description",
+        aliases=["alias1", "alias2"],
+        nullable=False,
+        precision=10,
+        scale=5,
+    )
+    assert column.name == "test"
+    assert column.type == OrsoTypes.VARCHAR
+    assert column.description == "description"
+    assert column.aliases == ["alias1", "alias2"]
+    assert column.nullable is False
+    assert column.precision == 10
+    assert column.scale == 5
+
+
+def test_flat_column_with_deprecated_type_list():
+    with pytest.warns(UserWarning, match="Column type LIST will be deprecated"):
+        column = FlatColumn(name="test", type="list")
+    assert column.type == OrsoTypes.ARRAY
+
+
+def test_flat_column_with_deprecated_type_numeric():
+    with pytest.warns(UserWarning, match="Column type NUMERIC will be deprecated"):
+        column = FlatColumn(name="test", type="numeric")
+    assert column.type == OrsoTypes.DOUBLE
+
+
+def test_flat_column_with_unknown_type():
+    with pytest.raises(ValueError, match="Unknown column type"):
+        FlatColumn(name="test", type="unknown")
 
 
 def test_flat_column_materialize():
@@ -27,9 +73,38 @@ def test_flat_column_materialize():
     assert flat_column.type == OrsoTypes.INTEGER
 
 
+def test_flat_column_string_representation():
+    column = FlatColumn(name="test", type=OrsoTypes.VARCHAR)
+    assert str(column) == column.identity
+
+
+def test_flat_column_missing_attribute():
+    with pytest.raises(ColumnDefinitionError):
+        FlatColumn()  # Missing required attributes like name and type
+
+
 def test_columns_with_unknown_parameters():
     FlatColumn(name="athena", type=OrsoTypes.INTEGER, alpha="betty")
     FunctionColumn(name="aries", type=OrsoTypes.DATE, binding=datetime.date.today, sketty="yum")
+
+
+def test_flat_column_from_arrow():
+    field_name = "test_field"
+    arrow_type = pyarrow.string()
+    nullable = True
+    arrow_field = pyarrow.field(field_name, arrow_type, nullable)
+
+    # Convert the arrow_field to a FlatColumn object
+    column = FlatColumn.from_arrow(arrow_field)
+
+    # Check that the name is correctly transferred
+    assert column.name == arrow_field.name
+
+    # Check that the type is correctly mapped
+    assert column.type == OrsoTypes.VARCHAR, column.type
+
+    # Check that the nullable property is correctly transferred
+    assert column.nullable == arrow_field.nullable
 
 
 def test_column_type_mapping():

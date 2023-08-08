@@ -51,3 +51,4 @@ class ColumnDefinitionError(DataError):
     def __init__(self, attribute):
         self.attribute = attribute
         message = f"Column is missing attribute {attribute}"
+        super().__init__(message)

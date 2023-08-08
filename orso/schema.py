@@ -73,8 +73,12 @@ class FlatColumn:
                     "Column type NUMERIC will be deprecated in a future version, use DECIMAL, DOUBLE or INTEGER instead. Mapped to DOUBLE, this may not be compatible with all values NUMERIC was compatible with."
                 )
                 self.type = OrsoTypes.DOUBLE
+            elif type_name == "STRING":
+                raise ValueError(
+                    f"Unknown column type '{self.type}' for column '{self.name}'. Did you mean 'VARCHAR'?"
+                )
             elif self.type != 0:
-                raise ValueError(f"Unknown column type {self.type} for column {self.name}")
+                raise ValueError(f"Unknown column type '{self.type}' for column '{self.name}'.")
 
     def __str__(self):
         return self.identity
