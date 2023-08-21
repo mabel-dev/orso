@@ -15,9 +15,11 @@ Orso is not intended to compete with [Polars](https://www.pola.rs/) or [Pandas](
 
 In Opteryx, Orso provides most of the database Cursor functionality.
 
-In Mabel, Orso provides the data schema and validation functionality.
+In Mabel, Orso provides the data schema and validation functionality, and the intention is to use as the WAL.
 
 In HadroDB, Orso provides functionality for handling datasets.
+
+Orso DataFrames are row-based, this is driven by it's initial target use-case as the WAL for Mabel - if you want to convert to a columnar store, it's pretty quick at converting to an Arrow Table... it's not so quick to convert the other way though.
 
 ## License
 

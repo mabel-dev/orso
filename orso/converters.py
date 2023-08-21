@@ -12,7 +12,6 @@
 
 import itertools
 import typing
-from decimal import Decimal
 
 from orso.exceptions import MissingDependencyError
 from orso.row import Row

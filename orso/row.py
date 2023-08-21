@@ -13,22 +13,27 @@
 # ---------------------------------------------------------------------------------
 # Our record when converted to bytes looks like this
 #
-#       ┌───────────┬─────────┬─────────────┬──────────────┐
-#       │   flags   │  parity │   row_size  │  row values  │
-#       └───────────┴─────────┴─────────────┴──────────────┘
+#       ┌───────────┬─────────────┬──────────────┐
+#       │   flags   │   row_size  │  row values  │
+#       └───────────┴─────────────┴──────────────┘
 #
 # 'flags' currently has a a version string and a single flag of deleted.
-# 'parity' is one byte, it is all of the bytes in the row values XORed
 #
 # Row object looks and acts like a Tuple where possible, but has additional features
 # such as as_dict() to render as a dictionary.
 
 import typing
 
+import orjson
+from ormsgpack import packb
+from ormsgpack import unpackb
+
 from orso.exceptions import DataError
 from orso.schema import RelationSchema
 
 HEADER_SIZE: int = 6
+HEADER_PREFIX: bytes = b"\x10\x00"
+MAXIMUM_RECORD_SIZE: int = 8 * 1024 * 1024
 
 
 def extract_columns(table, columns):
@@ -69,52 +74,37 @@ class Row(tuple):
     def __str__(self):
         return str(self.as_dict)
 
-    def __setattr__(self, name, value):
-        raise AttributeError("can't set attribute")
-
-    def __delattr__(self, name):
-        raise AttributeError("can't delete attribute")
-
     @classmethod
-    def from_bytes(cls, data: bytes) -> tuple:
-        import operator
-        from functools import reduce
-
-        from ormsgpack import unpackb
-
+    def from_bytes(cls, data: bytes) -> "Row":
+        # Check for sufficient length
         if len(data) < HEADER_SIZE:
             raise DataError("Data malformed - missing bytes")
 
+        # Check version
         if data[0] & 240 != 16:
             raise DataError("Data malformed - version error")
 
+        # Deserialize record bytes
         record_bytes = data[HEADER_SIZE:]
-        parity = reduce(operator.xor, record_bytes, 0)
-        if parity != data[1]:
-            raise DataError("Data malformed - parity check")
+
+        # Check record size
         record_size = int.from_bytes(data[2:HEADER_SIZE], byteorder="big")
         if len(record_bytes) != record_size:
             raise DataError("Data malformed - incorrect length")
 
-        unpacked_values = unpackb(record_bytes)
-        return cls(unpacked_values)
+        # Deserialize and return the record
+        return cls(unpackb(record_bytes))
 
     def to_bytes(self) -> bytes:
-        import operator
-        from functools import reduce
-
-        from ormsgpack import packb
-
         record_bytes = packb(tuple(self))
-        parity = reduce(operator.xor, record_bytes, 0)
         record_size = len(record_bytes)
-        if record_size > 16 * 1024 * 1024:
-            raise DataError("Record length cannot exceed 16Mb")
-        return b"\x10" + parity.to_bytes(1, "big") + record_size.to_bytes(4, "big") + record_bytes
+
+        if record_size > MAXIMUM_RECORD_SIZE:
+            raise DataError("Record length cannot exceed 8Mb")
+
+        return HEADER_PREFIX + record_size.to_bytes(4, "big") + record_bytes
 
     def to_json(self) -> bytes:
-        import orjson
-
         return orjson.dumps(self.as_dict, default=str)
 
     @classmethod
