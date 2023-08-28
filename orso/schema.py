@@ -87,7 +87,7 @@ class FlatColumn:
         raise TypeError("Cannot materialize FlatColumns")
 
     @classmethod
-    def from_arrow(cls, arrow_field):
+    def from_arrow(cls, arrow_field) -> "FlatColumn":
         """
         Help converting from from Arrow to Orso
         """
@@ -100,12 +100,27 @@ class FlatColumn:
             precision = native_type.precision  # type:ignore
         else:
             field_type = PYTHON_TO_ORSO_MAP.get(native_type)
-        return cls(
+        return FlatColumn(
             name=str(arrow_field.name),
             type=field_type,
             nullable=arrow_field.nullable,
             scale=scale,
             precision=precision,
+        )
+
+    def to_flatcolumn(self) -> "FlatColumn":
+        """
+        convert any column type to a FlatColumn (e.g. when evaluated)
+        """
+        return FlatColumn(
+            name=str(self.name),
+            description=self.description,
+            aliases=self.aliases,
+            identity=self.identity,
+            type=self.type,
+            nullable=self.nullable,
+            scale=self.scale,
+            precision=self.precision,
         )
 
 

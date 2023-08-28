@@ -33,6 +33,10 @@ extensions = [
         name="orso.bitarray.cbitarray",
         sources=["orso/bitarray/cbitarray.pyx"],
     ),
+    Extension(
+        name="orso.row_cython",
+        sources=["orso/row_cython.pyx"],
+    ),
 ]
 
 setup_config = {

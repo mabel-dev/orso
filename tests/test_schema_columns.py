@@ -218,6 +218,60 @@ def test_dict_column():
     assert list(values) == MONTH_LENGTHS
 
 
+def test_to_flatcolumn_basic():
+    """
+    Test that to_flatcolumn returns a new FlatColumn object.
+    """
+    flat_column = FlatColumn(
+        name="id",
+        type=OrsoTypes.INTEGER,
+        description="An ID column",
+        aliases=["ID"],
+        nullable=False,
+        precision=5,
+    )
+
+    new_column = flat_column.to_flatcolumn()
+    assert isinstance(new_column, FlatColumn)
+    assert new_column is not flat_column
+
+
+def test_to_flatcolumn_from_function_column():
+    """
+    Test that to_flatcolumn returns a new FlatColumn object.
+    """
+    func_column = FunctionColumn(
+        name="virtual_id", type=OrsoTypes.INTEGER, binding=lambda: 10, length=10
+    )
+
+    new_column = func_column.to_flatcolumn()
+    assert isinstance(new_column, FlatColumn)
+    assert new_column is not func_column
+
+
+def test_to_flatcolumn_preserve_attributes():
+    """
+    Test that to_flatcolumn preserves the attributes.
+    """
+    flat_column = FlatColumn(
+        name="id",
+        type=OrsoTypes.INTEGER,
+        description="An ID column",
+        aliases=["ID"],
+        nullable=False,
+        precision=5,
+    )
+
+    new_column = flat_column.to_flatcolumn()
+
+    for field in [
+        f
+        for f in dir(FlatColumn)
+        if (f[0] != "_" and isinstance(getattr(flat_column, f), (int, str, float, list, OrsoTypes)))
+    ]:
+        assert getattr(new_column, field) == getattr(flat_column, field), field
+
+
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests
 

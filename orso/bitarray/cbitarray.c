@@ -1379,12 +1379,12 @@ struct __pyx_obj_4orso_8bitarray_9cbitarray_BitArray;
  * 
  * cdef class BitArray:             # <<<<<<<<<<<<<<
  *     cdef public int size
- *     cdef int *bits
+ *     cdef long long *bits
  */
 struct __pyx_obj_4orso_8bitarray_9cbitarray_BitArray {
   PyObject_HEAD
   int size;
-  int *bits;
+  PY_LONG_LONG *bits;
 };
 
 /* #### Code section: utility_code_proto ### */
@@ -1670,6 +1670,14 @@ static PyObject* __Pyx_PyInt_MultiplyObjC(PyObject *op1, PyObject *op2, long int
     (inplace ? PyNumber_InPlaceMultiply(op1, op2) : PyNumber_Multiply(op1, op2))
 #endif
 
+/* PyIntBinop.proto */
+#if !CYTHON_COMPILING_IN_PYPY
+static PyObject* __Pyx_PyInt_RshiftObjC(PyObject *op1, PyObject *op2, long intval, int inplace, int zerodivision_check);
+#else
+#define __Pyx_PyInt_RshiftObjC(op1, op2, intval, inplace, zerodivision_check)\
+    (inplace ? PyNumber_InPlaceRshift(op1, op2) : PyNumber_Rshift(op1, op2))
+#endif
+
 /* GetItemInt.proto */
 #define __Pyx_GetItemInt(o, i, type, is_signed, to_py_func, is_list, wraparound, boundscheck)\
     (__Pyx_fits_Py_ssize_t(i, type, is_signed) ?\
@@ -1709,14 +1717,6 @@ static PyObject* __Pyx_PyInt_AndObjC(PyObject *op1, PyObject *op2, long intval, 
 
 /* PyIntCompare.proto */
 static CYTHON_INLINE PyObject* __Pyx_PyInt_NeObjC(PyObject *op1, PyObject *op2, long intval, long inplace);
-
-/* PyIntBinop.proto */
-#if !CYTHON_COMPILING_IN_PYPY
-static PyObject* __Pyx_PyInt_RshiftObjC(PyObject *op1, PyObject *op2, long intval, int inplace, int zerodivision_check);
-#else
-#define __Pyx_PyInt_RshiftObjC(op1, op2, intval, inplace, zerodivision_check)\
-    (inplace ? PyNumber_InPlaceRshift(op1, op2) : PyNumber_Rshift(op1, op2))
-#endif
 
 /* KeywordStringCheck.proto */
 static int __Pyx_CheckKeywordStrings(PyObject *kw, const char* function_name, int kw_allowed);
@@ -1980,6 +1980,9 @@ static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value);
 /* CIntToPy.proto */
 static CYTHON_INLINE PyObject* __Pyx_PyInt_From_int(int value);
 
+/* CIntToPy.proto */
+static CYTHON_INLINE PyObject* __Pyx_PyInt_From_PY_LONG_LONG(PY_LONG_LONG value);
+
 /* FormatTypeName.proto */
 #if CYTHON_COMPILING_IN_LIMITED_API
 typedef PyObject *__Pyx_TypeName;
@@ -2180,6 +2183,7 @@ typedef struct {
   PyObject *__pyx_int_3;
   PyObject *__pyx_int_7;
   PyObject *__pyx_int_8;
+  PyObject *__pyx_int_64;
   PyObject *__pyx_tuple_;
   PyObject *__pyx_tuple__2;
   PyObject *__pyx_tuple__4;
@@ -2288,6 +2292,7 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_int_3);
   Py_CLEAR(clear_module_state->__pyx_int_7);
   Py_CLEAR(clear_module_state->__pyx_int_8);
+  Py_CLEAR(clear_module_state->__pyx_int_64);
   Py_CLEAR(clear_module_state->__pyx_tuple_);
   Py_CLEAR(clear_module_state->__pyx_tuple__2);
   Py_CLEAR(clear_module_state->__pyx_tuple__4);
@@ -2374,6 +2379,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_int_3);
   Py_VISIT(traverse_module_state->__pyx_int_7);
   Py_VISIT(traverse_module_state->__pyx_int_8);
+  Py_VISIT(traverse_module_state->__pyx_int_64);
   Py_VISIT(traverse_module_state->__pyx_tuple_);
   Py_VISIT(traverse_module_state->__pyx_tuple__2);
   Py_VISIT(traverse_module_state->__pyx_tuple__4);
@@ -2470,6 +2476,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_int_3 __pyx_mstate_global->__pyx_int_3
 #define __pyx_int_7 __pyx_mstate_global->__pyx_int_7
 #define __pyx_int_8 __pyx_mstate_global->__pyx_int_8
+#define __pyx_int_64 __pyx_mstate_global->__pyx_int_64
 #define __pyx_tuple_ __pyx_mstate_global->__pyx_tuple_
 #define __pyx_tuple__2 __pyx_mstate_global->__pyx_tuple__2
 #define __pyx_tuple__4 __pyx_mstate_global->__pyx_tuple__4
@@ -2484,7 +2491,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 /* #### Code section: module_code ### */
 
 /* "orso/bitarray/cbitarray.pyx":27
- *     cdef int *bits
+ *     cdef long long *bits
  * 
  *     def __init__(self, int size):             # <<<<<<<<<<<<<<
  *         assert size > 0, "bitarray size must be a positive integer"
@@ -2548,7 +2555,7 @@ static int __pyx_pw_4orso_8bitarray_9cbitarray_8BitArray_1__init__(PyObject *__p
 }
 
 static int __pyx_pf_4orso_8bitarray_9cbitarray_8BitArray___init__(struct __pyx_obj_4orso_8bitarray_9cbitarray_BitArray *__pyx_v_self, int __pyx_v_size) {
-  int __pyx_v_n_bytes;
+  int __pyx_v_n_longs;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   int __pyx_t_1;
@@ -2562,7 +2569,7 @@ static int __pyx_pf_4orso_8bitarray_9cbitarray_8BitArray___init__(struct __pyx_o
  *     def __init__(self, int size):
  *         assert size > 0, "bitarray size must be a positive integer"             # <<<<<<<<<<<<<<
  *         self.size = size
- *         cdef int n_bytes = (size + 7) >> 3
+ *         cdef int n_longs = (size + 63) >> 6
  */
   #ifndef CYTHON_WITHOUT_ASSERTIONS
   if (unlikely(__pyx_assertions_enabled())) {
@@ -2580,40 +2587,40 @@ static int __pyx_pf_4orso_8bitarray_9cbitarray_8BitArray___init__(struct __pyx_o
  *     def __init__(self, int size):
  *         assert size > 0, "bitarray size must be a positive integer"
  *         self.size = size             # <<<<<<<<<<<<<<
- *         cdef int n_bytes = (size + 7) >> 3
- *         self.bits = <int *> PyMem_Malloc(n_bytes * sizeof(int))
+ *         cdef int n_longs = (size + 63) >> 6
+ *         self.bits = <long long *> PyMem_Malloc(n_longs * sizeof(long long))
  */
   __pyx_v_self->size = __pyx_v_size;
 
   /* "orso/bitarray/cbitarray.pyx":30
  *         assert size > 0, "bitarray size must be a positive integer"
  *         self.size = size
- *         cdef int n_bytes = (size + 7) >> 3             # <<<<<<<<<<<<<<
- *         self.bits = <int *> PyMem_Malloc(n_bytes * sizeof(int))
- *         memset(self.bits, 0, n_bytes * sizeof(int))
+ *         cdef int n_longs = (size + 63) >> 6             # <<<<<<<<<<<<<<
+ *         self.bits = <long long *> PyMem_Malloc(n_longs * sizeof(long long))
+ *         memset(self.bits, 0, n_longs * sizeof(long long))
  */
-  __pyx_v_n_bytes = ((__pyx_v_size + 7) >> 3);
+  __pyx_v_n_longs = ((__pyx_v_size + 63) >> 6);
 
   /* "orso/bitarray/cbitarray.pyx":31
  *         self.size = size
- *         cdef int n_bytes = (size + 7) >> 3
- *         self.bits = <int *> PyMem_Malloc(n_bytes * sizeof(int))             # <<<<<<<<<<<<<<
- *         memset(self.bits, 0, n_bytes * sizeof(int))
+ *         cdef int n_longs = (size + 63) >> 6
+ *         self.bits = <long long *> PyMem_Malloc(n_longs * sizeof(long long))             # <<<<<<<<<<<<<<
+ *         memset(self.bits, 0, n_longs * sizeof(long long))
  * 
  */
-  __pyx_v_self->bits = ((int *)PyMem_Malloc((__pyx_v_n_bytes * (sizeof(int)))));
+  __pyx_v_self->bits = ((PY_LONG_LONG *)PyMem_Malloc((__pyx_v_n_longs * (sizeof(PY_LONG_LONG)))));
 
   /* "orso/bitarray/cbitarray.pyx":32
- *         cdef int n_bytes = (size + 7) >> 3
- *         self.bits = <int *> PyMem_Malloc(n_bytes * sizeof(int))
- *         memset(self.bits, 0, n_bytes * sizeof(int))             # <<<<<<<<<<<<<<
+ *         cdef int n_longs = (size + 63) >> 6
+ *         self.bits = <long long *> PyMem_Malloc(n_longs * sizeof(long long))
+ *         memset(self.bits, 0, n_longs * sizeof(long long))             # <<<<<<<<<<<<<<
  * 
  *     def __dealloc__(self):
  */
-  memset(__pyx_v_self->bits, 0, (__pyx_v_n_bytes * (sizeof(int))));
+  memset(__pyx_v_self->bits, 0, (__pyx_v_n_longs * (sizeof(PY_LONG_LONG))));
 
   /* "orso/bitarray/cbitarray.pyx":27
- *     cdef int *bits
+ *     cdef long long *bits
  * 
  *     def __init__(self, int size):             # <<<<<<<<<<<<<<
  *         assert size > 0, "bitarray size must be a positive integer"
@@ -2632,7 +2639,7 @@ static int __pyx_pf_4orso_8bitarray_9cbitarray_8BitArray___init__(struct __pyx_o
 }
 
 /* "orso/bitarray/cbitarray.pyx":34
- *         memset(self.bits, 0, n_bytes * sizeof(int))
+ *         memset(self.bits, 0, n_longs * sizeof(long long))
  * 
  *     def __dealloc__(self):             # <<<<<<<<<<<<<<
  *         with nogil:
@@ -2701,7 +2708,7 @@ static void __pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_2__dealloc__(struct __
   }
 
   /* "orso/bitarray/cbitarray.pyx":34
- *         memset(self.bits, 0, n_bytes * sizeof(int))
+ *         memset(self.bits, 0, n_longs * sizeof(long long))
  * 
  *     def __dealloc__(self):             # <<<<<<<<<<<<<<
  *         with nogil:
@@ -2807,7 +2814,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_4get(struct __pyx
  *     def get(self, int index):
  *         if 0 > index or index >= self.size:             # <<<<<<<<<<<<<<
  *             raise IndexError("Index out of range")
- *         return (self.bits[index >> 3] & (1 << (index & 7))) != 0
+ *         return (self.bits[index >> 6] & (1 << (index & 63))) != 0
  */
   __pyx_t_2 = (0 > __pyx_v_index);
   if (!__pyx_t_2) {
@@ -2824,7 +2831,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_4get(struct __pyx
  *     def get(self, int index):
  *         if 0 > index or index >= self.size:
  *             raise IndexError("Index out of range")             # <<<<<<<<<<<<<<
- *         return (self.bits[index >> 3] & (1 << (index & 7))) != 0
+ *         return (self.bits[index >> 6] & (1 << (index & 63))) != 0
  * 
  */
     __pyx_t_3 = __Pyx_PyObject_Call(__pyx_builtin_IndexError, __pyx_tuple_, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 40, __pyx_L1_error)
@@ -2838,19 +2845,19 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_4get(struct __pyx
  *     def get(self, int index):
  *         if 0 > index or index >= self.size:             # <<<<<<<<<<<<<<
  *             raise IndexError("Index out of range")
- *         return (self.bits[index >> 3] & (1 << (index & 7))) != 0
+ *         return (self.bits[index >> 6] & (1 << (index & 63))) != 0
  */
   }
 
   /* "orso/bitarray/cbitarray.pyx":41
  *         if 0 > index or index >= self.size:
  *             raise IndexError("Index out of range")
- *         return (self.bits[index >> 3] & (1 << (index & 7))) != 0             # <<<<<<<<<<<<<<
+ *         return (self.bits[index >> 6] & (1 << (index & 63))) != 0             # <<<<<<<<<<<<<<
  * 
  *     def set(self, int index, bint value):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_3 = __Pyx_PyBool_FromLong((((__pyx_v_self->bits[(__pyx_v_index >> 3)]) & (1 << (__pyx_v_index & 7))) != 0)); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 41, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyBool_FromLong((((__pyx_v_self->bits[(__pyx_v_index >> 6)]) & (1 << (__pyx_v_index & 63))) != 0)); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 41, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __pyx_r = __pyx_t_3;
   __pyx_t_3 = 0;
@@ -2876,7 +2883,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_4get(struct __pyx
 }
 
 /* "orso/bitarray/cbitarray.pyx":43
- *         return (self.bits[index >> 3] & (1 << (index & 7))) != 0
+ *         return (self.bits[index >> 6] & (1 << (index & 63))) != 0
  * 
  *     def set(self, int index, bint value):             # <<<<<<<<<<<<<<
  *         if 0 > index or index >= self.size:
@@ -3001,7 +3008,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_6set(struct __pyx
  *         if 0 > index or index >= self.size:
  *             raise IndexError("Index out of range")             # <<<<<<<<<<<<<<
  *         if value:
- *             self.bits[index >> 3] |= (1 << (index & 7))
+ *             self.bits[index >> 6] |= (1 << (index & 63))
  */
     __pyx_t_3 = __Pyx_PyObject_Call(__pyx_builtin_IndexError, __pyx_tuple_, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 45, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
@@ -3022,7 +3029,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_6set(struct __pyx
  *         if 0 > index or index >= self.size:
  *             raise IndexError("Index out of range")
  *         if value:             # <<<<<<<<<<<<<<
- *             self.bits[index >> 3] |= (1 << (index & 7))
+ *             self.bits[index >> 6] |= (1 << (index & 63))
  *         else:
  */
   if (__pyx_v_value) {
@@ -3030,38 +3037,38 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_6set(struct __pyx
     /* "orso/bitarray/cbitarray.pyx":47
  *             raise IndexError("Index out of range")
  *         if value:
- *             self.bits[index >> 3] |= (1 << (index & 7))             # <<<<<<<<<<<<<<
+ *             self.bits[index >> 6] |= (1 << (index & 63))             # <<<<<<<<<<<<<<
  *         else:
- *             self.bits[index >> 3] &= ~(1 << (index & 7))
+ *             self.bits[index >> 6] &= ~(1 << (index & 63))
  */
-    __pyx_t_4 = (__pyx_v_index >> 3);
-    (__pyx_v_self->bits[__pyx_t_4]) = ((__pyx_v_self->bits[__pyx_t_4]) | (1 << (__pyx_v_index & 7)));
+    __pyx_t_4 = (__pyx_v_index >> 6);
+    (__pyx_v_self->bits[__pyx_t_4]) = ((__pyx_v_self->bits[__pyx_t_4]) | (1 << (__pyx_v_index & 63)));
 
     /* "orso/bitarray/cbitarray.pyx":46
  *         if 0 > index or index >= self.size:
  *             raise IndexError("Index out of range")
  *         if value:             # <<<<<<<<<<<<<<
- *             self.bits[index >> 3] |= (1 << (index & 7))
+ *             self.bits[index >> 6] |= (1 << (index & 63))
  *         else:
  */
     goto __pyx_L6;
   }
 
   /* "orso/bitarray/cbitarray.pyx":49
- *             self.bits[index >> 3] |= (1 << (index & 7))
+ *             self.bits[index >> 6] |= (1 << (index & 63))
  *         else:
- *             self.bits[index >> 3] &= ~(1 << (index & 7))             # <<<<<<<<<<<<<<
+ *             self.bits[index >> 6] &= ~(1 << (index & 63))             # <<<<<<<<<<<<<<
  * 
  *     @property
  */
   /*else*/ {
-    __pyx_t_4 = (__pyx_v_index >> 3);
-    (__pyx_v_self->bits[__pyx_t_4]) = ((__pyx_v_self->bits[__pyx_t_4]) & (~(1 << (__pyx_v_index & 7))));
+    __pyx_t_4 = (__pyx_v_index >> 6);
+    (__pyx_v_self->bits[__pyx_t_4]) = ((__pyx_v_self->bits[__pyx_t_4]) & (~(1 << (__pyx_v_index & 63))));
   }
   __pyx_L6:;
 
   /* "orso/bitarray/cbitarray.pyx":43
- *         return (self.bits[index >> 3] & (1 << (index & 7))) != 0
+ *         return (self.bits[index >> 6] & (1 << (index & 63))) != 0
  * 
  *     def set(self, int index, bint value):             # <<<<<<<<<<<<<<
  *         if 0 > index or index >= self.size:
@@ -3082,7 +3089,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_6set(struct __pyx
 }
 
 /* "orso/bitarray/cbitarray.pyx":51
- *             self.bits[index >> 3] &= ~(1 << (index & 7))
+ *             self.bits[index >> 6] &= ~(1 << (index & 63))
  * 
  *     @property             # <<<<<<<<<<<<<<
  *     def array(self):
@@ -3119,6 +3126,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_5array___get__(st
   int __pyx_t_8;
   Py_ssize_t __pyx_t_9;
   PyObject *__pyx_t_10 = NULL;
+  PyObject *__pyx_t_11 = NULL;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
@@ -3128,8 +3136,8 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_5array___get__(st
  *     @property
  *     def array(self):
  *         ba = bytearray((self.size + 7) >> 3)             # <<<<<<<<<<<<<<
- *         for i in range((self.size + 7) >> 3):
- *             for j in range(8):
+ *         for i in range((self.size + 63) >> 6):
+ *             for j in range(64):
  */
   __pyx_t_1 = __Pyx_PyInt_From_long(((__pyx_v_self->size + 7) >> 3)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 53, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
@@ -3142,11 +3150,11 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_5array___get__(st
   /* "orso/bitarray/cbitarray.pyx":54
  *     def array(self):
  *         ba = bytearray((self.size + 7) >> 3)
- *         for i in range((self.size + 7) >> 3):             # <<<<<<<<<<<<<<
- *             for j in range(8):
- *                 if i * 8 + j < self.size:
+ *         for i in range((self.size + 63) >> 6):             # <<<<<<<<<<<<<<
+ *             for j in range(64):
+ *                 if i * 64 + j < self.size:
  */
-  __pyx_t_2 = __Pyx_PyInt_From_long(((__pyx_v_self->size + 7) >> 3)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 54, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyInt_From_long(((__pyx_v_self->size + 63) >> 6)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 54, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_builtin_range, __pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 54, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
@@ -3196,25 +3204,25 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_5array___get__(st
 
     /* "orso/bitarray/cbitarray.pyx":55
  *         ba = bytearray((self.size + 7) >> 3)
- *         for i in range((self.size + 7) >> 3):
- *             for j in range(8):             # <<<<<<<<<<<<<<
- *                 if i * 8 + j < self.size:
- *                     ba[i] |= ((self.bits[i] >> j) & 1) << j
+ *         for i in range((self.size + 63) >> 6):
+ *             for j in range(64):             # <<<<<<<<<<<<<<
+ *                 if i * 64 + j < self.size:
+ *                     ba[i*8 + (j>>3)] |= ((self.bits[i] >> j) & 1) << (j & 7)
  */
-    for (__pyx_t_5 = 0; __pyx_t_5 < 8; __pyx_t_5+=1) {
+    for (__pyx_t_5 = 0; __pyx_t_5 < 64; __pyx_t_5+=1) {
       __pyx_t_1 = __Pyx_PyInt_From_long(__pyx_t_5); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 55, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
       __Pyx_XDECREF_SET(__pyx_v_j, __pyx_t_1);
       __pyx_t_1 = 0;
 
       /* "orso/bitarray/cbitarray.pyx":56
- *         for i in range((self.size + 7) >> 3):
- *             for j in range(8):
- *                 if i * 8 + j < self.size:             # <<<<<<<<<<<<<<
- *                     ba[i] |= ((self.bits[i] >> j) & 1) << j
+ *         for i in range((self.size + 63) >> 6):
+ *             for j in range(64):
+ *                 if i * 64 + j < self.size:             # <<<<<<<<<<<<<<
+ *                     ba[i*8 + (j>>3)] |= ((self.bits[i] >> j) & 1) << (j & 7)
  *         return ba
  */
-      __pyx_t_1 = __Pyx_PyInt_MultiplyObjC(__pyx_v_i, __pyx_int_8, 8, 0, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 56, __pyx_L1_error)
+      __pyx_t_1 = __Pyx_PyInt_MultiplyObjC(__pyx_v_i, __pyx_int_64, 64, 0, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 56, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
       __pyx_t_6 = PyNumber_Add(__pyx_t_1, __pyx_v_j); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 56, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_6);
@@ -3229,41 +3237,50 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_5array___get__(st
       if (__pyx_t_8) {
 
         /* "orso/bitarray/cbitarray.pyx":57
- *             for j in range(8):
- *                 if i * 8 + j < self.size:
- *                     ba[i] |= ((self.bits[i] >> j) & 1) << j             # <<<<<<<<<<<<<<
+ *             for j in range(64):
+ *                 if i * 64 + j < self.size:
+ *                     ba[i*8 + (j>>3)] |= ((self.bits[i] >> j) & 1) << (j & 7)             # <<<<<<<<<<<<<<
  *         return ba
  * 
  */
-        __Pyx_INCREF(__pyx_v_i);
-        __pyx_t_7 = __pyx_v_i;
-        __pyx_t_1 = __Pyx_PyObject_GetItem(__pyx_v_ba, __pyx_t_7); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 57, __pyx_L1_error)
+        __pyx_t_7 = __Pyx_PyInt_MultiplyObjC(__pyx_v_i, __pyx_int_8, 8, 0, 0); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 57, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_7);
+        __pyx_t_1 = __Pyx_PyInt_RshiftObjC(__pyx_v_j, __pyx_int_3, 3, 0, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 57, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_1);
+        __pyx_t_6 = PyNumber_Add(__pyx_t_7, __pyx_t_1); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 57, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_6);
+        __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
+        __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+        __pyx_t_1 = __Pyx_PyObject_GetItem(__pyx_v_ba, __pyx_t_6); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 57, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_1);
         __pyx_t_9 = __Pyx_PyIndex_AsSsize_t(__pyx_v_i); if (unlikely((__pyx_t_9 == (Py_ssize_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 57, __pyx_L1_error)
-        __pyx_t_6 = __Pyx_PyInt_From_int((__pyx_v_self->bits[__pyx_t_9])); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 57, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_6);
-        __pyx_t_10 = PyNumber_Rshift(__pyx_t_6, __pyx_v_j); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 57, __pyx_L1_error)
+        __pyx_t_7 = __Pyx_PyInt_From_PY_LONG_LONG((__pyx_v_self->bits[__pyx_t_9])); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 57, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_7);
+        __pyx_t_10 = PyNumber_Rshift(__pyx_t_7, __pyx_v_j); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 57, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_10);
-        __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-        __pyx_t_6 = __Pyx_PyInt_AndObjC(__pyx_t_10, __pyx_int_1, 1, 0, 0); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 57, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_6);
-        __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
-        __pyx_t_10 = PyNumber_Lshift(__pyx_t_6, __pyx_v_j); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 57, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_10);
-        __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-        __pyx_t_6 = PyNumber_InPlaceOr(__pyx_t_1, __pyx_t_10); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 57, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_6);
-        __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-        __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
-        if (unlikely((PyObject_SetItem(__pyx_v_ba, __pyx_t_7, __pyx_t_6) < 0))) __PYX_ERR(0, 57, __pyx_L1_error)
-        __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
         __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
+        __pyx_t_7 = __Pyx_PyInt_AndObjC(__pyx_t_10, __pyx_int_1, 1, 0, 0); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 57, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_7);
+        __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
+        __pyx_t_10 = __Pyx_PyInt_AndObjC(__pyx_v_j, __pyx_int_7, 7, 0, 0); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 57, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_10);
+        __pyx_t_11 = PyNumber_Lshift(__pyx_t_7, __pyx_t_10); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 57, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_11);
+        __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
+        __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
+        __pyx_t_10 = PyNumber_InPlaceOr(__pyx_t_1, __pyx_t_11); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 57, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_10);
+        __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+        __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
+        if (unlikely((PyObject_SetItem(__pyx_v_ba, __pyx_t_6, __pyx_t_10) < 0))) __PYX_ERR(0, 57, __pyx_L1_error)
+        __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
+        __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
 
         /* "orso/bitarray/cbitarray.pyx":56
- *         for i in range((self.size + 7) >> 3):
- *             for j in range(8):
- *                 if i * 8 + j < self.size:             # <<<<<<<<<<<<<<
- *                     ba[i] |= ((self.bits[i] >> j) & 1) << j
+ *         for i in range((self.size + 63) >> 6):
+ *             for j in range(64):
+ *                 if i * 64 + j < self.size:             # <<<<<<<<<<<<<<
+ *                     ba[i*8 + (j>>3)] |= ((self.bits[i] >> j) & 1) << (j & 7)
  *         return ba
  */
       }
@@ -3272,16 +3289,16 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_5array___get__(st
     /* "orso/bitarray/cbitarray.pyx":54
  *     def array(self):
  *         ba = bytearray((self.size + 7) >> 3)
- *         for i in range((self.size + 7) >> 3):             # <<<<<<<<<<<<<<
- *             for j in range(8):
- *                 if i * 8 + j < self.size:
+ *         for i in range((self.size + 63) >> 6):             # <<<<<<<<<<<<<<
+ *             for j in range(64):
+ *                 if i * 64 + j < self.size:
  */
   }
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
   /* "orso/bitarray/cbitarray.pyx":58
- *                 if i * 8 + j < self.size:
- *                     ba[i] |= ((self.bits[i] >> j) & 1) << j
+ *                 if i * 64 + j < self.size:
+ *                     ba[i*8 + (j>>3)] |= ((self.bits[i] >> j) & 1) << (j & 7)
  *         return ba             # <<<<<<<<<<<<<<
  * 
  *     @classmethod
@@ -3292,7 +3309,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_5array___get__(st
   goto __pyx_L0;
 
   /* "orso/bitarray/cbitarray.pyx":51
- *             self.bits[index >> 3] &= ~(1 << (index & 7))
+ *             self.bits[index >> 6] &= ~(1 << (index & 63))
  * 
  *     @property             # <<<<<<<<<<<<<<
  *     def array(self):
@@ -3306,6 +3323,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_5array___get__(st
   __Pyx_XDECREF(__pyx_t_6);
   __Pyx_XDECREF(__pyx_t_7);
   __Pyx_XDECREF(__pyx_t_10);
+  __Pyx_XDECREF(__pyx_t_11);
   __Pyx_AddTraceback("orso.bitarray.cbitarray.BitArray.array.__get__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
@@ -3433,7 +3451,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_8from_array(PyTyp
  *     def from_array(cls, array, int length):
  *         bit_array = cls(length)             # <<<<<<<<<<<<<<
  *         for index in range(length):
- *             bit = (array[index >> 3] & (1 << (index & 7))) != 0
+ *             bit = (array[(index >> 3)] & (1 << (index & 7))) != 0
  */
   __pyx_t_1 = __Pyx_PyInt_From_int(__pyx_v_length); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 62, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
@@ -3447,7 +3465,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_8from_array(PyTyp
  *     def from_array(cls, array, int length):
  *         bit_array = cls(length)
  *         for index in range(length):             # <<<<<<<<<<<<<<
- *             bit = (array[index >> 3] & (1 << (index & 7))) != 0
+ *             bit = (array[(index >> 3)] & (1 << (index & 7))) != 0
  *             if index < length and bit:
  */
   __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_length); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 63, __pyx_L1_error)
@@ -3501,7 +3519,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_8from_array(PyTyp
     /* "orso/bitarray/cbitarray.pyx":64
  *         bit_array = cls(length)
  *         for index in range(length):
- *             bit = (array[index >> 3] & (1 << (index & 7))) != 0             # <<<<<<<<<<<<<<
+ *             bit = (array[(index >> 3)] & (1 << (index & 7))) != 0             # <<<<<<<<<<<<<<
  *             if index < length and bit:
  *                 bit_array.set(index, 1)
  */
@@ -3527,7 +3545,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_8from_array(PyTyp
 
     /* "orso/bitarray/cbitarray.pyx":65
  *         for index in range(length):
- *             bit = (array[index >> 3] & (1 << (index & 7))) != 0
+ *             bit = (array[(index >> 3)] & (1 << (index & 7))) != 0
  *             if index < length and bit:             # <<<<<<<<<<<<<<
  *                 bit_array.set(index, 1)
  *         return bit_array
@@ -3549,7 +3567,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_8from_array(PyTyp
     if (__pyx_t_7) {
 
       /* "orso/bitarray/cbitarray.pyx":66
- *             bit = (array[index >> 3] & (1 << (index & 7))) != 0
+ *             bit = (array[(index >> 3)] & (1 << (index & 7))) != 0
  *             if index < length and bit:
  *                 bit_array.set(index, 1)             # <<<<<<<<<<<<<<
  *         return bit_array
@@ -3580,7 +3598,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_8from_array(PyTyp
 
       /* "orso/bitarray/cbitarray.pyx":65
  *         for index in range(length):
- *             bit = (array[index >> 3] & (1 << (index & 7))) != 0
+ *             bit = (array[(index >> 3)] & (1 << (index & 7))) != 0
  *             if index < length and bit:             # <<<<<<<<<<<<<<
  *                 bit_array.set(index, 1)
  *         return bit_array
@@ -3591,7 +3609,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_8from_array(PyTyp
  *     def from_array(cls, array, int length):
  *         bit_array = cls(length)
  *         for index in range(length):             # <<<<<<<<<<<<<<
- *             bit = (array[index >> 3] & (1 << (index & 7))) != 0
+ *             bit = (array[(index >> 3)] & (1 << (index & 7))) != 0
  *             if index < length and bit:
  */
   }
@@ -3636,7 +3654,7 @@ static PyObject *__pyx_pf_4orso_8bitarray_9cbitarray_8BitArray_8from_array(PyTyp
  * 
  * cdef class BitArray:
  *     cdef public int size             # <<<<<<<<<<<<<<
- *     cdef int *bits
+ *     cdef long long *bits
  * 
  */
 
@@ -4152,7 +4170,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  *     def get(self, int index):
  *         if 0 > index or index >= self.size:
  *             raise IndexError("Index out of range")             # <<<<<<<<<<<<<<
- *         return (self.bits[index >> 3] & (1 << (index & 7))) != 0
+ *         return (self.bits[index >> 6] & (1 << (index & 63))) != 0
  * 
  */
   __pyx_tuple_ = PyTuple_Pack(1, __pyx_kp_u_Index_out_of_range); if (unlikely(!__pyx_tuple_)) __PYX_ERR(0, 40, __pyx_L1_error)
@@ -4172,7 +4190,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __pyx_codeobj__3 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__2, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_orso_bitarray_cbitarray_pyx, __pyx_n_s_get, 38, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__3)) __PYX_ERR(0, 38, __pyx_L1_error)
 
   /* "orso/bitarray/cbitarray.pyx":43
- *         return (self.bits[index >> 3] & (1 << (index & 7))) != 0
+ *         return (self.bits[index >> 6] & (1 << (index & 63))) != 0
  * 
  *     def set(self, int index, bint value):             # <<<<<<<<<<<<<<
  *         if 0 > index or index >= self.size:
@@ -4230,6 +4248,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitConstants(void) {
   __pyx_int_3 = PyInt_FromLong(3); if (unlikely(!__pyx_int_3)) __PYX_ERR(0, 1, __pyx_L1_error)
   __pyx_int_7 = PyInt_FromLong(7); if (unlikely(!__pyx_int_7)) __PYX_ERR(0, 1, __pyx_L1_error)
   __pyx_int_8 = PyInt_FromLong(8); if (unlikely(!__pyx_int_8)) __PYX_ERR(0, 1, __pyx_L1_error)
+  __pyx_int_64 = PyInt_FromLong(64); if (unlikely(!__pyx_int_64)) __PYX_ERR(0, 1, __pyx_L1_error)
   return 0;
   __pyx_L1_error:;
   return -1;
@@ -4636,7 +4655,7 @@ if (!__Pyx_RefNanny) {
   PyType_Modified(__pyx_ptype_4orso_8bitarray_9cbitarray_BitArray);
 
   /* "orso/bitarray/cbitarray.pyx":43
- *         return (self.bits[index >> 3] & (1 << (index & 7))) != 0
+ *         return (self.bits[index >> 6] & (1 << (index & 63))) != 0
  * 
  *     def set(self, int index, bint value):             # <<<<<<<<<<<<<<
  *         if 0 > index or index >= self.size:
@@ -5830,6 +5849,121 @@ static PyObject* __Pyx_PyInt_MultiplyObjC(PyObject *op1, PyObject *op2, long int
 }
 #endif
 
+/* PyIntBinop */
+#if !CYTHON_COMPILING_IN_PYPY
+static PyObject* __Pyx_PyInt_RshiftObjC(PyObject *op1, PyObject *op2, long intval, int inplace, int zerodivision_check) {
+    CYTHON_MAYBE_UNUSED_VAR(intval);
+    CYTHON_MAYBE_UNUSED_VAR(inplace);
+    CYTHON_UNUSED_VAR(zerodivision_check);
+    #if PY_MAJOR_VERSION < 3
+    if (likely(PyInt_CheckExact(op1))) {
+        const long b = intval;
+        long a = PyInt_AS_LONG(op1);
+        
+            return PyInt_FromLong(a >> b);
+    }
+    #endif
+    #if CYTHON_USE_PYLONG_INTERNALS
+    if (likely(PyLong_CheckExact(op1))) {
+        const long b = intval;
+        long a, x;
+#ifdef HAVE_LONG_LONG
+        const PY_LONG_LONG llb = intval;
+        PY_LONG_LONG lla, llx;
+#endif
+        if (unlikely(__Pyx_PyLong_IsZero(op1))) {
+            return __Pyx_NewRef(op1);
+        }
+        if (likely(__Pyx_PyLong_IsCompact(op1))) {
+            a = __Pyx_PyLong_CompactValue(op1);
+        } else {
+            const digit* digits = __Pyx_PyLong_Digits(op1);
+            const Py_ssize_t size = __Pyx_PyLong_SignedDigitCount(op1);
+            switch (size) {
+                case -2:
+                    if (8 * sizeof(long) - 1 > 2 * PyLong_SHIFT) {
+                        a = -(long) (((((unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0]));
+                        break;
+                    #ifdef HAVE_LONG_LONG
+                    } else if (8 * sizeof(PY_LONG_LONG) - 1 > 2 * PyLong_SHIFT) {
+                        lla = -(PY_LONG_LONG) (((((unsigned PY_LONG_LONG)digits[1]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[0]));
+                        goto long_long;
+                    #endif
+                    }
+                    CYTHON_FALLTHROUGH;
+                case 2:
+                    if (8 * sizeof(long) - 1 > 2 * PyLong_SHIFT) {
+                        a = (long) (((((unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0]));
+                        break;
+                    #ifdef HAVE_LONG_LONG
+                    } else if (8 * sizeof(PY_LONG_LONG) - 1 > 2 * PyLong_SHIFT) {
+                        lla = (PY_LONG_LONG) (((((unsigned PY_LONG_LONG)digits[1]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[0]));
+                        goto long_long;
+                    #endif
+                    }
+                    CYTHON_FALLTHROUGH;
+                case -3:
+                    if (8 * sizeof(long) - 1 > 3 * PyLong_SHIFT) {
+                        a = -(long) (((((((unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0]));
+                        break;
+                    #ifdef HAVE_LONG_LONG
+                    } else if (8 * sizeof(PY_LONG_LONG) - 1 > 3 * PyLong_SHIFT) {
+                        lla = -(PY_LONG_LONG) (((((((unsigned PY_LONG_LONG)digits[2]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[1]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[0]));
+                        goto long_long;
+                    #endif
+                    }
+                    CYTHON_FALLTHROUGH;
+                case 3:
+                    if (8 * sizeof(long) - 1 > 3 * PyLong_SHIFT) {
+                        a = (long) (((((((unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0]));
+                        break;
+                    #ifdef HAVE_LONG_LONG
+                    } else if (8 * sizeof(PY_LONG_LONG) - 1 > 3 * PyLong_SHIFT) {
+                        lla = (PY_LONG_LONG) (((((((unsigned PY_LONG_LONG)digits[2]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[1]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[0]));
+                        goto long_long;
+                    #endif
+                    }
+                    CYTHON_FALLTHROUGH;
+                case -4:
+                    if (8 * sizeof(long) - 1 > 4 * PyLong_SHIFT) {
+                        a = -(long) (((((((((unsigned long)digits[3]) << PyLong_SHIFT) | (unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0]));
+                        break;
+                    #ifdef HAVE_LONG_LONG
+                    } else if (8 * sizeof(PY_LONG_LONG) - 1 > 4 * PyLong_SHIFT) {
+                        lla = -(PY_LONG_LONG) (((((((((unsigned PY_LONG_LONG)digits[3]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[2]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[1]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[0]));
+                        goto long_long;
+                    #endif
+                    }
+                    CYTHON_FALLTHROUGH;
+                case 4:
+                    if (8 * sizeof(long) - 1 > 4 * PyLong_SHIFT) {
+                        a = (long) (((((((((unsigned long)digits[3]) << PyLong_SHIFT) | (unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0]));
+                        break;
+                    #ifdef HAVE_LONG_LONG
+                    } else if (8 * sizeof(PY_LONG_LONG) - 1 > 4 * PyLong_SHIFT) {
+                        lla = (PY_LONG_LONG) (((((((((unsigned PY_LONG_LONG)digits[3]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[2]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[1]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[0]));
+                        goto long_long;
+                    #endif
+                    }
+                    CYTHON_FALLTHROUGH;
+                default: return PyLong_Type.tp_as_number->nb_rshift(op1, op2);
+            }
+        }
+                x = a >> b;
+            return PyLong_FromLong(x);
+#ifdef HAVE_LONG_LONG
+        long_long:
+                llx = lla >> llb;
+            return PyLong_FromLongLong(llx);
+#endif
+        
+        
+    }
+    #endif
+    return (inplace ? PyNumber_InPlaceRshift : PyNumber_Rshift)(op1, op2);
+}
+#endif
+
 /* GetItemInt */
 static PyObject *__Pyx_GetItemInt_Generic(PyObject *o, PyObject* j) {
     PyObject *r;
@@ -6164,121 +6298,6 @@ static CYTHON_INLINE PyObject* __Pyx_PyInt_NeObjC(PyObject *op1, PyObject *op2, 
     return (
         PyObject_RichCompare(op1, op2, Py_NE));
 }
-
-/* PyIntBinop */
-#if !CYTHON_COMPILING_IN_PYPY
-static PyObject* __Pyx_PyInt_RshiftObjC(PyObject *op1, PyObject *op2, long intval, int inplace, int zerodivision_check) {
-    CYTHON_MAYBE_UNUSED_VAR(intval);
-    CYTHON_MAYBE_UNUSED_VAR(inplace);
-    CYTHON_UNUSED_VAR(zerodivision_check);
-    #if PY_MAJOR_VERSION < 3
-    if (likely(PyInt_CheckExact(op1))) {
-        const long b = intval;
-        long a = PyInt_AS_LONG(op1);
-        
-            return PyInt_FromLong(a >> b);
-    }
-    #endif
-    #if CYTHON_USE_PYLONG_INTERNALS
-    if (likely(PyLong_CheckExact(op1))) {
-        const long b = intval;
-        long a, x;
-#ifdef HAVE_LONG_LONG
-        const PY_LONG_LONG llb = intval;
-        PY_LONG_LONG lla, llx;
-#endif
-        if (unlikely(__Pyx_PyLong_IsZero(op1))) {
-            return __Pyx_NewRef(op1);
-        }
-        if (likely(__Pyx_PyLong_IsCompact(op1))) {
-            a = __Pyx_PyLong_CompactValue(op1);
-        } else {
-            const digit* digits = __Pyx_PyLong_Digits(op1);
-            const Py_ssize_t size = __Pyx_PyLong_SignedDigitCount(op1);
-            switch (size) {
-                case -2:
-                    if (8 * sizeof(long) - 1 > 2 * PyLong_SHIFT) {
-                        a = -(long) (((((unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0]));
-                        break;
-                    #ifdef HAVE_LONG_LONG
-                    } else if (8 * sizeof(PY_LONG_LONG) - 1 > 2 * PyLong_SHIFT) {
-                        lla = -(PY_LONG_LONG) (((((unsigned PY_LONG_LONG)digits[1]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[0]));
-                        goto long_long;
-                    #endif
-                    }
-                    CYTHON_FALLTHROUGH;
-                case 2:
-                    if (8 * sizeof(long) - 1 > 2 * PyLong_SHIFT) {
-                        a = (long) (((((unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0]));
-                        break;
-                    #ifdef HAVE_LONG_LONG
-                    } else if (8 * sizeof(PY_LONG_LONG) - 1 > 2 * PyLong_SHIFT) {
-                        lla = (PY_LONG_LONG) (((((unsigned PY_LONG_LONG)digits[1]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[0]));
-                        goto long_long;
-                    #endif
-                    }
-                    CYTHON_FALLTHROUGH;
-                case -3:
-                    if (8 * sizeof(long) - 1 > 3 * PyLong_SHIFT) {
-                        a = -(long) (((((((unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0]));
-                        break;
-                    #ifdef HAVE_LONG_LONG
-                    } else if (8 * sizeof(PY_LONG_LONG) - 1 > 3 * PyLong_SHIFT) {
-                        lla = -(PY_LONG_LONG) (((((((unsigned PY_LONG_LONG)digits[2]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[1]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[0]));
-                        goto long_long;
-                    #endif
-                    }
-                    CYTHON_FALLTHROUGH;
-                case 3:
-                    if (8 * sizeof(long) - 1 > 3 * PyLong_SHIFT) {
-                        a = (long) (((((((unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0]));
-                        break;
-                    #ifdef HAVE_LONG_LONG
-                    } else if (8 * sizeof(PY_LONG_LONG) - 1 > 3 * PyLong_SHIFT) {
-                        lla = (PY_LONG_LONG) (((((((unsigned PY_LONG_LONG)digits[2]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[1]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[0]));
-                        goto long_long;
-                    #endif
-                    }
-                    CYTHON_FALLTHROUGH;
-                case -4:
-                    if (8 * sizeof(long) - 1 > 4 * PyLong_SHIFT) {
-                        a = -(long) (((((((((unsigned long)digits[3]) << PyLong_SHIFT) | (unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0]));
-                        break;
-                    #ifdef HAVE_LONG_LONG
-                    } else if (8 * sizeof(PY_LONG_LONG) - 1 > 4 * PyLong_SHIFT) {
-                        lla = -(PY_LONG_LONG) (((((((((unsigned PY_LONG_LONG)digits[3]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[2]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[1]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[0]));
-                        goto long_long;
-                    #endif
-                    }
-                    CYTHON_FALLTHROUGH;
-                case 4:
-                    if (8 * sizeof(long) - 1 > 4 * PyLong_SHIFT) {
-                        a = (long) (((((((((unsigned long)digits[3]) << PyLong_SHIFT) | (unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0]));
-                        break;
-                    #ifdef HAVE_LONG_LONG
-                    } else if (8 * sizeof(PY_LONG_LONG) - 1 > 4 * PyLong_SHIFT) {
-                        lla = (PY_LONG_LONG) (((((((((unsigned PY_LONG_LONG)digits[3]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[2]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[1]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[0]));
-                        goto long_long;
-                    #endif
-                    }
-                    CYTHON_FALLTHROUGH;
-                default: return PyLong_Type.tp_as_number->nb_rshift(op1, op2);
-            }
-        }
-                x = a >> b;
-            return PyLong_FromLong(x);
-#ifdef HAVE_LONG_LONG
-        long_long:
-                llx = lla >> llb;
-            return PyLong_FromLongLong(llx);
-#endif
-        
-        
-    }
-    #endif
-    return (inplace ? PyNumber_InPlaceRshift : PyNumber_Rshift)(op1, op2);
-}
-#endif
 
 /* KeywordStringCheck */
 static int __Pyx_CheckKeywordStrings(
@@ -8613,6 +8632,44 @@ static CYTHON_INLINE PyObject* __Pyx_PyInt_From_int(int value) {
         int one = 1; int little = (int)*(unsigned char *)&one;
         unsigned char *bytes = (unsigned char *)&value;
         return _PyLong_FromByteArray(bytes, sizeof(int),
+                                     little, !is_unsigned);
+    }
+}
+
+/* CIntToPy */
+static CYTHON_INLINE PyObject* __Pyx_PyInt_From_PY_LONG_LONG(PY_LONG_LONG value) {
+#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+    const PY_LONG_LONG neg_one = (PY_LONG_LONG) -1, const_zero = (PY_LONG_LONG) 0;
+#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
+#pragma GCC diagnostic pop
+#endif
+    const int is_unsigned = neg_one > const_zero;
+    if (is_unsigned) {
+        if (sizeof(PY_LONG_LONG) < sizeof(long)) {
+            return PyInt_FromLong((long) value);
+        } else if (sizeof(PY_LONG_LONG) <= sizeof(unsigned long)) {
+            return PyLong_FromUnsignedLong((unsigned long) value);
+#ifdef HAVE_LONG_LONG
+        } else if (sizeof(PY_LONG_LONG) <= sizeof(unsigned PY_LONG_LONG)) {
+            return PyLong_FromUnsignedLongLong((unsigned PY_LONG_LONG) value);
+#endif
+        }
+    } else {
+        if (sizeof(PY_LONG_LONG) <= sizeof(long)) {
+            return PyInt_FromLong((long) value);
+#ifdef HAVE_LONG_LONG
+        } else if (sizeof(PY_LONG_LONG) <= sizeof(PY_LONG_LONG)) {
+            return PyLong_FromLongLong((PY_LONG_LONG) value);
+#endif
+        }
+    }
+    {
+        int one = 1; int little = (int)*(unsigned char *)&one;
+        unsigned char *bytes = (unsigned char *)&value;
+        return _PyLong_FromByteArray(bytes, sizeof(PY_LONG_LONG),
                                      little, !is_unsigned);
     }
 }

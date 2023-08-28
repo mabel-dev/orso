@@ -26,9 +26,9 @@ import typing
 
 import orjson
 from ormsgpack import packb
-from ormsgpack import unpackb
 
 from orso.exceptions import DataError
+from orso.row_cython import from_bytes_cython
 from orso.schema import RelationSchema
 
 HEADER_SIZE: int = 6
@@ -37,15 +37,18 @@ MAXIMUM_RECORD_SIZE: int = 8 * 1024 * 1024
 
 
 def extract_columns(table, columns):
-    # Initialize empty lists for each column
-    result: tuple = tuple([] for _ in columns)
+    # Pre-allocate lists for each column with known sizes
+    n_rows = len(table)
+    result = [None] * len(columns)
+    for i in range(len(columns)):
+        result[i] = [None] * n_rows
 
-    # Extract the specified columns into the result lists
-    for row in table:
+    # Fill in the lists with actual values
+    for i, row in enumerate(table):
         for j, column in enumerate(columns):
-            result[j].append(row[column])
+            result[j][i] = row[column]
 
-    return result
+    return tuple(result)
 
 
 class Row(tuple):
@@ -76,26 +79,10 @@ class Row(tuple):
 
     @classmethod
     def from_bytes(cls, data: bytes) -> "Row":
-        # Check for sufficient length
-        if len(data) < HEADER_SIZE:
-            raise DataError("Data malformed - missing bytes")
-
-        # Check version
-        if data[0] & 240 != 16:
-            raise DataError("Data malformed - version error")
-
-        # Deserialize record bytes
-        record_bytes = data[HEADER_SIZE:]
-
-        # Check record size
-        record_size = int.from_bytes(data[2:HEADER_SIZE], byteorder="big")
-        if len(record_bytes) != record_size:
-            raise DataError("Data malformed - incorrect length")
-
-        # Deserialize and return the record
-        return cls(unpackb(record_bytes))
+        return cls(from_bytes_cython(data))
 
     def to_bytes(self) -> bytes:
+        # initial attempts to cythonize this function were slower
         record_bytes = packb(tuple(self))
         record_size = len(record_bytes)
 

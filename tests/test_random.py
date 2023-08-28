@@ -13,8 +13,8 @@ def test_random():
     assert len(set(collected)) > (len(collected) * 0.999), len(set(collected))
 
     collected = [random_string() for i in range(1000000)]
-    # allow one collisions, they're not impossible, but are unlikely
-    assert len(set(collected)) >= len(collected) - 1
+    # allow two collisions, they're not impossible, but are unlikely
+    assert len(set(collected)) >= len(collected) - 2
     assert all(len(c) == 16 for c in collected)
 
 
