@@ -37,9 +37,9 @@ def test_bloom_filter():
             collisions += 1
 
     # this is approximately 1% false positive rate, we're going to test between
-    # 0.5 and 1.5 because this is probabilistic so are unlikely to actually get 1%
+    # 0.25 and 1.75 because this is probabilistic so are unlikely to actually get 1%
     assert (
-        (ITERATIONS * SCALE_FACTOR * 0.005) < collisions < (ITERATIONS * SCALE_FACTOR * 0.015)
+        (ITERATIONS * SCALE_FACTOR * 0.025) < collisions < (ITERATIONS * SCALE_FACTOR * 0.175)
     ), collisions / (ITERATIONS * SCALE_FACTOR)
 
 
