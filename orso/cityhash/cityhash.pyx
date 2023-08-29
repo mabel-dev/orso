@@ -75,7 +75,7 @@ cdef object _type_error(argname: str, expected: object, value: object):
     )
 
 
-def CityHash32(data) -> int:
+cdef public int CityHash32(char *data) -> int:
     """Obtain a 32-bit hash from input data.
 
     :param data: input data (string, bytes, or buffer object)
@@ -104,7 +104,7 @@ def CityHash32(data) -> int:
     return result
 
 
-def CityHash64(data) -> int:
+cdef CityHash64(data) -> int:
     """Obtain a 64-bit hash from input data.
 
     :param data: input data (string, bytes, or buffer object)

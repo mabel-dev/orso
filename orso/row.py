@@ -27,8 +27,8 @@ import typing
 import orjson
 from ormsgpack import packb
 
+from orso.compiled import from_bytes_cython
 from orso.exceptions import DataError
-from orso.row_cython import from_bytes_cython
 from orso.schema import RelationSchema
 
 HEADER_SIZE: int = 6

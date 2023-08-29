@@ -1,2 +1,2 @@
-from .cityhash import CityHash32
-from .cityhash import CityHash64
+from orso.cityhash.cityhash import CityHash32
+from orso.cityhash.cityhash import CityHash64

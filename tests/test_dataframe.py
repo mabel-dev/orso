@@ -52,7 +52,7 @@ def test_dataframe_materialize():
 def test_dataframe_collect():
     dataframe = create_dataframe()
     result = dataframe.collect(["A", "C"])
-    assert result == ([1, 2, 3, 4, 5], [1.1, 2.2, 3.3, 4.4, 5.5])
+    assert result == ([1, 2, 3, 4, 5], [1.1, 2.2, 3.3, 4.4, 5.5]), result
 
 
 def test_dataframe_slice():
@@ -111,7 +111,7 @@ def test_dataframe_filter():
     mask = [row[0] > 2 for row in dataframe]
     filtered_dataframe = dataframe.filter(mask)
     assert len(filtered_dataframe) == 3
-    assert filtered_dataframe.collect(["A"]) == ([3, 4, 5],)
+    assert filtered_dataframe.collect(["A"]) == ([3, 4, 5],), filtered_dataframe.collect(["A"])
 
 
 def test_take():
@@ -274,6 +274,16 @@ def test_describe():
         ("B", "VARCHAR", None, None, None, None, True),
         ("C", "DOUBLE", None, None, None, None, False),
     ]
+
+
+def test_distinct():
+    df = orso.DataFrame(schema=cities.schema)
+    for city in cities.values:
+        df.append(city)
+    for city in cities.values:
+        df.append(city)
+
+    assert df.distinct().rowcount == len(cities.values)
 
 
 if __name__ == "__main__":  # prgama: nocover

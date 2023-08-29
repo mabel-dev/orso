@@ -50,6 +50,58 @@ def test_single_item_cache():
     assert mock_func.call_count == 5  # Function was not called
 
 
+def test_single_item_cache_with_same_arguments():
+    counter = [0]
+
+    @single_item_cache
+    def foo(x):
+        counter[0] += 1
+        return x * 2
+
+    # First call should increase counter
+    assert foo(1) == 2
+    assert counter[0] == 1
+
+    # Second call with same argument should not increase counter (cache hit)
+    assert foo(1) == 2
+    assert counter[0] == 1
+
+
+def test_single_item_cache_with_different_arguments():
+    counter = [0]
+
+    @single_item_cache
+    def foo(x):
+        counter[0] += 1
+        return x * 2
+
+    assert foo(1) == 2
+    assert counter[0] == 1
+
+    # Different argument, should increase counter (cache miss)
+    assert foo(2) == 4
+    assert counter[0] == 2
+
+
+def test_single_item_cache_with_same_then_different_then_same_arguments():
+    counter = [0]
+
+    @single_item_cache
+    def foo(x):
+        counter[0] += 1
+        return x * 2
+
+    assert foo(1) == 2
+    assert counter[0] == 1
+
+    assert foo(2) == 4
+    assert counter[0] == 2
+
+    # Back to original argument, should increase counter (cache miss due to intermediate different call)
+    assert foo(1) == 2
+    assert counter[0] == 3
+
+
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests
 

@@ -1,7 +1,11 @@
+#cython: infer_types=True
+#cython: embedsignature=True
+#cython: binding=False
+#cython: language_level=3
+
 from cpython.bytes cimport PyBytes_AsString, PyBytes_GET_SIZE
 from ormsgpack import unpackb
 from orso.exceptions import DataError
-
 cimport cython
 
 HEADER_PREFIX = b"\x10\x00"

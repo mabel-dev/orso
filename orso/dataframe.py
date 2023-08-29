@@ -12,17 +12,16 @@
 
 
 import typing
+from typing import Generator
+from typing import Iterable
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import Union
 
 from orso import Row
 from orso.schema import RelationSchema
-
-try:
-    # added 3.9
-    from functools import cache
-except ImportError:
-    from functools import lru_cache
-
-    cache = lru_cache(1)
+from orso.tools import single_item_cache
 
 
 class DataFrame:
@@ -30,14 +29,14 @@ class DataFrame:
     Orso DataFrames are a lightweight container for tabular data.
     """
 
-    __slots__ = ("_schema", "_rows", "_cursor", "arraysize", "_row_factory")
+    __slots__ = ("_schema", "_rows", "_cursor", "_row_factory", "arraysize")
 
     def __init__(
         self,
-        dictionaries: typing.Optional[typing.Iterable[dict]] = None,
+        dictionaries: Optional[Iterable[dict]] = None,
         *,
-        rows: typing.Union[typing.List[tuple], typing.Generator[tuple, None, None], None] = None,
-        schema: typing.Union[RelationSchema, typing.List[str], typing.Tuple[str], None] = None,
+        rows: Union[List[tuple], Generator[tuple, None, None], None] = None,
+        schema: Union[RelationSchema, List[str], Tuple[str], None] = None,
     ):
         """
         Create an orso DataFrame. DataFrames are a representation of a table with
@@ -69,18 +68,17 @@ class DataFrame:
 
             # make the list of dicts iterable
             dicts = iter(dictionaries)
-
             # extract the first of the list, and get the types from it
-            first_dict = {}
             first_dict = next(dicts)
 
             # if we have an explicit schema, use that, otherwise guess from the first entry
-            self._schema = list(map(str, first_dict.keys()))  # type: ignore
-
+            self._schema = [str(k) for k in first_dict.keys()]
             self._row_factory = Row.create_class(self._schema)
+            keys = list(first_dict.keys())
+
             # create a list of tuples
-            self._rows: list = [  # type:ignore
-                self._row_factory([row.get(k) for k in first_dict.keys()])
+            self._rows = [
+                self._row_factory([row.get(k, None) for k in keys])
                 for row in chain([first_dict], dicts)
             ]
         else:
@@ -153,7 +151,7 @@ class DataFrame:
         Returns:
             DataFrame
         """
-        return DataFrame(rows=(r for r in filter(predicate, self._rows)), schema=self._schema)
+        return DataFrame(rows=[r for r in self._rows if predicate(r)], schema=self._schema)
 
     def select(self, attributes) -> "DataFrame":
         """
@@ -181,37 +179,35 @@ class DataFrame:
             self._rows = list(self._rows or [])
 
     def distinct(self) -> "DataFrame":
-        hash_list = {}
+        seen = set()
+        unique_rows = [x for x in self._rows if hash(x) not in seen and not seen.add(hash(x))]
+        return DataFrame(rows=unique_rows, schema=self._schema)
 
-        def do_dedupe(data):
-            for item in data:
-                hashed_item = hash(item)
-                if hashed_item not in hash_list:
-                    yield item
-                    hash_list[hashed_item] = True
+    def collect(self, columns: Union[int, str, List[Union[int, str]]]) -> Union[List, Tuple]:
+        """
+        Collects specified columns from the internal row storage into a tuple of lists.
 
-        return DataFrame(rows=do_dedupe(self._rows), schema=self._schema)
+        Parameters:
+            columns: Union[int, str, List[Union[int, str]]]
+                The column(s) to collect. Could be an integer index, string name, or list thereof.
 
-    def collect(self, columns) -> typing.Union[list, tuple]:
+        Returns:
+            Union[list, tuple]:
+                A tuple containing lists of the column data, or a single list if only one column is specified.
+        """
+        from operator import itemgetter
+
         single = False
-        if not isinstance(columns, typing.Iterable) or isinstance(columns, str):
+        if not isinstance(columns, list) or isinstance(columns, str):
             single = True
             columns = [columns]
 
-        # get the index of a column name
-        columns = [c if isinstance(c, int) else self.column_names.index(c) for c in columns]
+        columns = (c if isinstance(c, int) else self.column_names.index(c) for c in columns)
 
-        # Initialize empty lists for each column
-        result: tuple = tuple([] for _ in columns)
+        getters = (itemgetter(column) for column in columns)
+        result = [[getter(row) for row in self._rows] for getter in getters]
 
-        # Extract the specified columns into the result lists
-        for row in self._rows:
-            for j, column in enumerate(columns):
-                result[j].append(row[column])
-
-        if single:
-            return result[0]
-        return result
+        return result[0] if single else tuple(result)
 
     def slice(self, offset: int = 0, length: int = None) -> "DataFrame":
         self.materialize()
@@ -248,7 +244,7 @@ class DataFrame:
         except StopIteration:
             return None
 
-    def fetchmany(self, size=None) -> typing.List[Row]:
+    def fetchmany(self, size=None) -> List[Row]:
         if self._cursor is None:
             raise Exception("Cannot use fetchmany and append on the same DataFrame")
         fetch_size = self.arraysize if size is None else size
@@ -261,7 +257,7 @@ class DataFrame:
                 break
         return entries
 
-    def fetchall(self) -> typing.List[Row]:
+    def fetchall(self) -> List[Row]:
         if self._cursor is None:
             raise Exception("Cannot use fetchall and append on the same DataFrame")
         return list(self._cursor)
@@ -269,7 +265,7 @@ class DataFrame:
     def display(
         self,
         limit: int = 5,
-        display_width: typing.Union[bool, int] = True,
+        display_width: Union[bool, int] = True,
         max_column_width: int = 32,
         colorize: bool = True,
         show_types: bool = True,
@@ -313,17 +309,7 @@ class DataFrame:
     @property
     def description(
         self,
-    ) -> typing.List[
-        typing.Tuple[
-            str,
-            typing.Optional[str],
-            None,
-            None,
-            typing.Optional[int],
-            typing.Optional[int],
-            typing.Optional[bool],
-        ]
-    ]:
+    ) -> List[Tuple[str, Optional[str], None, None, Optional[int], Optional[int], Optional[bool],]]:
         """
         name
         type_code
@@ -365,14 +351,14 @@ class DataFrame:
         return result
 
     @property
-    @cache
+    @single_item_cache
     def column_names(self) -> tuple:
         if isinstance(self._schema, (tuple, list)):
             return tuple(map(str, self._schema))
         return tuple([col.name for col in self._schema.columns])
 
     @property
-    @cache
+    @single_item_cache
     def columncount(self) -> int:
         if isinstance(self._schema, (tuple, list)):
             return len(self._schema)

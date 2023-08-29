@@ -22,20 +22,23 @@ except:
         required = f.read().splitlines()
 
 extensions = [
+    # Compile C++ code first
     Extension(
         name="orso.cityhash.cityhash",
         sources=[
             "orso/cityhash/city.cc",
             "orso/cityhash/cityhash.cpp",
         ],
+        language="c++",
     ),
+    # Cython code
     Extension(
         name="orso.bitarray.cbitarray",
         sources=["orso/bitarray/cbitarray.pyx"],
     ),
     Extension(
-        name="orso.row_cython",
-        sources=["orso/row_cython.pyx"],
+        name="orso.compiled",
+        sources=["orso/compiled.pyx"],
     ),
 ]
 

@@ -5,3 +5,4 @@ scratch/**
 build/**
 dist/**
 orso.egg-info/**
+.DS_Store
