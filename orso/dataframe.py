@@ -180,7 +180,9 @@ class DataFrame:
 
     def distinct(self) -> "DataFrame":
         seen = set()
-        unique_rows = [x for x in self._rows if hash(x) not in seen and not seen.add(hash(x))]
+        unique_rows = [
+            x for x in self._rows if hash(x) not in seen and not seen.add(hash(x))  # type:ignore
+        ]
         return DataFrame(rows=unique_rows, schema=self._schema)
 
     def collect(self, columns: Union[int, str, List[Union[int, str]]]) -> Union[List, Tuple]:
@@ -202,7 +204,9 @@ class DataFrame:
             single = True
             columns = [columns]
 
-        columns = (c if isinstance(c, int) else self.column_names.index(c) for c in columns)
+        columns = (
+            c if isinstance(c, int) else self.column_names.index(c) for c in columns
+        )  # type:ignore
 
         getters = (itemgetter(column) for column in columns)
         result = [[getter(row) for row in self._rows] for getter in getters]
@@ -319,14 +323,12 @@ class DataFrame:
         scale
         null_ok
         """
-        from orso.types import PYTHON_TO_ORSO_MAP
-
         result = []
         for column in self.column_names:
-            nullable = None
             data_type = None
             data_precision = None
             data_scale = None
+            nullable = None
             if isinstance(self._schema, RelationSchema):
                 column_data = self._schema.find_column(column)
                 column_type = column_data.type
@@ -348,14 +350,14 @@ class DataFrame:
                     nullable,
                 )
             )
-        return result
+        return result  # type:ignore
 
     @property
     @single_item_cache
-    def column_names(self) -> tuple:
+    def column_names(self) -> Tuple[str]:
         if isinstance(self._schema, (tuple, list)):
-            return tuple(map(str, self._schema))
-        return tuple([col.name for col in self._schema.columns])
+            return tuple(str(c) for c in self._schema)  # type:ignore
+        return tuple(str(col.name) for col in self._schema.columns)
 
     @property
     @single_item_cache

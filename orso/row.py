@@ -41,12 +41,12 @@ def extract_columns(table, columns):
     n_rows = len(table)
     result = [None] * len(columns)
     for i in range(len(columns)):
-        result[i] = [None] * n_rows
+        result[i] = [None] * n_rows  # type:ignore
 
     # Fill in the lists with actual values
     for i, row in enumerate(table):
         for j, column in enumerate(columns):
-            result[j][i] = row[column]
+            result[j][i] = row[column]  # type:ignore
 
     return tuple(result)
 
