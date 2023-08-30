@@ -118,6 +118,36 @@ def test_schema_iterations():
         assert column == schema.column(column.name)
 
 
+def test_pop_column():
+    # Clone the initial schema for the test to not alter the original
+    schema = RelationSchema.from_dict(cities.schema.to_dict())
+
+    # Check the initial state
+    initial_column_count = len(schema.columns)
+
+    # Test popping an existing column (e.g., "population")
+    popped_column = schema.pop_column("population")
+    assert popped_column is not None
+    assert popped_column.name == "population"
+    assert len(schema.columns) == initial_column_count - 1
+
+    # Validate that the "population" column is no longer in the schema
+    assert "population" not in [col.name for col in schema.columns]
+
+    # Test popping a non-existent column
+    popped_column = schema.pop_column("nonexistent")
+    assert popped_column is None
+    assert len(schema.columns) == initial_column_count - 1  # No change in length
+
+    # Assert that the original columns, minus "population", are still there
+    remaining_column_names = [col.name for col in schema.columns]
+    assert "name" in remaining_column_names
+    assert "country" in remaining_column_names
+    assert "founded" in remaining_column_names
+    assert "area" in remaining_column_names
+    assert "language" in remaining_column_names
+
+
 import pytest
 
 

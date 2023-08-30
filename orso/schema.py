@@ -10,13 +10,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import typing
+
 from dataclasses import _MISSING_TYPE
+from dataclasses import asdict
 from dataclasses import dataclass
 from dataclasses import field
 from dataclasses import fields
 from decimal import Decimal
 from enum import Enum
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import List
+from typing import MutableMapping
+from typing import Optional
+from typing import Tuple
+from typing import Union
 from warnings import warn
 
 import numpy
@@ -40,13 +49,13 @@ class FlatColumn:
 
     name: str
     type: OrsoTypes
-    description: typing.Optional[str] = None
-    aliases: typing.Optional[typing.List[str]] = field(default_factory=list)  # type: ignore
+    description: Optional[str] = None
+    aliases: Optional[List[str]] = field(default_factory=list)  # type: ignore
     nullable: bool = True
-    expectations: typing.Optional[list] = field(default_factory=list)
+    expectations: Optional[list] = field(default_factory=list)
     identity: str = field(default_factory=random_string)
-    precision: typing.Optional[int] = None
-    scale: typing.Optional[int] = None
+    precision: Optional[int] = None
+    scale: Optional[int] = None
 
     def __init__(self, **kwargs):
         attributes = {f.name: f for f in fields(self.__class__)}
@@ -89,17 +98,31 @@ class FlatColumn:
     @classmethod
     def from_arrow(cls, arrow_field) -> "FlatColumn":
         """
-        Help converting from from Arrow to Orso
+        Converts a PyArrow field to an Orso FlatColumn object.
+
+        Parameters:
+            arrow_field: Field
+                PyArrow Field object to be converted.
+
+        Returns:
+            FlatColumn: A FlatColumn object containing the converted information.
         """
+        # Fetch the native type mapping from Arrow to Python native types
         native_type = arrow_type_map(arrow_field.type)
-        scale = None
-        precision = None
+        # Initialize variables to hold optional decimal properties
+        scale: Optional[int] = None
+        precision: Optional[int] = None
+        # Check if the type is Decimal and populate scale and precision
         if isinstance(native_type, Decimal):
             field_type = OrsoTypes.DECIMAL
-            scale = native_type.scale  # type:ignore
-            precision = native_type.precision  # type:ignore
+            scale = native_type.scale
+            precision = native_type.precision
         else:
-            field_type = PYTHON_TO_ORSO_MAP.get(native_type)
+            # Fall back to the generic mapping
+            field_type = PYTHON_TO_ORSO_MAP.get(native_type, None)
+            if field_type is None:
+                raise ValueError(f"Unsupported type: {native_type}")
+
         return FlatColumn(
             name=str(arrow_field.name),
             type=field_type,
@@ -110,7 +133,7 @@ class FlatColumn:
 
     def to_flatcolumn(self) -> "FlatColumn":
         """
-        convert any column type to a FlatColumn (e.g. when evaluated)
+        Convert any column type to a FlatColumn (e.g. after a FunctionColumn has been evaluated)
         """
         return FlatColumn(
             name=str(self.name),
@@ -131,8 +154,8 @@ class FunctionColumn(FlatColumn):
     derived from a function.
     """
 
-    binding: typing.Optional[typing.Callable] = lambda: None
-    configuration: typing.Tuple = field(default_factory=tuple)
+    binding: Optional[Callable] = lambda: None
+    configuration: Tuple = field(default_factory=tuple)
     length: int = 1
 
     def __init__(self, **kwargs):
@@ -159,7 +182,7 @@ class ConstantColumn(FlatColumn):
     """
 
     length: int = 1
-    value: typing.Any = None
+    value: Any = None
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -181,7 +204,7 @@ class DictionaryColumn(FlatColumn):
     constructing and materializing the dictionary encoding.
     """
 
-    values: typing.List[typing.Any] = field(default_factory=list)
+    values: List[Any] = field(default_factory=list)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -199,15 +222,24 @@ class DictionaryColumn(FlatColumn):
 @dataclass
 class RelationSchema:
     name: str
-    aliases: typing.List[str] = field(default_factory=list)
-    columns: typing.List[FlatColumn] = field(default_factory=list)
+    aliases: List[str] = field(default_factory=list)
+    columns: List[FlatColumn] = field(default_factory=list)
 
     def __iter__(self):
-        """Return an iterator over column names"""
+        """Return an iterator over column names."""
         return iter([col.name for col in self.columns])
 
-    def __add__(self, other):
-        """When we add schemas together we combine the se of columns"""
+    def __add__(self, other: "RelationSchema") -> "RelationSchema":
+        """
+        When we add schemas together, we combine the set of columns.
+
+        Parameters:
+            other: RelationSchema
+                The other schema to be added.
+
+        Returns:
+            RelationSchema: A new RelationSchema containing the combined columns.
+        """
         new_schema = RelationSchema(name=self.name, aliases=self.aliases, columns=[])
 
         # Create a new list to hold the merged columns
@@ -227,11 +259,21 @@ class RelationSchema:
         return new_schema
 
     @property
-    def num_columns(self):
+    def num_columns(self) -> int:
+        """Returns the number of columns in the schema."""
         return len(self.columns)
 
-    def find_column(self, column_name: str):
-        """find a column by name or alias"""
+    def find_column(self, column_name: str) -> Optional[FlatColumn]:
+        """
+        Find a column by name or alias.
+
+        Parameters:
+            column_name: str
+                Name or alias of the column.
+
+        Returns:
+            Optional[FlatColumn]: The FlatColumn object, if found. None otherwise.
+        """
         for column in self.columns:
             if column.name == column_name:
                 return column
@@ -239,8 +281,13 @@ class RelationSchema:
                 return column
         return None
 
-    def all_column_names(self):
-        """return all the names for columns in this relation"""
+    def all_column_names(self) -> List[str]:
+        """
+        Return all the names and aliases for columns in this relation.
+
+        Returns:
+            List[str]: List of all names and aliases.
+        """
 
         def _inner():
             for column in self.columns:
@@ -250,62 +297,103 @@ class RelationSchema:
         return list(_inner())
 
     @property
-    def column_names(self):
-        """return all the names for columns in this relation"""
+    def column_names(self) -> List[str]:
+        """Return the names for columns in this relation."""
         return [column.name for column in self.columns]
 
-    def column(self, i):
-        """get column by name or index"""
+    def column(self, i: Union[int, str]) -> Optional[FlatColumn]:
+        """
+        Get column by name or index.
+
+        Parameters:
+            i: Union[int, str]
+                Index or name of the column.
+
+        Returns:
+            Optional[FlatColumn]: The FlatColumn object, if found. None otherwise.
+        """
         if isinstance(i, int):
             return self.columns[i]
         else:
             return self.find_column(i)
 
-    def to_dict(self):
-        """Convert a Schema to a dictionary"""
-        from dataclasses import asdict
+    def pop_column(self, column_name: str) -> Optional[FlatColumn]:
+        """
+        Remove a column by its name and return it.
 
-        def _converter(obj):
-            """handle enum serialization"""
+        Parameters:
+            column_name: str
+                Name of the column to be removed.
+
+        Returns:
+            Optional[FlatColumn]: The removed column if found, otherwise None.
+        """
+        for idx, column in enumerate(self.columns):
+            if column.name == column_name:
+                return self.columns.pop(idx)
+        return None
+
+    def to_dict(self) -> Dict:
+        """
+        Convert the Schema to a dictionary.
+
+        Returns:
+            Dict: A dictionary representation of the schema.
+        """
+
+        def _converter(obj) -> Dict:
+            """Handle enum serialization."""
             return {key: value.value if isinstance(value, Enum) else value for key, value in obj}
 
         return asdict(self, dict_factory=_converter)
 
     @classmethod
-    def from_dict(cls, dic):
-        """Create a Schema from a dictionary"""
-        schema = RelationSchema(
-            name=dic["name"],
-            aliases=dic.get("aliases", []),
-        )
+    def from_dict(cls, dic: Dict) -> "RelationSchema":
+        """
+        Create a Schema from a dictionary.
+
+        Parameters:
+            dic: Dict
+                A dictionary to convert into a RelationSchema.
+
+        Returns:
+            RelationSchema: A new RelationSchema object.
+        """
+        schema = RelationSchema(name=dic["name"], aliases=dic.get("aliases", []))
         for column in dic["columns"]:
             schema.columns.append(FlatColumn(**column))
         return schema
 
-    def validate(self, data: dict):
+    def validate(self, data: MutableMapping) -> bool:
         """
-        Perform schema validation against a dictionary formatted record
+        Perform schema validation against a dictionary-formatted record.
+
+        Parameters:
+            data: MutableMapping
+                A dictionary containing the data to validate against the schema.
+
+        Returns:
+            bool: True if the data is valid according to the schema.
+
+        Raises:
+            TypeError: If data is not dictionary-like.
+            DataValidationError: If data validation fails.
         """
-        # If it's not dictionary-like, it's not valid
-        if not isinstance(data, typing.MutableMapping):
+        if not isinstance(data, MutableMapping):
             raise TypeError("Cannot validate non Dictionary-type value")
 
         for column in self.columns:
-            # If the column is missing from the data, it's not valid
             if column.name not in data:
                 raise DataValidationError(column=column, value=None, error="Column Missing")
 
-            # Get the value for this field out of the dict
             value = data[column.name]
 
-            # If the value is null, it's value if it's nullable
             if value is None:
                 if not column.nullable:
                     raise DataValidationError(
                         column=column, value=value, error="None not acceptable"
                     )
             else:
-                # finally, is it the right type
                 if not isinstance(value, ORSO_TO_PYTHON_MAP.get(column.type)):
                     raise DataValidationError(column=column, value=value, error="Incorrect Type")
 
