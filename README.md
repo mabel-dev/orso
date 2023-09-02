@@ -19,7 +19,7 @@ In Mabel, Orso provides the data schema and validation functionality, and the in
 
 In HadroDB, Orso provides functionality for handling datasets.
 
-Orso DataFrames are row-based, this is driven by it's initial target use-case as the WAL for Mabel - if you want to convert to a columnar store, it's pretty quick at converting to an Arrow Table... converting from an Arrow Table is included for completeness only.
+Orso DataFrames are row-based, this is driven by it's initial target use-case as the WAL for Mabel.
 
 Each row in an Orso Dataframe is able to be be quickly converted to a Tuple of values, a Dictionary or to a byte representation.
 
