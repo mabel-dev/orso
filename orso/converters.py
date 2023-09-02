@@ -74,7 +74,7 @@ def from_arrow(tables, size=None):
     for table in itertools.chain([first_table], tables):
         batches = table.to_batches(max_chunksize=BATCH_SIZE)
         for batch in batches:
-            column_data = (column.to_pylist() for column in batch.columns)
+            column_data = [column.to_numpy(zero_copy_only=False) for column in batch.columns]
             for row_data in zip(*column_data):
                 rows.append(row_factory(row_data))  # type:ignore
             if size and len(rows) >= size:

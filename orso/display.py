@@ -174,6 +174,9 @@ def ascii_table(
     Returns:
         string (ASCII table)
     """
+    from math import isnan
+
+    import numpy
 
     if len(table) == 0:
         return "No data in table"
@@ -197,8 +200,23 @@ def ascii_table(
     # width of index column
     index_width = len(str(len(table))) + 2
 
+    def numpy_type_mapper(value):
+        if numpy.issubdtype(value.dtype, numpy.integer):
+            return int(value)
+        elif numpy.issubdtype(value.dtype, numpy.floating):
+            return float(value)
+        elif numpy.issubdtype(value.dtype, numpy.bool_):
+            return bool(value)
+        elif numpy.issubdtype(value.dtype, numpy.ndarray):
+            return list(value)
+        else:
+            return str(value)
+
     def type_formatter(value, width):
-        if value is None:
+        if isinstance(value, (numpy.generic, numpy.ndarray)):
+            value = numpy_type_mapper(value)
+
+        if value is None or (isinstance(value, float) and isnan(value)):
             return "\001NULLm" + "null".rjust(width)[:width] + "\001OFFm"
         if isinstance(value, bool):
             # bool is a superclass of int, do before the int test

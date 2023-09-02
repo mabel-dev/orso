@@ -36,3 +36,4 @@ cpdef from_bytes_cython(bytes data):
 
     # Now delegate to your original Python function for unpacking
     return tuple(unpackb(data[HEADER_SIZE:]))
+
