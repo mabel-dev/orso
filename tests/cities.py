@@ -165,12 +165,23 @@ values: list = [
 
 from orso.schema import RelationSchema, FlatColumn
 from orso.types import OrsoTypes
+from data_expectations import Expectation, Behaviors
 
 schema = RelationSchema(
     name="cities",
     columns=[
         FlatColumn(name="name", type=OrsoTypes.VARCHAR, nullable=False),
-        FlatColumn(name="population", type=OrsoTypes.INTEGER),
+        FlatColumn(
+            name="population",
+            type=OrsoTypes.INTEGER,
+            expectations=[
+                Expectation(
+                    expectation=Behaviors.EXPECT_COLUMN_VALUES_TO_BE_MORE_THAN,
+                    column="population",
+                    config={"threshold": 0},
+                )
+            ],
+        ),
         FlatColumn(name="country", type=OrsoTypes.VARCHAR, nullable=False),
         FlatColumn(name="founded", type=OrsoTypes.VARCHAR, nullable=True),
         FlatColumn(name="area", type=OrsoTypes.DOUBLE),

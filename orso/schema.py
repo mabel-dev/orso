@@ -25,10 +25,12 @@ from typing import List
 from typing import MutableMapping
 from typing import Optional
 from typing import Tuple
+from typing import Type
 from typing import Union
 from warnings import warn
 
 import numpy
+from data_expectations import Expectation
 
 from orso.exceptions import ColumnDefinitionError
 from orso.exceptions import DataValidationError
@@ -37,6 +39,39 @@ from orso.tools import random_string
 from orso.types import ORSO_TO_PYTHON_MAP
 from orso.types import PYTHON_TO_ORSO_MAP
 from orso.types import OrsoTypes
+
+_MISSING_VALUE: str = str()
+
+
+class SchemaExpectation(Expectation):
+    column = _MISSING_VALUE
+
+    @classmethod
+    def load(cls: Type["Expectation"], serialized: Union[Dict[str, Any], str]) -> "Expectation":
+        """
+        Loads a serialized Expectation and returns it as an instance.
+
+        Parameters:
+            serialized: Serialized Expectation as a dictionary or JSON string.
+
+        Returns:
+            An Expectation instance populated with the serialized data.
+        """
+        import json
+        from copy import deepcopy
+
+        if isinstance(serialized, str):
+            serialized = dict(json.loads(serialized))
+        serialized_copy: dict = deepcopy(serialized)
+        if "expectation" not in serialized_copy:
+            raise ValueError("Missing 'expectation' key in Expectation.")
+        expectation = serialized_copy.pop("expectation")
+        column = serialized_copy.pop("column", _MISSING_VALUE)
+        ignore_nulls = serialized_copy.pop("ignore_nulls", True)
+        config = serialized_copy
+        return Expectation(
+            expectation=expectation, column=column, ignore_nulls=ignore_nulls, config=config
+        )
 
 
 @dataclass(init=False)
@@ -52,7 +87,7 @@ class FlatColumn:
     description: Optional[str] = None
     aliases: Optional[List[str]] = field(default_factory=list)  # type: ignore
     nullable: bool = True
-    expectations: Optional[list] = field(default_factory=list)
+    expectations: Optional[Expectation] = field(default_factory=list)
     identity: str = field(default_factory=random_string)
     precision: Optional[int] = None
     scale: Optional[int] = None
@@ -61,7 +96,19 @@ class FlatColumn:
         attributes = {f.name: f for f in fields(self.__class__)}
         for attribute in attributes:
             if attribute in kwargs:
-                setattr(self, attribute, kwargs[attribute])
+                value = kwargs[attribute]
+                # Special handling for 'expectations'
+                if attribute == "expectations" and value:
+                    value = [
+                        v
+                        if isinstance(v, Expectation)
+                        else SchemaExpectation.load(v).update({"column": kwargs["name"]})
+                        if v.get("column", _MISSING_VALUE) == _MISSING_VALUE
+                        else v
+                        for v in value
+                    ]
+
+                setattr(self, attribute, value)
             elif not isinstance(attributes[attribute].default, _MISSING_TYPE):
                 setattr(self, attribute, attributes[attribute].default)
             elif not isinstance(attributes[attribute].default_factory, _MISSING_TYPE):

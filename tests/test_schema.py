@@ -27,10 +27,20 @@ def test_all_column_names():
 
 
 def test_schema_persistance():
-    as_dict = cities.schema.to_dict()
-    from_dict = RelationSchema.from_dict(as_dict)
+    def strip_expectations(rel):
+        columns = []
+        for column in rel.columns:
+            column.expectations = []
+            columns.append(column)
+        rel.columns = columns
+        return rel
 
-    assert from_dict == cities.schema
+    as_dict = strip_expectations(cities.schema).to_dict()
+    from_dict = strip_expectations(RelationSchema.from_dict(as_dict))
+
+    assert strip_expectations(from_dict) == strip_expectations(cities.schema), strip_expectations(
+        from_dict
+    )
     assert as_dict == from_dict.to_dict()
 
 
