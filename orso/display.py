@@ -12,14 +12,13 @@
 
 import datetime
 import decimal
-from typing import Iterable
 from typing import Union
 
 # Background		#282a36	40 42 54	231° 15% 18%
 # Current Line		#44475a	68 71 90	232° 14% 31%
 # Foreground		#f8f8f2	248 248 242	60° 30% 96%
-# Red		#ff5555	255 85 85	0° 100% 67%
-# Yellow		#f1fa8c	241 250 140	65° 92% 76%
+# Red		        #ff5555	255 85 85	0° 100% 67%
+# Yellow		    #f1fa8c	241 250 140	65° 92% 76%
 
 COLORS = {
     "\001OFFm": "\033[0m",  # Text Reset
@@ -77,12 +76,9 @@ def colorizer(record, can_colorize=True):
     return record
 
 
-def html_table(dictset: Iterable[dict], limit: int = 5):  # pragma: no cover
+def html_table(dictset, limit: int = 5):  # pragma: no cover
     """
     Render the dictset as a HTML table.
-
-    NOTE:
-        This exhausts generators so is only recommended to be used on lists.
 
     Parameters:
         dictset: iterable of dictionaries
@@ -114,37 +110,23 @@ def html_table(dictset: Iterable[dict], limit: int = 5):  # pragma: no cover
         for counter, record in enumerate(data):
             if counter == 0:
                 yield '<thead class="thead-light"><tr>'
+                yield "<td></td>"
                 for column in columns:
                     yield f"<th>{sanitize(column)}<th>\n"
                 yield "</tr></thead><tbody>"
 
             yield "<tr>"
-            for column in columns:
-                sanitized = sanitize(record.get(column, ""))
+            yield f"<td><bold>{counter}</bold></td>"
+            for i, column in enumerate(columns):
+                sanitized = sanitize(record[i])
                 yield f"<td title='{sanitized}' style='max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'>{sanitized}<td>\n"
             yield "</tr>"
 
         yield "</tbody></table>"
 
-    rows = []
-    columns = []  # type:ignore
-    i = -1
-    for i, row in enumerate(iter(dictset)):
-        rows.append(row)
-        columns = columns + list(row.keys())
-        if (i + 1) == limit:
-            break
-    columns = list(dict.fromkeys(columns))  # type:ignore
+    footer = f"\n<p>{dictset.rowcount} rows x {dictset.columncount} columns</p>"  # type:ignore
 
-    import types
-
-    footer = ""
-    if isinstance(dictset, types.GeneratorType):
-        footer = f"\n<p>top {i+1} rows x {len(columns)} columns</p>"
-    elif hasattr(dictset, "__len__"):
-        footer = f"\n<p>{len(dictset)} rows x {len(columns)} columns</p>"  # type:ignore
-
-    return "".join(_to_html_table(rows, columns)) + footer
+    return "".join(_to_html_table(dictset.head(limit), dictset.column_names)) + footer
 
 
 def ascii_table(
