@@ -415,22 +415,26 @@ def single_item_cache(
     if func is None:
         return lambda f: single_item_cache(f, valid_for_seconds=valid_for_seconds)
 
-    last_args = None
-    last_result = None
-    last_time = 0
+    cache = {"last_args": None, "last_kwargs": None, "last_result": None, "last_time": 0}
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        nonlocal last_args, last_result, last_time
         current_time = time.time()
 
-        if last_args == args and current_time - last_time <= valid_for_seconds:
-            return last_result
+        if (cache["last_args"] == args and cache["last_kwargs"] == kwargs) and (
+            current_time - cache["last_time"] <= valid_for_seconds
+        ):
+            return cache["last_result"]
 
         result = func(*args, **kwargs)
-        last_args = args
-        last_result = result
-        last_time = current_time
+        cache.update(
+            {
+                "last_args": args,
+                "last_kwargs": kwargs,
+                "last_result": result,
+                "last_time": current_time,
+            }
+        )
         return result
 
     return wrapper

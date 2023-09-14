@@ -117,9 +117,64 @@ def test_single_item_cache_with_expiration():
     assert counter[0] == 2
 
 
+def test_single_item_cache_with_nested_arguments():
+    mock_func = Mock(side_effect=lambda *args: args[0][0])
+    cached_func = single_item_cache(mock_func)
+
+    # Test 10: Cache miss, nested arguments
+    assert cached_func(("nested",)) == "nested"
+    assert mock_func.call_count == 1
+
+    # Test 11: Cache hit, nested arguments
+    assert cached_func(("nested",)) == "nested"
+    assert mock_func.call_count == 1
+
+
+def test_single_item_cache_with_function_calls():
+    mock_func = Mock(side_effect=lambda x: x)
+    cached_func1 = single_item_cache(mock_func)
+    cached_func2 = single_item_cache(mock_func)
+
+    # Test 12: Cache miss, function call within function call
+    assert cached_func1(cached_func2("nesting")) == "nesting"
+    assert mock_func.call_count == 2
+
+    # Test 13: Cache hit, function call within function call
+    assert cached_func1(cached_func2("nesting")) == "nesting"
+    assert mock_func.call_count == 2  # Should not increment
+
+
+def test_single_item_cache_with_mixed_args_kwargs():
+    mock_func = Mock(side_effect=lambda *args, **kwargs: args[0] if args else kwargs.get("arg"))
+    cached_func = single_item_cache(mock_func)
+
+    # Test 14: Cache miss, mixed args and kwargs
+    assert cached_func("test", arg="test") == "test"
+    assert mock_func.call_count == 1
+
+    # Test 15: Cache hit, mixed args and kwargs
+    assert cached_func("test", arg="test") == "test"
+    assert mock_func.call_count == 1  # Should not increment
+
+    # Test 16: Cache miss, different kwargs
+    assert cached_func("test", arg="different") == "test"
+    assert mock_func.call_count == 2
+
+
+def test_single_item_cache_invalidates_on_none():
+    mock_func = Mock(side_effect=lambda *args: args[0])
+    cached_func = single_item_cache(mock_func)
+
+    # Test 17: Cache miss, argument is None
+    assert cached_func(None) == None
+    assert mock_func.call_count == 1
+
+    # Test 18: Cache miss, different argument after None
+    assert cached_func("test") == "test"
+    assert mock_func.call_count == 2
+
+
 if __name__ == "__main__":  # pragma: nocover
     from tests import run_tests
-
-    test_single_item_cache()
 
     run_tests()
