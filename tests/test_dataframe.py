@@ -286,6 +286,15 @@ def test_distinct():
     assert df.distinct().rowcount == len(cities.values)
 
 
+def test_to_map_and_to_dict():
+    df = orso.DataFrame(cities.values)
+    for row in df:
+        assert isinstance(row, tuple)
+        assert isinstance(row.as_map, tuple)
+        assert isinstance(row.as_dict, dict)
+        assert dict(row.as_map) == row.as_dict
+
+
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests
 

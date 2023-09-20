@@ -39,6 +39,8 @@ extensions = [
     Extension(
         name="orso.compiled",
         sources=["orso/compiled.pyx"],
+        extra_compile_args=["-O2"],
+        extra_link_args=["-O2"],
     ),
 ]
 
