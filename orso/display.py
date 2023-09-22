@@ -129,23 +129,6 @@ def html_table(dictset, limit: int = 5):  # pragma: no cover
     return "".join(_to_html_table(dictset.head(limit), dictset.column_names)) + footer
 
 
-def truncate_display(value: str, limit: int = 32) -> str:
-    """Truncate the string value for display.
-
-    Parameters:
-        value: str
-            The value to be truncated.
-        limit: int
-            The maximum number of characters to display.
-
-    Returns:
-        A truncated representation of the value.
-    """
-    if len(value) > limit:
-        return f"{value[:limit - 3]}\033[38;5;102m...\001OFFm"
-    return value
-
-
 def ascii_table(
     table,
     limit: int = 5,
@@ -216,24 +199,24 @@ def ascii_table(
             value = numpy_type_mapper(value)
 
         if value is None or (isinstance(value, float) and isnan(value)):
-            return "\001NULLm" + truncate_display("null".rjust(width), width) + "\001OFFm"
+            return "\001NULLm" + "null".rjust(width)[:width] + "\001OFFm"
         if isinstance(value, bool):
             # bool is a superclass of int, do before the int test
-            return "\001CONSTm" + truncate_display(str(value).rjust(width), width) + "\001OFFm"
+            return "\001CONSTm" + str(value).rjust(width)[:width] + "\001OFFm"
         if isinstance(value, int):
-            return "\001INTEGERm" + truncate_display(str(value).rjust(width), width) + "\001OFFm"
+            return "\001INTEGERm" + str(value).rjust(width)[:width] + "\001OFFm"
         if isinstance(value, (float, decimal.Decimal)):
-            return "\001FLOATm" + truncate_display(str(value).rjust(width), width) + "\001OFFm"
+            return "\001FLOATm" + str(value).rjust(width)[:width] + "\001OFFm"
         if isinstance(value, str):
             return "\001VARCHARm" + trunc_printable(str(value).ljust(width), width) + "\001OFFm"
         if isinstance(value, datetime.datetime):
             value = f"{value.strftime('%Y-%m-%d')} \001TIMEm{value.strftime('%H:%M:%S')}"
-            return "\001DATEm" + truncate_display(value.rjust(width), width) + "\001OFFm"
+            return "\001DATEm" + trunc_printable(value.rjust(width), width) + "\001OFFm"
         if isinstance(value, datetime.date):
             value = f"{value.strftime('%Y-%m-%d')}"
-            return "\001DATEm" + truncate_display(value.rjust(width), width) + "\001OFFm"
+            return "\001DATEm" + trunc_printable(value.rjust(width), width) + "\001OFFm"
         if isinstance(value, (bytes, bytearray)):
-            return "\001BLOBm" + truncate_display(str(value).ljust(width), width) + "\001OFFm"
+            return "\001BLOBm" + trunc_printable(str(value).ljust(width), width) + "\001OFFm"
         if isinstance(value, dict):
             value = (
                 "\001PUNCm{"
@@ -284,66 +267,32 @@ def ascii_table(
     def character_width(symbol):
         import unicodedata
 
-        category = unicodedata.category(symbol)
+        return 2 if unicodedata.east_asian_width(symbol) in ("F", "N", "W") else 1
 
-        # Get East Asian Width property
-        eaw = unicodedata.east_asian_width(symbol)
-        # Check for full-width or wide characters
-        if eaw in ("F", "W"):
-            return 2
-
-        # Check for emojis and certain symbols that take up two spaces in many terminals
-        if category == "So" and ord(symbol) > 0x1F000:
-            return 2
-
-        # Default case
-        return 1
-
-    def trunc_printable(value: str, width: int, full_line: bool = True) -> str:
-        """
-        Truncates a string to fit within a given display width.
-
-        Parameters:
-            value: str
-                The string to be truncated.
-            width: int
-                The maximum display width.
-            full_line: bool, optional
-                Whether to pad the string with spaces to fill the whole line, defaults to True.
-
-        Returns:
-            str: The truncated string.
-        """
+    def trunc_printable(value, width, full_line: bool = True):
         offset = 0
         emit = ""
         ignoring = False
 
-        for i, char in enumerate(value):
+        for char in value:
             if char == "\n":
                 emit += "\001CRLFm↵\001VARCHARm"
                 offset += 1
                 continue
             if char == "\r":
                 continue
-
             emit += char
-
             if char in ("\033", "\001"):
                 ignoring = True
-
             if not ignoring:
-                offset += character_width(char)  # Make sure this function works as expected
+                offset += character_width(char)
             if ignoring and char == "m":
                 ignoring = False
-
-            if not ignoring and offset == width:
-                break
-
+            if not ignoring and offset >= width:
+                return emit + "\001OFFm"
         line = emit + "\001OFFm"
-
         if full_line:
             return line + " " * (width - offset)
-
         return line
 
     def _inner():
