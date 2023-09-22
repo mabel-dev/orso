@@ -228,7 +228,7 @@ def ascii_table(
             return "\001VARCHARm" + trunc_printable(str(value).ljust(width), width) + "\001OFFm"
         if isinstance(value, datetime.datetime):
             value = f"{value.strftime('%Y-%m-%d')} \001TIMEm{value.strftime('%H:%M:%S')}"
-            return "\001DATEm" + (value.rjust(width), width) + "\001OFFm"
+            return "\001DATEm" + truncate_display(value.rjust(width), width) + "\001OFFm"
         if isinstance(value, datetime.date):
             value = f"{value.strftime('%Y-%m-%d')}"
             return "\001DATEm" + truncate_display(value.rjust(width), width) + "\001OFFm"
