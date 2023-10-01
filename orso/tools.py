@@ -218,11 +218,14 @@ def counter(func: Callable) -> Callable:
         Returns:
             str: The formatted report string.
         """
-        stats = f"\nExecution Statistics for `{self.__name__}`\n  Count   : {self.count}\n"
-        if self.count > 0:
-            stats += f"  Average : {sum(self._run_times) / self.count} seconds\n"
-            stats += f"  Slowest : {min(self._run_times)} seconds\n"
-            stats += f"  Fastest : {max(self._run_times)} seconds\n"
+        stats = (
+            f"\nExecution Statistics for `{self.__name__}`\n  "
+            f"Count   : {self.count}\n"  # type:ignore
+        )
+        if self.count > 0:  # type:ignore
+            stats += f"  Average : {sum(self._run_times) / self.count} seconds\n"  # type:ignore
+            stats += f"  Slowest : {min(self._run_times)} seconds\n"  # type:ignore
+            stats += f"  Fastest : {max(self._run_times)} seconds\n"  # type:ignore
         return stats
 
     @wraps(func)
@@ -429,10 +432,10 @@ def single_item_cache(
         result = func(*args, **kwargs)
         cache.update(
             {
-                "last_args": args,
-                "last_kwargs": kwargs,
+                "last_args": args,  # type:ignore
+                "last_kwargs": kwargs,  # type:ignore
                 "last_result": result,
-                "last_time": current_time,
+                "last_time": current_time,  # type:ignore
             }
         )
         return result

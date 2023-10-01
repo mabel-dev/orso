@@ -7,6 +7,7 @@ sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
 import datetime
 import pyarrow
+import numpy
 
 from orso.types import OrsoTypes
 
@@ -14,6 +15,8 @@ from orso.schema import FlatColumn
 from orso.schema import FunctionColumn
 from orso.schema import ConstantColumn
 from orso.schema import DictionaryColumn
+from orso.schema import SparseColumn
+from orso.schema import RLEColumn
 
 from orso.exceptions import ColumnDefinitionError
 
@@ -210,12 +213,96 @@ def test_dict_column():
     assert dict_column.name == "pan"
     assert dict_column.type == OrsoTypes.VARCHAR
 
-    assert sorted(dict_column.dictionary) == ["28", "30", "31"]
+    assert sorted(dict_column.values) == ["28", "30", "31"]
     assert list(dict_column.encoding) == [2, 0, 2, 1, 2, 1, 2, 2, 1, 2, 1, 2]
 
     values = dict_column.materialize()
 
     assert list(values) == MONTH_LENGTHS
+
+
+def test_rle_column():
+    SEASON_LENGTHS: list = ["31", "30", "31", "31", "30", "31", "31", "31", "31"]
+
+    rle_column = RLEColumn(name="season", type=OrsoTypes.VARCHAR, values=SEASON_LENGTHS)
+
+    assert rle_column.name == "season"
+    assert rle_column.type == OrsoTypes.VARCHAR
+
+    assert numpy.array_equal(rle_column.values, ["31", "30", "31", "30", "31"])
+    assert rle_column.lengths == [1, 1, 2, 1, 4]
+
+    values = rle_column.materialize()
+
+    assert list(values) == SEASON_LENGTHS
+
+
+def test_sparse_column():
+    VARYING_LENGTHS: list = ["31", None, "31", None, None, "31", "30", "31", None]
+
+    sparse_column = SparseColumn(name="varying", type=OrsoTypes.VARCHAR, values=VARYING_LENGTHS)
+
+    assert sparse_column.name == "varying"
+    assert sparse_column.type == OrsoTypes.VARCHAR
+
+    assert numpy.array_equal(sparse_column.values, numpy.array(["31", "31", "31", "30", "31"]))
+    assert numpy.array_equal(sparse_column.indices, numpy.array([0, 2, 5, 6, 7]))
+
+    values = sparse_column.materialize()
+
+    assert numpy.array_equal(values, numpy.array(VARYING_LENGTHS))
+
+
+import numpy
+
+
+def test_sparse_column_multiply():
+    # Initialize the sparse column
+    original_values = [1, None, 2, None, None, 3, 4, 5, None]
+    sparse_col = SparseColumn(name="test", type=OrsoTypes.INTEGER, values=original_values)
+
+    # Perform the operation on compressed values
+    sparse_col.values = sparse_col.values * 2
+
+    # Materialize and compare
+    materialized_values = sparse_col.materialize()
+    expected_values = [v * 2 if v is not None else None for v in original_values]
+
+    # Convert to numpy array for direct comparison
+    expected_values_np = numpy.array(expected_values, dtype=object)
+
+    numpy.testing.assert_array_equal(materialized_values, expected_values_np)
+
+
+# Constant Column Test
+def test_constant_column_multiply():
+    constant_col = ConstantColumn(name="const", type=OrsoTypes.INTEGER, length=5, value=3)
+    constant_col.values *= 2
+    materialized_values = constant_col.materialize()
+    expected_values_np = numpy.full((5,), 6)
+    numpy.testing.assert_array_equal(materialized_values, expected_values_np)
+
+
+# Dictionary Column Test
+def test_dictionary_column_multiply():
+    original_values = [1, 3, 2, 2, 3, 1]
+    dict_col = DictionaryColumn(name="dict", type=OrsoTypes.INTEGER, values=original_values)
+    dict_col.values = dict_col.values * 2
+    materialized_values = dict_col.materialize()
+    expected_values = [v * 2 for v in original_values]
+    expected_values_np = numpy.array(expected_values)
+    numpy.testing.assert_array_equal(materialized_values, expected_values_np)
+
+
+# RLE Column Test
+def test_rle_column_multiply():
+    original_values = [1, 1, 2, 2, 3, 3]
+    rle_col = RLEColumn(name="rle", type=OrsoTypes.INTEGER, values=original_values)
+    rle_col.values *= 2
+    materialized_values = rle_col.materialize()
+    expected_values = [v * 2 for v in original_values]
+    expected_values_np = numpy.array(expected_values)
+    numpy.testing.assert_array_equal(materialized_values, expected_values_np)
 
 
 def test_to_flatcolumn_basic():
@@ -274,5 +361,7 @@ def test_to_flatcolumn_preserve_attributes():
 
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests
+
+    test_dictionary_column_multiply()
 
     run_tests()

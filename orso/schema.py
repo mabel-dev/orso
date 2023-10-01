@@ -10,6 +10,46 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Column Classes
+
+This module defines several specialized column types, aimed at providing efficient
+memory usage and computational speed for various SQL queries. The column types differ
+in their internal data representation but expose a common interface for manipulation
+and query operations.
+
+Features:
+    - All column types (except FlatColumn & FunctionColumn) use compressed internal
+      representations to conserve memory.
+    - The compressed data is exposed through a 'values' property. This allows direct
+      operations on compressed data, which usually involves fewer items compared to the
+      uncompressed list.
+    - Each column type provides a 'materialize' method to expand the compressed data
+      into its uncompressed form, facilitating query operations that require a full
+      column of data.
+    
+Column Types:
+    - SparseColumn: Handles sparse data by only storing non-default values.
+    - DictionaryColumn: Uses a dictionary to encode a finite set of string or
+      numerical values.
+    - RLEColumn: Utilizes Run-Length Encoding for sequences of repeating elements.
+    - ConstantColumn: Represents a column of constant values using a single value and a
+      length attribute.
+    - FlatColumn: Standard column type that stores data in an uncompressed form.
+    - FunctionColumn: Used when the column is the result of a function, useful as a
+      placeholder column type.
+
+By leveraging these compressed representations, Orso aims to provide a data store that
+is both memory-efficient and computationally fast. For most operations, manipulating
+the compressed data directly, bypassing the need to materialize the full column,
+leading to faster evaluation.
+
+Example:
+    sparse_col = SparseColumn(name='col1', type=OrsoTypes.INTEGER, values=[1, None, 3])
+    sparse_col.values *= 2  # Perform operation directly on compressed data
+    full_array = sparse_col.materialize()  # Get the full, uncompressed array when needed
+
+"""
 
 from dataclasses import _MISSING_TYPE
 from dataclasses import asdict
@@ -206,8 +246,9 @@ class FunctionColumn(FlatColumn):
     configuration: Tuple = field(default_factory=tuple)
     length: int = 1
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    @property
+    def values(self):
+        raise TypeError("FunctionColumn has no 'values', do you mean 'materialize'?")
 
     def materialize(self):
         """
@@ -223,7 +264,7 @@ class ConstantColumn(FlatColumn):
     Rather than pass around columns of constant values, where we can we should
     replace them with this column type.
 
-    note we don't implement anything here which deals with doing operations on
+    Note: We don't implement anything here which deals with doing operations on
     two constant columns; whilst that would be a good optimization, the better
     way to do this is in the query optimizer, do operations on two constants
     while we're still working with a query plan.
@@ -234,12 +275,88 @@ class ConstantColumn(FlatColumn):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.values = numpy.array([self.value])
 
     def materialize(self):
         """
-        Turn this virtual column into a list
+        Turn this virtual column into a list.
+        When performing element-wise operations, use value_array for broadcasting.
         """
-        return numpy.array([self.value] * self.length)
+        return numpy.full(self.length, self.values)
+
+
+@dataclass(init=False)
+class SparseColumn(FlatColumn):
+    """
+    This is a column type optimized for sparse data.
+    Only the non-default values and their indices are stored.
+    """
+
+    values: numpy.ndarray = None
+    default_value: Any = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        (self.indices,) = numpy.where(numpy.array(self.values) != self.default_value)
+        self.values = numpy.array(self.values)[self.indices]
+        self.total_length = len(kwargs.get("values", []))  # Store the total length
+
+    def materialize(self):
+        """
+        Materialize the sparse column into a full numpy array.
+        """
+        materialized = numpy.full(
+            self.total_length, self.default_value
+        )  # Initialize with default values
+        materialized[self.indices] = self.values
+        return materialized
+
+
+@dataclass(init=False)
+class RLEColumn(FlatColumn):
+    """
+    This is a column type optimized for sequences of repeated values.
+    """
+
+    values: numpy.ndarray = None
+    lengths: List[int] = field(default_factory=list)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        run_values = []
+        run_lengths = []
+
+        if len(self.values) == 0:
+            self.values = numpy.array([])
+            return
+
+        prev_value = self.values[0]
+        run_length = 1
+
+        for value in self.values[1:]:
+            if value == prev_value:
+                run_length += 1
+            else:
+                run_values.append(prev_value)
+                run_lengths.append(run_length)
+
+                prev_value = value
+                run_length = 1
+
+        run_values.append(prev_value)
+        run_lengths.append(run_length)
+
+        self.values = numpy.array(run_values)
+        self.lengths = run_lengths
+
+    def materialize(self):
+        """
+        Turn this compressed column back into its original form.
+        """
+        materialized = []
+        for value, length in zip(self.values, self.lengths):
+            materialized.extend([value] * length)
+        return numpy.array(materialized)
 
 
 @dataclass(init=False)
@@ -258,13 +375,13 @@ class DictionaryColumn(FlatColumn):
         super().__init__(**kwargs)
 
         values = numpy.asarray(self.values)
-        self.dictionary, self.encoding = numpy.unique(values, return_inverse=True)
+        self.values, self.encoding = numpy.unique(values, return_inverse=True)
 
     def materialize(self):
         """
         Turn this virtual column into a list
         """
-        return self.dictionary[self.encoding]
+        return self.values[self.encoding]
 
 
 @dataclass

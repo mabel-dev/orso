@@ -56,11 +56,11 @@ def extract_columns(table: List[Dict[str, Any]], columns: List[str]) -> Tuple[Li
     n_rows = len(table)
     result = [None] * len(columns)
     for i in range(len(columns)):
-        result[i] = [None] * n_rows
+        result[i] = [None] * n_rows  # type:ignore
 
     for i, row in enumerate(table):
         for j, column in enumerate(columns):
-            result[j][i] = row[column]
+            result[j][i] = row[column]  # type:ignore
 
     return tuple(result)
 
@@ -80,8 +80,8 @@ class Row(tuple):
             A new Row instance.
         """
         if isinstance(data, dict):
-            data = data.values()
-        instance = super().__new__(cls, data)
+            data = data.values()  # type:ignore
+        instance = super().__new__(cls, data)  # type:ignore
         return instance
 
     @property
@@ -93,7 +93,7 @@ class Row(tuple):
             A tuple of key-value pair tuples.
         """
         if self._cached_map is None:
-            self._cached_map = tuple(zip(self._fields, self))
+            self._cached_map = tuple(zip(self._fields, self))  # type:ignore
         return self._cached_map
 
     @property
