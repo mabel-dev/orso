@@ -91,11 +91,8 @@ def from_arrow(tables, size=None):
 
 
 def to_pandas(dataset, size=None):
-    try:
-        import pandas
-    except ImportError as import_error:
-        raise MissingDependencyError(import_error.name) from import_error
-    return pandas.DataFrame(r.as_dict for r in dataset.slice(0, size))
+    """wrap the arrow function to convert to pandas"""
+    return dataset.arrow(size).to_pandas()
 
 
 def from_pandas(pandas):
