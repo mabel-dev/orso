@@ -359,6 +359,18 @@ def test_to_flatcolumn_preserve_attributes():
         assert getattr(new_column, field) == getattr(flat_column, field), field
 
 
+def test_aliasing():
+    col = FlatColumn(name="alpha", type=OrsoTypes.VARCHAR)
+
+    assert col.all_names == ["alpha"]
+
+    col.aliases = ["beta"]
+    assert set(col.all_names) == {"alpha", "beta"}
+
+    col.aliases = ["gamma", "delta"]
+    assert set(col.all_names) == {"alpha", "gamma", "delta"}
+
+
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests
 

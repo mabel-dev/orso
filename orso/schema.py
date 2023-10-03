@@ -234,6 +234,13 @@ class FlatColumn:
             precision=self.precision,
         )
 
+    @property
+    def all_names(self):
+        """simplify collection of all of the names for this column"""
+        if self.aliases is not None:
+            return self.aliases + [self.name]
+        return [self.name]
+
 
 @dataclass(init=False)
 class FunctionColumn(FlatColumn):
@@ -440,9 +447,7 @@ class RelationSchema:
             Optional[FlatColumn]: The FlatColumn object, if found. None otherwise.
         """
         for column in self.columns:
-            if column.name == column_name:
-                return column
-            if column_name in column.aliases:
+            if column_name in column.all_names:
                 return column
         return None
 
@@ -456,8 +461,7 @@ class RelationSchema:
 
         def _inner():
             for column in self.columns:
-                yield column.name
-                yield from column.aliases
+                yield from column.all_names
 
         return list(_inner())
 
