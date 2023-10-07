@@ -10,6 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import array
 import decimal
 from collections import defaultdict
 from typing import Any
@@ -34,7 +35,7 @@ def count_agg(values: List[Any]) -> int:
 
 
 def avg_agg(values: List[decimal.Decimal]) -> decimal.Decimal:
-    return sum(values) / decimal.Decimal(len(values))
+    return decimal.Decimal(sum(values)) / decimal.Decimal(len(values))
 
 
 def sum_agg(values: List[decimal.Decimal]) -> decimal.Decimal:
@@ -75,28 +76,30 @@ class GroupBy:
         Returns:
             A dictionary containing groups and aggregated values.
         """
-        from orso import Row
-
         collect_columns = (
             collect_columns if isinstance(collect_columns, list) else [collect_columns]
         )
+        source_columns = self._dictset.column_names
+        collect_column_indicies = [
+            source_columns.index(target) if target in source_columns else -1
+            for target in collect_columns
+        ]
+        group_column_indicies = array.array(
+            "i",
+            (source_columns.index(target) for target in self._columns),
+        )
 
         for record in self._dictset:
-            if isinstance(record, Row):
-                record = record.as_dict
             # Create a unique hash for each group
-            group_key = hash(tuple(record[col] for col in self._columns))
+            group_key = hash(tuple(record[col] for col in group_column_indicies))
 
-            if group_key not in self._group_keys.keys():
+            if group_key not in self._group_keys:
                 self._group_keys[group_key] = [
-                    (column, record.get(column)) for column in self._columns
+                    (source_columns[column], record[column]) for column in group_column_indicies
                 ]
 
-            for column in collect_columns:
-                if column == "*":
-                    yield (group_key, column, "*")
-                else:
-                    yield (group_key, column, record.get(column))
+            for i, column in enumerate(collect_column_indicies):
+                yield (group_key, collect_columns[i], "*" if column == -1 else record[column])
 
     def aggregate(self, aggregations: List[Tuple[str, Callable]]) -> "DataFrame":
         """
@@ -114,7 +117,7 @@ class GroupBy:
 
         if not isinstance(aggregations, list):
             aggregations = [aggregations]
-        if not all(isinstance(agg, tuple) for agg in aggregations):
+        if not all(isinstance(agg, tuple) for agg in aggregations):  # pragma: no cover
             raise ValueError("`aggregate` expects a list of Tuples")
 
         # Collecting the values for each group and column
@@ -221,5 +224,7 @@ class GroupBy:
         collector = defaultdict(dict)
         for record in self._map("*"):
             collector[record[0]] = 1
-        for group in self._group_keys:
-            yield dict(self._group_keys[group])
+
+        from orso.dataframe import DataFrame
+
+        return DataFrame(dict(self._group_keys[group]) for group in self._group_keys)

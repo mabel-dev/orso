@@ -9,7 +9,7 @@ from tests.cities import values, schema
 
 
 def test_group_by_sum_population():
-    df = DataFrame(schema=schema, rows=values)
+    df = DataFrame(values)
     result = df.group_by("language").sum("population")
 
     expected_result = {
@@ -27,7 +27,7 @@ def test_group_by_sum_population():
 
 
 def test_group_by_min_population():
-    df = DataFrame(schema=schema, rows=values)
+    df = DataFrame(values)
     result = df.group_by("country").min("population")
 
     assert len(result) == 20
@@ -39,7 +39,7 @@ def test_group_by_min_population():
 
 
 def test_group_by_max_population():
-    df = DataFrame(schema=schema, rows=values)
+    df = DataFrame(values)
     result = df.group_by("country").max("population")
 
     assert len(result) == 20
@@ -51,7 +51,7 @@ def test_group_by_max_population():
 
 
 def test_group_by_avg_population():
-    df = DataFrame(schema=schema, rows=values)
+    df = DataFrame(values)
     result = df.group_by("language").avg("population")
 
     assert len(result) == 17
@@ -65,7 +65,7 @@ def test_group_by_avg_population():
 
 
 def test_group_by_count_population():
-    df = DataFrame(schema=schema, rows=values)
+    df = DataFrame(values)
     result = df.group_by("language").count()
 
     assert len(result) == 17
@@ -76,7 +76,15 @@ def test_group_by_count_population():
             assert row_dict["COUNT(*)"] == 4
 
 
+def test_group_by_groups_language():
+    df = DataFrame(values)
+    result = df.group_by("language").groups()
+
+    assert len(result) == 17
+
+
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests
 
+    test_group_by_count_population()
     run_tests()
