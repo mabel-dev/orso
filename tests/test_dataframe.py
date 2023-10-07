@@ -295,6 +295,13 @@ def test_to_map_and_to_dict():
         assert dict(row.as_map) == row.as_dict
 
 
+def test_group_by():
+    import opteryx
+
+    gb = opteryx.query("SELECT * FROM $satellites").group_by("planetId").count()
+    assert gb.shape == (7, 2)
+
+
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests
 

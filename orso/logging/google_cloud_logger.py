@@ -5,6 +5,7 @@ import atexit
 import datetime
 import logging
 import os
+from typing import Any
 from typing import Dict
 from typing import Optional
 from typing import Union
@@ -18,18 +19,17 @@ from orso.logging.log_formatter import LogFormatter
 logging_seen_warnings: Dict[int, int] = {}
 
 
-def fix_dict(obj: dict) -> dict:
-    def fix_fields(dt):
-        if isinstance(dt, (datetime.date, datetime.datetime)):
-            return dt.isoformat()
-        if isinstance(dt, bytes):
-            return dt.decode("UTF8")
-        if isinstance(dt, dict):
-            return {k: fix_fields(v) for k, v in dt.items()}
-        return str(dt)
+def fix_fields(obj: Any) -> Any:
+    if isinstance(obj, (datetime.date, datetime.datetime)):
+        return obj.isoformat()
+    if isinstance(obj, bytes):
+        return obj.decode("UTF8")
+    if isinstance(obj, dict):
+        return {k: fix_fields(v) for k, v in obj.items()}
+    return str(obj)
 
-    if not isinstance(obj, dict):
-        return obj  # type:ignore
+
+def fix_dict(obj: dict) -> dict:
     return {k: fix_fields(v) for k, v in obj.items()}
 
 
@@ -88,7 +88,7 @@ class GoogleLogger(object):
             atexit.register(report_suppressions, str(message))
 
         structured_log = {
-            "severity": str(severity).split(".")[1],
+            "severity": str(severity).split(".")[-1],
             "logging.googleapis.com/labels": {
                 "system": system,
                 "platform": os.environ.get("LOG_SINK"),
