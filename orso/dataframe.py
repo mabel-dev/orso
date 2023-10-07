@@ -20,6 +20,7 @@ from typing import Tuple
 from typing import Union
 
 from orso import Row
+from orso.group_by import GroupBy
 from orso.schema import RelationSchema
 from orso.tools import single_item_cache
 
@@ -90,6 +91,9 @@ class DataFrame:
 
     def __new__(cls, *args, **kwargs):
         return super().__new__(cls)
+
+    def group_by(self, columns: List[str]) -> GroupBy:
+        return GroupBy(self, columns)
 
     @classmethod
     def from_arrow(cls, tables):

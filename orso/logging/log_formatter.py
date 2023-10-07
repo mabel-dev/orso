@@ -3,17 +3,9 @@ import json
 import logging
 import os
 import re
+from typing import Dict
 
 from orso.display import colorizer
-
-try:
-    # added 3.9
-    from functools import cache
-except ImportError:
-    from functools import lru_cache
-
-    cache = lru_cache(1)
-
 
 # if we find a key which matches these strings, we hash the contents
 KEYS_TO_SANITIZE = [
@@ -24,6 +16,10 @@ KEYS_TO_SANITIZE = [
     r"_token$",
     r"credentials",
 ]
+COMPILED_KEYS_TO_SANITIZE = [
+    re.compile(expression, re.IGNORECASE) for expression in KEYS_TO_SANITIZE
+]
+
 COLOR_EXCHANGES = {
     " ALERT    ": "\001BOLD_REDm ALERT    \001OFFm",
     " ERROR    ": "\001REDm ERROR    \001OFFm",
@@ -32,6 +28,16 @@ COLOR_EXCHANGES = {
     " WARNING  ": "\001BOLD_REDm WARNING  \001OFFm",
     " INFO     ": "\001BOLD_WHITEm INFO     \001OFFm",
 }
+
+COLOR_CODES = {
+    "KEY": "\001KEYm",
+    "OFF": "\001OFFm",
+    "PURPLE": "\001PURPLEm",
+    "YELLOW": "\001YELLOWm",
+    "VALUE": "\001VALUEm",
+}
+
+QUOTES_OR_BACKTICKS_RE = re.compile(r"(['`])(.*?)\1")
 
 
 class LogFormatter(logging.Formatter):
@@ -61,8 +67,13 @@ class LogFormatter(logging.Formatter):
             msg = re.sub(r":\/\/(.*?)\@", r"://\001BOLD_PURLEm<redacted>\001OFFm", msg)
         return msg
 
-    @cache
-    def _can_colorize(self):
+    def _can_colorize(self) -> bool:
+        """
+        Determines if the environment supports colorization.
+
+        Returns:
+            bool: True if colorization is supported, False otherwise.
+        """
         if self.suppress_color:
             return False
 
@@ -80,44 +91,62 @@ class LogFormatter(logging.Formatter):
     def __getattr__(self, attr):
         return getattr(self.orig_formatter, attr)
 
-    def hash_it(self, value_to_hash):
+    def hash_it(self, value_to_hash: str) -> str:
+        """
+        Hash a value using SHA256.
+
+        Parameters:
+            value_to_hash: str
+                The value to hash.
+
+        Returns:
+            str: The hashed value.
+        """
         return hashlib.sha256(value_to_hash.encode()).hexdigest()[:8]
 
-    def clean_record(self, dirty_record, colorize: bool = True):
-        if colorize:
-            KEY = "\001KEYm"
-            OFF = "\001OFFm"
-            PURPLE = "\001PURPLEm"
-            YELLOW = "\001YELLOWm"
-            VALUE = "\001VALUEm"
-        else:
-            KEY = ""
-            OFF = ""
-            PURPLE = ""
-            YELLOW = ""
-            VALUE = ""
+    def clean_record(self, dirty_record: Dict, colorize: bool = True) -> Dict:
+        """
+        Cleans a log record dictionary.
+
+        Parameters:
+            dirty_record: Dict
+                The original log record.
+            colorize: bool
+                Whether to add color codes to the log.
+
+        Returns:
+            Dict: The cleaned log record.
+        """
+        colors = COLOR_CODES if colorize else {key: "" for key in COLOR_CODES}
+
+        def color_value(match):
+            return f"{match.group(1)}{colors['YELLOW']}{match.group(2)}{colors['VALUE']}{match.group(1)}"
 
         clean_record = {}
         for key, value in dirty_record.items():
             if isinstance(value, dict):
                 value = self.clean_record(value, colorize)
-            elif any(
-                [
-                    True
-                    for expression in KEYS_TO_SANITIZE
-                    if re.match(expression, key, re.IGNORECASE)
-                ]
-            ):
-                clean_record[KEY + key + OFF] = (
-                    PURPLE + "<redacted:" + self.hash_it(str(value)) + ">" + OFF
-                )
+            elif any(regex.match(key) for regex in COMPILED_KEYS_TO_SANITIZE):
+                value = f"{colors['PURPLE']}<redacted:{self.hash_it(str(value))}>{colors['OFF']}"
             else:
-                value = re.sub(r"`([^`]*)`", "`" + YELLOW + "\1" + VALUE + r"`", f"{value}")
-                value = re.sub(r"'([^']*)'", "'" + YELLOW + "\1" + VALUE + r"'", f"{value}")
-                clean_record[str(KEY) + key + OFF] = VALUE + f"{value}" + OFF
+                value = QUOTES_OR_BACKTICKS_RE.sub(color_value, str(value))
+
+            clean_key = f"{colors['KEY']}{key}{colors['OFF']}"
+            clean_record[clean_key] = f"{colors['VALUE']}{value}{colors['OFF']}"
+
         return clean_record
 
-    def sanitize_record(self, record):
+    def sanitize_record(self, record: str) -> str:
+        """
+        Sanitizes and optionally colorizes a log record.
+
+        Parameters:
+            record: str
+                The original log record.
+
+        Returns:
+            str: The sanitized and optionally colorized log record.
+        """
         record = self.color_code(record)
         parts = record.split("|")
         json_part = parts.pop()
