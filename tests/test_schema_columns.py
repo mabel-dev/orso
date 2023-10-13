@@ -130,7 +130,7 @@ def test_column_type_mapping():
 
 def test_missing_columns():
     with pytest.raises(ColumnDefinitionError):
-        FlatColumn(name="brian")
+        FlatColumn()
 
 
 def test_type_checks():

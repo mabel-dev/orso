@@ -33,6 +33,7 @@ class OrsoTypes(str, Enum):
     TIME = "TIME"
     VARCHAR = "VARCHAR"
     NULL = "NULL"
+    _MISSING_TYPE = 0
 
     def is_numeric(self):
         """is the typle number-based"""

@@ -123,7 +123,7 @@ class FlatColumn:
     """
 
     name: str
-    type: OrsoTypes
+    type: OrsoTypes = OrsoTypes._MISSING_TYPE
     description: Optional[str] = None
     aliases: Optional[List[str]] = field(default_factory=list)  # type: ignore
     nullable: bool = True

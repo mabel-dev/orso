@@ -163,9 +163,9 @@ import pytest
 
 def test_add_method_combines_columns():
     # Arrange
-    col1 = FlatColumn(name="col1", type=0)
-    col2 = FlatColumn(name="col2", type=0)
-    col3 = FlatColumn(name="col3", type=0)
+    col1 = FlatColumn(name="col1")
+    col2 = FlatColumn(name="col2")
+    col3 = FlatColumn(name="col3")
 
     schema1 = RelationSchema(name="Schema1", columns=[col1, col2])
     schema2 = RelationSchema(name="Schema2", columns=[col2, col3])
@@ -180,9 +180,9 @@ def test_add_method_combines_columns():
 
 def test_add_method_preserves_original_schemas():
     # Arrange
-    col1 = FlatColumn(name="col1", type=0)
-    col2 = FlatColumn(name="col2", type=0)
-    col3 = FlatColumn(name="col3", type=0)
+    col1 = FlatColumn(name="col1")
+    col2 = FlatColumn(name="col2")
+    col3 = FlatColumn(name="col3")
     schema1 = RelationSchema(name="Schema1", columns=[col1, col2])
     schema2 = RelationSchema(name="Schema2", columns=[col2, col3])
 
