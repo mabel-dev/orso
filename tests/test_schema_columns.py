@@ -371,6 +371,10 @@ def test_aliasing():
     assert set(col.all_names) == {"alpha", "gamma", "delta"}
 
 
+def test_minimum_definition():
+    col = FlatColumn(name="a")
+
+
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests
 

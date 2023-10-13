@@ -8,6 +8,7 @@ sys.path.insert(1, os.path.join(sys.path[0], ".."))
 from orso.exceptions import DataValidationError
 from orso.schema import RelationSchema
 from orso.schema import FlatColumn
+from orso.types import OrsoTypes
 from tests import cities
 
 
@@ -208,6 +209,12 @@ def test_add_method_with_duplicate_columns():
     # Assert
     expected_columns = [col1, col2, col3]
     assert combined_schema.columns == expected_columns
+
+
+def test_minimum_definition():
+    rs = RelationSchema.from_dict({"name": "relation", "columns": ["apples"]})
+    assert len(rs.column_names) == 1
+    assert rs.column("apples").type == OrsoTypes._MISSING_TYPE, rs.column("apples").type
 
 
 if __name__ == "__main__":  # prgama: nocover

@@ -517,7 +517,7 @@ class RelationSchema:
         return asdict(self, dict_factory=_converter)
 
     @classmethod
-    def from_dict(cls, dic: Dict) -> "RelationSchema":
+    def from_dict(cls, dic: dict) -> "RelationSchema":
         """
         Create a Schema from a dictionary.
 
@@ -530,7 +530,10 @@ class RelationSchema:
         """
         schema = RelationSchema(name=dic["name"], aliases=dic.get("aliases", []))
         for column in dic["columns"]:
-            schema.columns.append(FlatColumn(**column))
+            if isinstance(column, dict):
+                schema.columns.append(FlatColumn(**column))
+            if isinstance(column, str):
+                schema.columns.append(FlatColumn(name=column))
         return schema
 
     def validate(self, data: MutableMapping) -> bool:
