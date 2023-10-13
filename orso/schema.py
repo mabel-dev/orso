@@ -74,6 +74,7 @@ from data_expectations import Expectation
 
 from orso.exceptions import ColumnDefinitionError
 from orso.exceptions import DataValidationError
+from orso.exceptions import ExcessColumnsInDataError
 from orso.tools import arrow_type_map
 from orso.tools import random_string
 from orso.types import ORSO_TO_PYTHON_MAP
@@ -554,6 +555,11 @@ class RelationSchema:
         if not isinstance(data, MutableMapping):
             raise TypeError("Cannot validate non Dictionary-type value")
 
+        # Check if all fields in 'data' are in the schema
+        extra_fields = set(data.keys()) - set(column.name for column in self.columns)
+        if extra_fields:
+            raise ExcessColumnsInDataError(columns=extra_fields)
+
         for column in self.columns:
             if column.name not in data:
                 raise DataValidationError(column=column, value=None, error="Column Missing")
@@ -565,8 +571,9 @@ class RelationSchema:
                     raise DataValidationError(
                         column=column, value=value, error="None not acceptable"
                     )
-            else:
-                if not isinstance(value, ORSO_TO_PYTHON_MAP.get(column.type)):
-                    raise DataValidationError(column=column, value=value, error="Incorrect Type")
+            elif column.type != OrsoTypes._MISSING_TYPE and not isinstance(
+                value, ORSO_TO_PYTHON_MAP[column.type]
+            ):
+                raise DataValidationError(column=column, value=value, error="Incorrect Type")
 
         return True

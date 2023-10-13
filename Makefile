@@ -10,13 +10,9 @@ update:
 
 test:
 	python -m pip install --quiet --upgrade pytest coverage
-	python -m coverage run -m pytest
+	python -m coverage run -m pytest --color=yes
 	python -m coverage report --include=orso/** --fail-under=60 -m
 
 ci:
 	python -m pip install --quiet --upgrade mypy
 	python -m mypy --ignore-missing-imports --python-version 3.10 --no-strict-optional --check-untyped-defs orso
-
-coverage:
-	python -m coverage run -m pytest 
-	python -m coverage report --include=orso/** -m

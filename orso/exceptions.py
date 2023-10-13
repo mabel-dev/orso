@@ -10,6 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Any
+
 
 class MissingDependencyError(Exception):
     def __init__(self, dependency):
@@ -24,7 +26,7 @@ class DataError(Exception):
 
 
 class DataValidationError(DataError):
-    def __init__(self, column, value, error):
+    def __init__(self, column, value: Any = None, error: str = "Data did not pass validation"):
         self.field = column.name
         self.expected_type = column.type
         self.value = value
@@ -43,6 +45,17 @@ class DataValidationError(DataError):
             f"with value `{truncated_text}` did not pass "
             f"`{column.type}` {'(nullable)' if self.nullable else ''} check. "
             f"({error})"
+        )
+        super().__init__(message)
+
+
+class ExcessColumnsInDataError(DataError):
+    def __init__(self, columns):
+        self.columns = columns
+        message = (
+            f"Data did not pass validation checks; "
+            f"Additional fields were present in the record - "
+            f", ".join(columns)
         )
         super().__init__(message)
 

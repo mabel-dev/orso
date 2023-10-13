@@ -6,6 +6,7 @@ import pytest
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
 from orso.exceptions import DataValidationError
+from orso.exceptions import ExcessColumnsInDataError
 from orso.schema import RelationSchema
 from orso.schema import FlatColumn
 from orso.types import OrsoTypes
@@ -119,6 +120,21 @@ def test_validate_with_invalid_data_type():
         cities.schema.validate(data)
 
 
+def test_validate_with_additional_columns():
+    # Test with column value of wrong type
+    data = {
+        "name": "Berlin",
+        "population": 3769495,
+        "country": "Germany",
+        "founded": "1237",
+        "area": "891.8",  # Expected type is double
+        "language": "German",
+        "continent": "Europe",
+    }
+    with pytest.raises(ExcessColumnsInDataError):
+        cities.schema.validate(data)
+
+
 def test_schema_iterations():
     schema = cities.schema
 
@@ -215,6 +231,11 @@ def test_minimum_definition():
     rs = RelationSchema.from_dict({"name": "relation", "columns": ["apples"]})
     assert len(rs.column_names) == 1
     assert rs.column("apples").type == OrsoTypes._MISSING_TYPE, rs.column("apples").type
+
+    rs.validate({"apples": "none"})
+
+    with pytest.raises(ExcessColumnsInDataError):
+        rs.validate({"apples": "green", "oranges": "orange"})
 
 
 if __name__ == "__main__":  # prgama: nocover
