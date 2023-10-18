@@ -34,6 +34,7 @@ import orjson
 from ormsgpack import OPT_SERIALIZE_NUMPY
 from ormsgpack import packb
 
+from orso.compiled import extract_dict_columns
 from orso.compiled import from_bytes_cython
 from orso.exceptions import DataError
 from orso.schema import RelationSchema
@@ -80,7 +81,7 @@ class Row(tuple):
             A new Row instance.
         """
         if isinstance(data, dict):
-            data = data.values()  # type:ignore
+            data = extract_dict_columns(data, cls._fields)  # type:ignore
         instance = super().__new__(cls, data)  # type:ignore
         return instance
 

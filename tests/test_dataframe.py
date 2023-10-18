@@ -302,6 +302,27 @@ def test_group_by():
     assert gb.shape == (7, 2)
 
 
+def test_adding_dicts_in_wrong_order():
+    df = orso.DataFrame(
+        schema=RelationSchema(
+            name="test",
+            columns=[
+                FlatColumn(name="column_1", type=OrsoTypes.INTEGER),
+                FlatColumn(name="column_2", type=OrsoTypes.VARCHAR),
+            ],
+        )
+    )
+
+    # insert records with the dicts in different orders
+    df.append({"column_1": 1, "column_2": "one"})
+    df.append({"column_2": "two", "column_1": 2})
+
+    # we should have them in the correct order when we extract them
+    assert df.collect(["column_1", "column_2"]) == ([1, 2], ["one", "two"]), df.collect(
+        ["column_1", "column_2"]
+    )
+
+
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests
 
