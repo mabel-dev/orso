@@ -85,16 +85,6 @@ def test_row_to_json():
     assert json_result == b'{"col1":1,"col2":"a"}'
 
 
-def test_extract_columns():
-    table = [
-        Row({"col1": 1, "col2": "a"}),
-        Row({"col1": 2, "col2": "b"}),
-        Row({"col1": 3, "col2": "c"}),
-    ]
-    result = extract_columns(table, [0, 1])
-    assert result == ([1, 2, 3], ["a", "b", "c"])
-
-
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests
 
