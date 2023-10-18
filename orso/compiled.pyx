@@ -4,9 +4,12 @@
 #cython: language_level=3
 
 from cpython.bytes cimport PyBytes_AsString, PyBytes_GET_SIZE
-from ormsgpack import unpackb
+from cython cimport int
 from datetime import datetime
+from ormsgpack import unpackb
 from orso.exceptions import DataError
+from typing import Dict, Any, Tuple
+
 cimport cython
 
 HEADER_PREFIX = b"\x10\x00"
@@ -47,3 +50,16 @@ cpdef from_bytes_cython(bytes data):
             processed_list.append(item)
 
     return tuple(processed_list)
+
+
+
+
+
+cpdef tuple extract_dict_columns(dict data, tuple fields):
+    cdef int i
+    cdef str field
+    cdef list sorted_data = [None] * len(fields)  # Preallocate list size
+    for i in range(len(fields)):
+        field = fields[i]
+        sorted_data[i] = data[field]
+    return tuple(sorted_data)  # Convert list to tuple
