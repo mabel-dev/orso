@@ -81,7 +81,10 @@ class Row(tuple):
             A new Row instance.
         """
         if isinstance(data, dict):
-            data = extract_dict_columns(data, cls._fields)  # type:ignore
+            data = tuple([data.get(field) for field in cls._fields])
+        # this is faster but has a quirk that needs to be resolved - working is better than fast, but fast
+        # is good
+        #            data = extract_dict_columns(data, cls._fields)  # type:ignore
         instance = super().__new__(cls, data)  # type:ignore
         return instance
 
