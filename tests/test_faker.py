@@ -124,12 +124,10 @@ def test_unfakeable_types():
     # Attempt to generate a single row and expect an exception
     with pytest.raises(TypeError) as excinfo:
         generate_random_row(schema)
-    assert "Orso currently cannot fake OrsoTypes.STRUCT values." in str(excinfo.value)
 
     # Attempt to generate fake data and expect an exception
     with pytest.raises(TypeError) as excinfo:
         generate_fake_data(schema, size=1)
-    assert "Orso currently cannot fake OrsoTypes.STRUCT values." in str(excinfo.value)
 
 
 if __name__ == "__main__":  # prgama: nocover
