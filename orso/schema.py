@@ -84,6 +84,11 @@ from orso.types import OrsoTypes
 _MISSING_VALUE: str = str()
 
 
+class ColumnDisposition(Enum):
+    NAME = "name"
+    AGE = "age"
+
+
 class SchemaExpectation(Expectation):
     column = _MISSING_VALUE
 
@@ -126,6 +131,7 @@ class FlatColumn:
     name: str
     type: OrsoTypes = OrsoTypes._MISSING_TYPE
     description: Optional[str] = None
+    disposition: Optional[ColumnDisposition] = None
     aliases: Optional[List[str]] = field(default_factory=list)  # type: ignore
     nullable: bool = True
     expectations: Optional[Expectation] = field(default_factory=list)
@@ -161,7 +167,7 @@ class FlatColumn:
         # map literals to OrsoTypes
         if self.type.__class__ is not OrsoTypes:
             type_name = str(self.type).upper()
-            if type_name in OrsoTypes.__members__.keys():
+            if type_name in OrsoTypes.__members__:
                 self.type = OrsoTypes[type_name]
             elif type_name == "LIST":
                 warn("Column type LIST will be deprecated in a future version, use ARRAY instead.")
@@ -177,6 +183,13 @@ class FlatColumn:
                 )
             elif self.type != 0:
                 raise ValueError(f"Unknown column type '{self.type}' for column '{self.name}'.")
+
+        if self.type == OrsoTypes.DECIMAL and self.precision is None:
+            from decimal import getcontext
+
+            self.precision = getcontext().prec
+        if self.type == OrsoTypes.DECIMAL and self.scale is None:
+            self.scale = int(0.75 * self.precision)
 
     def __str__(self):
         return self.identity
