@@ -13,6 +13,7 @@
 import itertools
 import typing
 
+from orso.compiled import extract_dict_columns
 from orso.exceptions import MissingDependencyError
 from orso.row import Row
 from orso.schema import FlatColumn
@@ -57,6 +58,7 @@ def from_arrow(tables, size=None):
         return [], {}
 
     arrow_schema = first_table.schema
+    column_names = tuple(arrow_schema.names)
 
     orso_schema = RelationSchema(
         name="arrow",
@@ -66,7 +68,7 @@ def from_arrow(tables, size=None):
     # Create a generator of tuples from the columns
     row_factory = Row.create_class(orso_schema)
 
-    BATCH_SIZE: int = 10000
+    BATCH_SIZE: int = 5000
     if size:
         BATCH_SIZE = min(size, BATCH_SIZE)
 
@@ -74,12 +76,9 @@ def from_arrow(tables, size=None):
     for table in itertools.chain([first_table], tables):
         batches = table.to_batches(max_chunksize=BATCH_SIZE)
         for batch in batches:
-            # column_data = [column.to_numpy(zero_copy_only=False) for column in batch.columns]
-            column_data = [column for column in batch.columns]
-            # column_data = [column.to_pandas().array for column in batch.columns]
-            for i in range(len(batch)):
-                row_data = (col[i].as_py() for col in column_data)
-                rows.append(row_factory(row_data))  # type:ignore
+            column_data = zip(*[column.to_pylist() for column in batch.columns])
+            rows.extend(row_factory(row) for row in column_data)
+
             if size and len(rows) >= size:
                 break
 

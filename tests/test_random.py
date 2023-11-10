@@ -12,7 +12,7 @@ def test_random():
     # allow some collisions - they're statistically likely here
     assert len(set(collected)) > (len(collected) * 0.999), len(set(collected))
 
-    collected = [random_string() for i in range(1000000)]
+    collected = [random_string() for i in range(5000000)]
     # allow two collisions, they're not impossible, but are unlikely
     assert len(set(collected)) >= len(collected) - 2
     assert all(len(c) == 16 for c in collected)
