@@ -58,7 +58,6 @@ def from_arrow(tables, size=None):
         return [], {}
 
     arrow_schema = first_table.schema
-    column_names = tuple(arrow_schema.names)
 
     orso_schema = RelationSchema(
         name="arrow",
@@ -71,19 +70,20 @@ def from_arrow(tables, size=None):
     BATCH_SIZE: int = 5000
     if size:
         BATCH_SIZE = min(size, BATCH_SIZE)
+    else:
+        size = float("inf")
 
     rows: typing.List[Row] = []
     for table in itertools.chain([first_table], tables):
         batches = table.to_batches(max_chunksize=BATCH_SIZE)
         for batch in batches:
-            column_data = zip(*[column.to_pylist() for column in batch.columns])
-            rows.extend(row_factory(row) for row in column_data)
-
-            if size and len(rows) >= size:
+            column_data = tuple(column.to_numpy(zero_copy_only=False) for column in batch.columns)
+            rows.extend(row_factory(row) for row in zip(*column_data))
+            if len(rows) >= size:
                 break
 
     # Limit the number of rows to 'size'
-    if size:
+    if isinstance(size, int):
         rows = itertools.islice(rows, size)  # type:ignore
 
     return rows, orso_schema
