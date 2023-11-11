@@ -1,6 +1,6 @@
 <div align="center">
 
-![Orso](https://raw.githubusercontent.com/mabel-dev/orso/main/orso.png)
+![Orso](https://raw.githubusercontent.com/mabel-dev/orso/main/orso.jpeg)
 
 **Orso is a shared DataFrame library for [Opteryx](https://opteryx.dev/) and [Mabel](https://github.com/mabel-dev/mabel).**
 
