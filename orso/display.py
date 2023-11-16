@@ -183,7 +183,14 @@ def ascii_table(
     index_width = len(str(len(table))) + 2
 
     def numpy_type_mapper(value):
-        if numpy.issubdtype(value.dtype, numpy.integer):
+        if isinstance(value, (numpy.timedelta64,)):
+            from types import SimpleNamespace
+
+            seconds = value / numpy.timedelta64(1000000000, "ns")
+            return SimpleNamespace(
+                months=0, days=int(seconds // 86400), nanoseconds=(seconds % 86400) * 1e9
+            )
+        elif numpy.issubdtype(value.dtype, numpy.integer):
             return int(value)
         elif numpy.issubdtype(value.dtype, numpy.floating):
             return float(value)
