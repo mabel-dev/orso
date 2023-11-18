@@ -248,17 +248,17 @@ def ascii_table(
             minutes, seconds = divmod(seconds, 60)
             years, months = divmod(months, 12)
             parts = []
-            if years >= 1:
+            if years:
                 parts.append(f"{int(years)}y")
-            if months >= 1:
+            if months:
                 parts.append(f"{int(months)}mo")
-            if days >= 1:
+            if days:
                 parts.append(f"{int(days)}d")
-            if hours >= 1:
+            if hours:
                 parts.append(f"{int(hours)}h")
-            if minutes >= 1:
+            if minutes:
                 parts.append(f"{int(minutes)}m")
-            if seconds > 0:
+            if seconds:
                 parts.append(f"{seconds:.2f}s")
             value = f"\001INTERVALm{' '.join(parts)}\001OFFm"
             return trunc_printable(value, width)
