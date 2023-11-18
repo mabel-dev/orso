@@ -130,7 +130,7 @@ def test_opteryx_arrow_medium():
     import opteryx
     import orso
 
-    fake = opteryx.query("SELECT * FROM FAKE(100000, 100);")
+    fake = opteryx.query("SELECT * FROM FAKE(100000, 100) AS FK;")
     fake_arrow = fake.arrow()
     assert isinstance(fake_arrow, pyarrow.Table)
     assert fake_arrow.shape == (100000, 100), fake_arrow.shape
