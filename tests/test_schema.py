@@ -68,8 +68,9 @@ def test_validate_with_missing_column():
         "founded": "43 AD",
         "language": "English",
     }
-    with pytest.raises(DataValidationError):
+    with pytest.raises(DataValidationError) as err:
         cities.schema.validate(data)
+    assert "area" in str(err)
 
 
 def test_validate_with_nullable_column():
@@ -95,8 +96,9 @@ def test_validate_with_non_nullable_column():
         "area": 2187.66,
         "language": "Japanese",
     }
-    with pytest.raises(DataValidationError):
+    with pytest.raises(DataValidationError) as err:
         cities.schema.validate(data)
+    assert "name" in str(err)
 
 
 def test_validate_with_wrong_type():
@@ -109,8 +111,25 @@ def test_validate_with_wrong_type():
         "area": "891.8",  # Expected type is double
         "language": "German",
     }
-    with pytest.raises(DataValidationError):
+    with pytest.raises(DataValidationError) as err:
         cities.schema.validate(data)
+    assert "area" in str(err)
+
+
+def test_validate_with_multiple_errors():
+    data = {
+        "name": None,  # not nullable
+        "population": 3769495,
+        # country is missing
+        "founded": "1237",
+        "area": "891.8",  # Expected type is double
+        "language": "German",
+    }
+    with pytest.raises(DataValidationError) as err:
+        cities.schema.validate(data)
+    assert "name" in str(err)
+    assert "country" in str(err)
+    assert "area" in str(err)
 
 
 def test_validate_with_invalid_data_type():

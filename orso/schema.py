@@ -51,6 +51,7 @@ Example:
 
 """
 
+from collections import defaultdict
 from dataclasses import _MISSING_TYPE
 from dataclasses import asdict
 from dataclasses import dataclass
@@ -573,20 +574,29 @@ class RelationSchema:
         if extra_fields:
             raise ExcessColumnsInDataError(columns=extra_fields)
 
+        errors = defaultdict(list)
+
         for column in self.columns:
             if column.name not in data:
-                raise DataValidationError(column=column, value=None, error="Column Missing")
+                errors["Column Missing"].append(column.name)
 
-            value = data[column.name]
+            else:
+                value = data[column.name]
 
-            if value is None:
-                if not column.nullable:
-                    raise DataValidationError(
-                        column=column, value=value, error="None not acceptable"
+                if value is None:
+                    if not column.nullable:
+                        errors["Column not Nullable"].append(column.name)
+                elif column.type != OrsoTypes._MISSING_TYPE and not isinstance(
+                    value, ORSO_TO_PYTHON_MAP[column.type]
+                ):
+                    errors["Incorrect Type"].append(
+                        (
+                            column.name,
+                            value,
+                            column.type,
+                        )
                     )
-            elif column.type != OrsoTypes._MISSING_TYPE and not isinstance(
-                value, ORSO_TO_PYTHON_MAP[column.type]
-            ):
-                raise DataValidationError(column=column, value=value, error="Incorrect Type")
 
+        if errors:
+            raise DataValidationError(errors=errors)
         return True
