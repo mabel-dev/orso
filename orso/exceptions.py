@@ -41,7 +41,7 @@ class DataValidationError(DataError):
             else:
                 message += ", ".join(
                     [
-                        f"`{d[0]}` value of `{truncated_text(d[1])}` is not a {d[2].name}"
+                        f"`{d[0]}` value of `{truncated_text(str(d[1]))}` is not a {d[2].name}"
                         for d in detail
                     ]
                 )
