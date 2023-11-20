@@ -10,8 +10,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any
-
 
 class MissingDependencyError(Exception):
     def __init__(self, dependency):
@@ -26,26 +24,28 @@ class DataError(Exception):
 
 
 class DataValidationError(DataError):
-    def __init__(self, column, value: Any = None, error: str = "Data did not pass validation"):
-        self.field = column.name
-        self.expected_type = column.type
-        self.value = value
-        self.nullable = column.nullable
-        self.error = error
-
-        text = str(value)
+    def __init__(self, errors: dict):
         truncated_text = (
-            f"{text[:16]}{'...' if len(text) > 16 else ''}... [{len(text) - 16} more]"
+            lambda text: f"{text[:16]}{'...' if len(text) > 16 else ''}... [{len(text) - 16} more]"
             if len(text) > 16
             else text
         )
 
-        message = (
-            f"Data did not pass validation checks; field `{self.field}` "
-            f"with value `{truncated_text}` did not pass "
-            f"`{column.type}` {'(nullable)' if self.nullable else ''} check. "
-            f"({error})"
-        )
+        self.errors = errors
+
+        message = "Data did not pass validation checks; "
+        for err, detail in errors.items():
+            message += f"\n{err}: "
+            if all(isinstance(e, str) for e in detail):
+                message += ", ".join(f"`{d}`" for d in detail)
+            else:
+                message += ", ".join(
+                    [
+                        f"`{d[0]}` value of `{truncated_text(d[1])}` is not a {d[2].name}"
+                        for d in detail
+                    ]
+                )
+
         super().__init__(message)
 
 
