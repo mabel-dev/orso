@@ -130,9 +130,14 @@ def test_validate_with_additional_columns():
         "area": "891.8",  # Expected type is double
         "language": "German",
         "continent": "Europe",
+        "religion": "Christianity",
     }
-    with pytest.raises(ExcessColumnsInDataError):
+    with pytest.raises(ExcessColumnsInDataError) as err:
         cities.schema.validate(data)
+
+    # check both excess columns are in the error message
+    assert "continent" in str(err)
+    assert "religion" in str(err)
 
 
 def test_schema_iterations():
@@ -241,4 +246,5 @@ def test_minimum_definition():
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests
 
+    test_validate_with_additional_columns()
     run_tests()
