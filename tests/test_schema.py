@@ -265,5 +265,4 @@ def test_minimum_definition():
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests
 
-    test_validate_with_additional_columns()
     run_tests()
