@@ -395,15 +395,10 @@ class DataFrame:
         self.materialize()
         return len(self._rows)
 
-    def __str__(self) -> str:
-        from .display import ascii_table
-
-        return (
-            ascii_table(self, show_types=True)
-            + f"\n[ {self.rowcount} rows x {self.columncount} columns ]"
-        )
-
     def __repr__(self) -> str:
+        return f"<orso.dataframe>"
+
+    def __str__(self) -> str:
         size: int = 10
         try:
             from IPython import get_ipython
