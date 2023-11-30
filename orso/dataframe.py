@@ -396,7 +396,16 @@ class DataFrame:
         return len(self._rows)
 
     def __repr__(self) -> str:
-        return f"<orso.dataframe>"
+        """
+        If we're in a notebook, return a table, otherwise return a tag
+        """
+        try:
+            from IPython import get_ipython
+
+            i_am_in_a_notebook = get_ipython() is not None
+        except ImportError:
+            return f"<orso.dataframe>"
+        return str(self)
 
     def __str__(self) -> str:
         size: int = 10
