@@ -127,7 +127,7 @@ class DataFrame:
         self.materialize()
         size = 0
         for row in self._rows:
-            size += len(row.as_bytes())
+            size += len(row.as_bytes)
         return size
 
     def append(self, entry):
