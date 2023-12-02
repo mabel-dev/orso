@@ -168,6 +168,7 @@ class Row(tuple):
 
     def __optimized_new__(cls, data):
         # we roughly halve the time if we can assume we're only going to get tuples
+        # this avoid the test for it if't a tuple or a dict
         return super().__new__(cls, data)  # type:ignore
 
     @classmethod
