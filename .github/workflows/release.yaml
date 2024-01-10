@@ -235,6 +235,7 @@ jobs:
       - build-linux-cp39
       - build-linux-cp310
       - build-linux-cp311
+      - build-linux-cp312
       - build-macos
       - build-windows
     runs-on: ubuntu-latest
