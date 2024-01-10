@@ -128,30 +128,30 @@ jobs:
           name: dist-linux-3.11
           path: dist
 
-  #  build-linux-cp312:
-  #    runs-on: ubuntu-latest
-  #    container: quay.io/pypa/manylinux2014_x86_64
-  #
-  #    steps:
-  #      - uses: actions/checkout@v3.5.3
-  #
-  #      - name: Install Python package dependencies
-  #        run: /opt/python/cp312-cp312/bin/python -m pip install --upgrade cython wheel numpy
-  #
-  #      - name: Build binary wheel
-  #        run: /opt/python/cp312-cp312/bin/python setup.py bdist_wheel
-  #
-  #      - name: Apply auditwheel for manylinux wheel
-  #        run: auditwheel repair -w dist dist/*
-  #
-  #      - name: Remove linux wheel
-  #        run: rm dist/*-linux_x86_64.whl
-  #
-  #      - name: Archive dist artifacts
-  #        uses: actions/upload-artifact@v1
-  #        with:
-  #          name: dist-linux-3.12
-  #          path: dist
+    build-linux-cp312:
+      runs-on: ubuntu-latest
+      container: quay.io/pypa/manylinux2014_x86_64
+  
+      steps:
+        - uses: actions/checkout@v3.5.3
+  
+        - name: Install Python package dependencies
+          run: /opt/python/cp312-cp312/bin/python -m pip install --upgrade cython wheel numpy
+  
+        - name: Build binary wheel
+          run: /opt/python/cp312-cp312/bin/python setup.py bdist_wheel
+  
+        - name: Apply auditwheel for manylinux wheel
+          run: auditwheel repair -w dist dist/*
+  
+        - name: Remove linux wheel
+          run: rm dist/*-linux_x86_64.whl
+  
+        - name: Archive dist artifacts
+          uses: actions/upload-artifact@v1
+          with:
+            name: dist-linux-3.12
+            path: dist
 
   build-macos:
     runs-on: macos-latest
@@ -284,12 +284,12 @@ jobs:
 
       - run: mv -v dist-linux-3.11/* dist/
 
-      #- name: Stage linux 3.12
-      #  uses: actions/download-artifact@v1
-      #  with:
-      #    name: dist-linux-3.12
-      #
-      #- run: mv -v dist-linux-3.12/* dist/
+      - name: Stage linux 3.12
+        uses: actions/download-artifact@v1
+        with:
+          name: dist-linux-3.12
+      
+      - run: mv -v dist-linux-3.12/* dist/
 
       - name: Stage macos 3.8
         uses: actions/download-artifact@v1
