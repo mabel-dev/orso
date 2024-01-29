@@ -149,11 +149,15 @@ class FlatColumn:
                 # Special handling for 'expectations'
                 if attribute == "expectations" and value:
                     value = [
-                        v
-                        if isinstance(v, Expectation)
-                        else SchemaExpectation.load(v).update({"column": kwargs["name"]})
-                        if v.get("column", _MISSING_VALUE) == _MISSING_VALUE
-                        else v
+                        (
+                            v
+                            if isinstance(v, Expectation)
+                            else (
+                                SchemaExpectation.load(v).update({"column": kwargs["name"]})
+                                if v.get("column", _MISSING_VALUE) == _MISSING_VALUE
+                                else v
+                            )
+                        )
                         for v in value
                     ]
 

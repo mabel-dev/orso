@@ -317,7 +317,17 @@ class DataFrame:
     @property
     def description(
         self,
-    ) -> List[Tuple[str, Optional[str], None, None, Optional[int], Optional[int], Optional[bool],]]:
+    ) -> List[
+        Tuple[
+            str,
+            Optional[str],
+            None,
+            None,
+            Optional[int],
+            Optional[int],
+            Optional[bool],
+        ]
+    ]:
         """
         name
         type_code
