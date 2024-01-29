@@ -1,6 +1,7 @@
 """
 https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry
 """
+
 import atexit
 import datetime
 import logging

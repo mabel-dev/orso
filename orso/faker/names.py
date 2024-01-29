@@ -423,12 +423,12 @@ def generate_random_name() -> str:
     """
     selected_format = random.choice(formats)
     placeholders = {
-        "first_names_male": random.choice(first_names_male)
-        if "{first_names_male}" in selected_format
-        else "",
-        "first_names_female": random.choice(first_names_female)
-        if "{first_names_female}" in selected_format
-        else "",
+        "first_names_male": (
+            random.choice(first_names_male) if "{first_names_male}" in selected_format else ""
+        ),
+        "first_names_female": (
+            random.choice(first_names_female) if "{first_names_female}" in selected_format else ""
+        ),
         "surname": random.choice(surname) if "{surname}" in selected_format else "",
         "second_surname": random.choice(surname) if "{second_surname}" in selected_format else "",
     }

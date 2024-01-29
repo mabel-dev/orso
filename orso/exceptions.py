@@ -25,8 +25,8 @@ class DataError(Exception):
 
 class DataValidationError(DataError):
     def __init__(self, errors: dict):
-        truncated_text = (
-            lambda text: f"{text[:16]}{'...' if len(text) > 16 else ''}... [{len(text) - 16} more]"
+        truncated_text = lambda text: (
+            f"{text[:16]}{'...' if len(text) > 16 else ''}... [{len(text) - 16} more]"
             if len(text) > 16
             else text
         )
