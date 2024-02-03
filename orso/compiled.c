@@ -2315,7 +2315,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_int_8388608 __pyx_mstate_global->__pyx_int_8388608
 /* #### Code section: module_code ### */
 
-/* "orso/compiled.pyx":20
+/* "orso/compiled.pyx":32
  * @cython.boundscheck(False)  # Deactivate bounds checking
  * @cython.wraparound(False)   # Deactivate negative indexing
  * cpdef from_bytes_cython(bytes data):             # <<<<<<<<<<<<<<
@@ -2357,17 +2357,17 @@ static PyObject *__pyx_f_4orso_8compiled_from_bytes_cython(PyObject *__pyx_v_dat
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("from_bytes_cython", 1);
 
-  /* "orso/compiled.pyx":21
+  /* "orso/compiled.pyx":33
  * @cython.wraparound(False)   # Deactivate negative indexing
  * cpdef from_bytes_cython(bytes data):
  *     cdef const char* data_ptr = PyBytes_AsString(data)             # <<<<<<<<<<<<<<
  *     cdef Py_ssize_t length = PyBytes_GET_SIZE(data)
  * 
  */
-  __pyx_t_1 = PyBytes_AsString(__pyx_v_data); if (unlikely(__pyx_t_1 == ((char *)NULL))) __PYX_ERR(0, 21, __pyx_L1_error)
+  __pyx_t_1 = PyBytes_AsString(__pyx_v_data); if (unlikely(__pyx_t_1 == ((char *)NULL))) __PYX_ERR(0, 33, __pyx_L1_error)
   __pyx_v_data_ptr = __pyx_t_1;
 
-  /* "orso/compiled.pyx":22
+  /* "orso/compiled.pyx":34
  * cpdef from_bytes_cython(bytes data):
  *     cdef const char* data_ptr = PyBytes_AsString(data)
  *     cdef Py_ssize_t length = PyBytes_GET_SIZE(data)             # <<<<<<<<<<<<<<
@@ -2376,7 +2376,7 @@ static PyObject *__pyx_f_4orso_8compiled_from_bytes_cython(PyObject *__pyx_v_dat
  */
   __pyx_v_length = PyBytes_GET_SIZE(__pyx_v_data);
 
-  /* "orso/compiled.pyx":24
+  /* "orso/compiled.pyx":36
  *     cdef Py_ssize_t length = PyBytes_GET_SIZE(data)
  * 
  *     HEADER_SIZE = 6             # <<<<<<<<<<<<<<
@@ -2385,7 +2385,7 @@ static PyObject *__pyx_f_4orso_8compiled_from_bytes_cython(PyObject *__pyx_v_dat
  */
   __pyx_v_HEADER_SIZE = 6;
 
-  /* "orso/compiled.pyx":26
+  /* "orso/compiled.pyx":38
  *     HEADER_SIZE = 6
  *     # Validate header and size, now using pointer arithmetic
  *     if length < HEADER_SIZE or (data_ptr[0] & 0xF0 != 0x10):             # <<<<<<<<<<<<<<
@@ -2403,14 +2403,14 @@ static PyObject *__pyx_f_4orso_8compiled_from_bytes_cython(PyObject *__pyx_v_dat
   __pyx_L4_bool_binop_done:;
   if (unlikely(__pyx_t_2)) {
 
-    /* "orso/compiled.pyx":27
+    /* "orso/compiled.pyx":39
  *     # Validate header and size, now using pointer arithmetic
  *     if length < HEADER_SIZE or (data_ptr[0] & 0xF0 != 0x10):
  *         raise DataError("Data malformed")             # <<<<<<<<<<<<<<
  * 
  *     # Deserialize record bytes
  */
-    __Pyx_GetModuleGlobalName(__pyx_t_5, __pyx_n_s_DataError); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 27, __pyx_L1_error)
+    __Pyx_GetModuleGlobalName(__pyx_t_5, __pyx_n_s_DataError); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 39, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     __pyx_t_6 = NULL;
     __pyx_t_7 = 0;
@@ -2430,15 +2430,15 @@ static PyObject *__pyx_f_4orso_8compiled_from_bytes_cython(PyObject *__pyx_v_dat
       PyObject *__pyx_callargs[2] = {__pyx_t_6, __pyx_kp_u_Data_malformed};
       __pyx_t_4 = __Pyx_PyObject_FastCall(__pyx_t_5, __pyx_callargs+1-__pyx_t_7, 1+__pyx_t_7);
       __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
-      if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 27, __pyx_L1_error)
+      if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 39, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
     }
     __Pyx_Raise(__pyx_t_4, 0, 0, 0);
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-    __PYX_ERR(0, 27, __pyx_L1_error)
+    __PYX_ERR(0, 39, __pyx_L1_error)
 
-    /* "orso/compiled.pyx":26
+    /* "orso/compiled.pyx":38
  *     HEADER_SIZE = 6
  *     # Validate header and size, now using pointer arithmetic
  *     if length < HEADER_SIZE or (data_ptr[0] & 0xF0 != 0x10):             # <<<<<<<<<<<<<<
@@ -2447,7 +2447,7 @@ static PyObject *__pyx_f_4orso_8compiled_from_bytes_cython(PyObject *__pyx_v_dat
  */
   }
 
-  /* "orso/compiled.pyx":33
+  /* "orso/compiled.pyx":45
  *         (<unsigned char>data_ptr[2]) << 24 |
  *         (<unsigned char>data_ptr[3]) << 16 |
  *         (<unsigned char>data_ptr[4]) << 8  |             # <<<<<<<<<<<<<<
@@ -2456,7 +2456,7 @@ static PyObject *__pyx_f_4orso_8compiled_from_bytes_cython(PyObject *__pyx_v_dat
  */
   __pyx_v_record_size = ((((((unsigned char)(__pyx_v_data_ptr[2])) << 24) | (((unsigned char)(__pyx_v_data_ptr[3])) << 16)) | (((unsigned char)(__pyx_v_data_ptr[4])) << 8)) | ((unsigned char)(__pyx_v_data_ptr[5])));
 
-  /* "orso/compiled.pyx":37
+  /* "orso/compiled.pyx":49
  *     )
  * 
  *     if record_size != length - HEADER_SIZE:             # <<<<<<<<<<<<<<
@@ -2466,14 +2466,14 @@ static PyObject *__pyx_f_4orso_8compiled_from_bytes_cython(PyObject *__pyx_v_dat
   __pyx_t_2 = (__pyx_v_record_size != (__pyx_v_length - __pyx_v_HEADER_SIZE));
   if (unlikely(__pyx_t_2)) {
 
-    /* "orso/compiled.pyx":38
+    /* "orso/compiled.pyx":50
  * 
  *     if record_size != length - HEADER_SIZE:
  *         raise DataError("Data malformed - incorrect length")             # <<<<<<<<<<<<<<
  * 
  *     # Deserialize and post-process
  */
-    __Pyx_GetModuleGlobalName(__pyx_t_5, __pyx_n_s_DataError); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 38, __pyx_L1_error)
+    __Pyx_GetModuleGlobalName(__pyx_t_5, __pyx_n_s_DataError); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 50, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     __pyx_t_6 = NULL;
     __pyx_t_7 = 0;
@@ -2493,15 +2493,15 @@ static PyObject *__pyx_f_4orso_8compiled_from_bytes_cython(PyObject *__pyx_v_dat
       PyObject *__pyx_callargs[2] = {__pyx_t_6, __pyx_kp_u_Data_malformed_incorrect_length};
       __pyx_t_4 = __Pyx_PyObject_FastCall(__pyx_t_5, __pyx_callargs+1-__pyx_t_7, 1+__pyx_t_7);
       __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
-      if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 38, __pyx_L1_error)
+      if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 50, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
     }
     __Pyx_Raise(__pyx_t_4, 0, 0, 0);
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-    __PYX_ERR(0, 38, __pyx_L1_error)
+    __PYX_ERR(0, 50, __pyx_L1_error)
 
-    /* "orso/compiled.pyx":37
+    /* "orso/compiled.pyx":49
  *     )
  * 
  *     if record_size != length - HEADER_SIZE:             # <<<<<<<<<<<<<<
@@ -2510,20 +2510,20 @@ static PyObject *__pyx_f_4orso_8compiled_from_bytes_cython(PyObject *__pyx_v_dat
  */
   }
 
-  /* "orso/compiled.pyx":41
+  /* "orso/compiled.pyx":53
  * 
  *     # Deserialize and post-process
  *     cdef list raw_tuple = unpackb(data[HEADER_SIZE:])             # <<<<<<<<<<<<<<
  *     cdef list processed_list = []
  *     cdef object item
  */
-  __Pyx_GetModuleGlobalName(__pyx_t_5, __pyx_n_s_unpackb); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 41, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_5, __pyx_n_s_unpackb); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 53, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
   if (unlikely(__pyx_v_data == Py_None)) {
     PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-    __PYX_ERR(0, 41, __pyx_L1_error)
+    __PYX_ERR(0, 53, __pyx_L1_error)
   }
-  __pyx_t_6 = PySequence_GetSlice(__pyx_v_data, __pyx_v_HEADER_SIZE, PY_SSIZE_T_MAX); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 41, __pyx_L1_error)
+  __pyx_t_6 = PySequence_GetSlice(__pyx_v_data, __pyx_v_HEADER_SIZE, PY_SSIZE_T_MAX); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 53, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_6);
   __pyx_t_8 = NULL;
   __pyx_t_7 = 0;
@@ -2544,27 +2544,27 @@ static PyObject *__pyx_f_4orso_8compiled_from_bytes_cython(PyObject *__pyx_v_dat
     __pyx_t_4 = __Pyx_PyObject_FastCall(__pyx_t_5, __pyx_callargs+1-__pyx_t_7, 1+__pyx_t_7);
     __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
     __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-    if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 41, __pyx_L1_error)
+    if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 53, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
   }
-  if (!(likely(PyList_CheckExact(__pyx_t_4))||((__pyx_t_4) == Py_None) || __Pyx_RaiseUnexpectedTypeError("list", __pyx_t_4))) __PYX_ERR(0, 41, __pyx_L1_error)
+  if (!(likely(PyList_CheckExact(__pyx_t_4))||((__pyx_t_4) == Py_None) || __Pyx_RaiseUnexpectedTypeError("list", __pyx_t_4))) __PYX_ERR(0, 53, __pyx_L1_error)
   __pyx_v_raw_tuple = ((PyObject*)__pyx_t_4);
   __pyx_t_4 = 0;
 
-  /* "orso/compiled.pyx":42
+  /* "orso/compiled.pyx":54
  *     # Deserialize and post-process
  *     cdef list raw_tuple = unpackb(data[HEADER_SIZE:])
  *     cdef list processed_list = []             # <<<<<<<<<<<<<<
  *     cdef object item
  * 
  */
-  __pyx_t_4 = PyList_New(0); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 42, __pyx_L1_error)
+  __pyx_t_4 = PyList_New(0); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 54, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __pyx_v_processed_list = ((PyObject*)__pyx_t_4);
   __pyx_t_4 = 0;
 
-  /* "orso/compiled.pyx":46
+  /* "orso/compiled.pyx":58
  * 
  * 
  *     for item in raw_tuple:             # <<<<<<<<<<<<<<
@@ -2573,7 +2573,7 @@ static PyObject *__pyx_f_4orso_8compiled_from_bytes_cython(PyObject *__pyx_v_dat
  */
   if (unlikely(__pyx_v_raw_tuple == Py_None)) {
     PyErr_SetString(PyExc_TypeError, "'NoneType' object is not iterable");
-    __PYX_ERR(0, 46, __pyx_L1_error)
+    __PYX_ERR(0, 58, __pyx_L1_error)
   }
   __pyx_t_4 = __pyx_v_raw_tuple; __Pyx_INCREF(__pyx_t_4);
   __pyx_t_9 = 0;
@@ -2581,20 +2581,20 @@ static PyObject *__pyx_f_4orso_8compiled_from_bytes_cython(PyObject *__pyx_v_dat
     {
       Py_ssize_t __pyx_temp = __Pyx_PyList_GET_SIZE(__pyx_t_4);
       #if !CYTHON_ASSUME_SAFE_MACROS
-      if (unlikely((__pyx_temp < 0))) __PYX_ERR(0, 46, __pyx_L1_error)
+      if (unlikely((__pyx_temp < 0))) __PYX_ERR(0, 58, __pyx_L1_error)
       #endif
       if (__pyx_t_9 >= __pyx_temp) break;
     }
     #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-    __pyx_t_5 = PyList_GET_ITEM(__pyx_t_4, __pyx_t_9); __Pyx_INCREF(__pyx_t_5); __pyx_t_9++; if (unlikely((0 < 0))) __PYX_ERR(0, 46, __pyx_L1_error)
+    __pyx_t_5 = PyList_GET_ITEM(__pyx_t_4, __pyx_t_9); __Pyx_INCREF(__pyx_t_5); __pyx_t_9++; if (unlikely((0 < 0))) __PYX_ERR(0, 58, __pyx_L1_error)
     #else
-    __pyx_t_5 = __Pyx_PySequence_ITEM(__pyx_t_4, __pyx_t_9); __pyx_t_9++; if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 46, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_PySequence_ITEM(__pyx_t_4, __pyx_t_9); __pyx_t_9++; if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 58, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     #endif
     __Pyx_XDECREF_SET(__pyx_v_item, __pyx_t_5);
     __pyx_t_5 = 0;
 
-    /* "orso/compiled.pyx":47
+    /* "orso/compiled.pyx":59
  * 
  *     for item in raw_tuple:
  *         if isinstance(item, list) and len(item) == 2 and item[0] == "__datetime__":             # <<<<<<<<<<<<<<
@@ -2607,34 +2607,34 @@ static PyObject *__pyx_f_4orso_8compiled_from_bytes_cython(PyObject *__pyx_v_dat
       __pyx_t_2 = __pyx_t_3;
       goto __pyx_L10_bool_binop_done;
     }
-    __pyx_t_10 = PyObject_Length(__pyx_v_item); if (unlikely(__pyx_t_10 == ((Py_ssize_t)-1))) __PYX_ERR(0, 47, __pyx_L1_error)
+    __pyx_t_10 = PyObject_Length(__pyx_v_item); if (unlikely(__pyx_t_10 == ((Py_ssize_t)-1))) __PYX_ERR(0, 59, __pyx_L1_error)
     __pyx_t_3 = (__pyx_t_10 == 2);
     if (__pyx_t_3) {
     } else {
       __pyx_t_2 = __pyx_t_3;
       goto __pyx_L10_bool_binop_done;
     }
-    __pyx_t_5 = __Pyx_GetItemInt(__pyx_v_item, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 47, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_GetItemInt(__pyx_v_item, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 59, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
-    __pyx_t_3 = (__Pyx_PyUnicode_Equals(__pyx_t_5, __pyx_n_u_datetime, Py_EQ)); if (unlikely((__pyx_t_3 < 0))) __PYX_ERR(0, 47, __pyx_L1_error)
+    __pyx_t_3 = (__Pyx_PyUnicode_Equals(__pyx_t_5, __pyx_n_u_datetime, Py_EQ)); if (unlikely((__pyx_t_3 < 0))) __PYX_ERR(0, 59, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
     __pyx_t_2 = __pyx_t_3;
     __pyx_L10_bool_binop_done:;
     if (__pyx_t_2) {
 
-      /* "orso/compiled.pyx":48
+      /* "orso/compiled.pyx":60
  *     for item in raw_tuple:
  *         if isinstance(item, list) and len(item) == 2 and item[0] == "__datetime__":
  *             processed_list.append(datetime.fromtimestamp(item[1]))             # <<<<<<<<<<<<<<
  *         else:
  *             processed_list.append(item)
  */
-      __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_datetime_2); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 48, __pyx_L1_error)
+      __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_datetime_2); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 60, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_6);
-      __pyx_t_8 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_n_s_fromtimestamp); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 48, __pyx_L1_error)
+      __pyx_t_8 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_n_s_fromtimestamp); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 60, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_8);
       __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-      __pyx_t_6 = __Pyx_GetItemInt(__pyx_v_item, 1, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 48, __pyx_L1_error)
+      __pyx_t_6 = __Pyx_GetItemInt(__pyx_v_item, 1, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 60, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_6);
       __pyx_t_11 = NULL;
       __pyx_t_7 = 0;
@@ -2655,14 +2655,14 @@ static PyObject *__pyx_f_4orso_8compiled_from_bytes_cython(PyObject *__pyx_v_dat
         __pyx_t_5 = __Pyx_PyObject_FastCall(__pyx_t_8, __pyx_callargs+1-__pyx_t_7, 1+__pyx_t_7);
         __Pyx_XDECREF(__pyx_t_11); __pyx_t_11 = 0;
         __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-        if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 48, __pyx_L1_error)
+        if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 60, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_5);
         __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
       }
-      __pyx_t_12 = __Pyx_PyList_Append(__pyx_v_processed_list, __pyx_t_5); if (unlikely(__pyx_t_12 == ((int)-1))) __PYX_ERR(0, 48, __pyx_L1_error)
+      __pyx_t_12 = __Pyx_PyList_Append(__pyx_v_processed_list, __pyx_t_5); if (unlikely(__pyx_t_12 == ((int)-1))) __PYX_ERR(0, 60, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
 
-      /* "orso/compiled.pyx":47
+      /* "orso/compiled.pyx":59
  * 
  *     for item in raw_tuple:
  *         if isinstance(item, list) and len(item) == 2 and item[0] == "__datetime__":             # <<<<<<<<<<<<<<
@@ -2672,7 +2672,7 @@ static PyObject *__pyx_f_4orso_8compiled_from_bytes_cython(PyObject *__pyx_v_dat
       goto __pyx_L9;
     }
 
-    /* "orso/compiled.pyx":50
+    /* "orso/compiled.pyx":62
  *             processed_list.append(datetime.fromtimestamp(item[1]))
  *         else:
  *             processed_list.append(item)             # <<<<<<<<<<<<<<
@@ -2680,11 +2680,11 @@ static PyObject *__pyx_f_4orso_8compiled_from_bytes_cython(PyObject *__pyx_v_dat
  *     return tuple(processed_list)
  */
     /*else*/ {
-      __pyx_t_12 = __Pyx_PyList_Append(__pyx_v_processed_list, __pyx_v_item); if (unlikely(__pyx_t_12 == ((int)-1))) __PYX_ERR(0, 50, __pyx_L1_error)
+      __pyx_t_12 = __Pyx_PyList_Append(__pyx_v_processed_list, __pyx_v_item); if (unlikely(__pyx_t_12 == ((int)-1))) __PYX_ERR(0, 62, __pyx_L1_error)
     }
     __pyx_L9:;
 
-    /* "orso/compiled.pyx":46
+    /* "orso/compiled.pyx":58
  * 
  * 
  *     for item in raw_tuple:             # <<<<<<<<<<<<<<
@@ -2694,7 +2694,7 @@ static PyObject *__pyx_f_4orso_8compiled_from_bytes_cython(PyObject *__pyx_v_dat
   }
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
 
-  /* "orso/compiled.pyx":52
+  /* "orso/compiled.pyx":64
  *             processed_list.append(item)
  * 
  *     return tuple(processed_list)             # <<<<<<<<<<<<<<
@@ -2702,13 +2702,13 @@ static PyObject *__pyx_f_4orso_8compiled_from_bytes_cython(PyObject *__pyx_v_dat
  * 
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_4 = PyList_AsTuple(__pyx_v_processed_list); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 52, __pyx_L1_error)
+  __pyx_t_4 = PyList_AsTuple(__pyx_v_processed_list); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 64, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __pyx_r = __pyx_t_4;
   __pyx_t_4 = 0;
   goto __pyx_L0;
 
-  /* "orso/compiled.pyx":20
+  /* "orso/compiled.pyx":32
  * @cython.boundscheck(False)  # Deactivate bounds checking
  * @cython.wraparound(False)   # Deactivate negative indexing
  * cpdef from_bytes_cython(bytes data):             # <<<<<<<<<<<<<<
@@ -2787,12 +2787,12 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
           (void)__Pyx_Arg_NewRef_FASTCALL(values[0]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 20, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 32, __pyx_L3_error)
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
         const Py_ssize_t kwd_pos_args = __pyx_nargs;
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "from_bytes_cython") < 0)) __PYX_ERR(0, 20, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "from_bytes_cython") < 0)) __PYX_ERR(0, 32, __pyx_L3_error)
       }
     } else if (unlikely(__pyx_nargs != 1)) {
       goto __pyx_L5_argtuple_error;
@@ -2803,7 +2803,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   }
   goto __pyx_L6_skip;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("from_bytes_cython", 1, 1, 1, __pyx_nargs); __PYX_ERR(0, 20, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("from_bytes_cython", 1, 1, 1, __pyx_nargs); __PYX_ERR(0, 32, __pyx_L3_error)
   __pyx_L6_skip:;
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -2817,7 +2817,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_data), (&PyBytes_Type), 1, "data", 1))) __PYX_ERR(0, 20, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_data), (&PyBytes_Type), 1, "data", 1))) __PYX_ERR(0, 32, __pyx_L1_error)
   __pyx_r = __pyx_pf_4orso_8compiled_from_bytes_cython(__pyx_self, __pyx_v_data);
 
   /* function exit code */
@@ -2844,7 +2844,7 @@ static PyObject *__pyx_pf_4orso_8compiled_from_bytes_cython(CYTHON_UNUSED PyObje
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("from_bytes_cython", 1);
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __pyx_f_4orso_8compiled_from_bytes_cython(__pyx_v_data, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 20, __pyx_L1_error)
+  __pyx_t_1 = __pyx_f_4orso_8compiled_from_bytes_cython(__pyx_v_data, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 32, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -2861,7 +2861,7 @@ static PyObject *__pyx_pf_4orso_8compiled_from_bytes_cython(CYTHON_UNUSED PyObje
   return __pyx_r;
 }
 
-/* "orso/compiled.pyx":58
+/* "orso/compiled.pyx":70
  * 
  * 
  * cpdef tuple extract_dict_columns(dict data, tuple fields):             # <<<<<<<<<<<<<<
@@ -2891,7 +2891,7 @@ static PyObject *__pyx_f_4orso_8compiled_extract_dict_columns(PyObject *__pyx_v_
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("extract_dict_columns", 1);
 
-  /* "orso/compiled.pyx":61
+  /* "orso/compiled.pyx":73
  *     cdef int i
  *     cdef str field
  *     cdef list sorted_data = [None] * len(fields)  # Preallocate list size             # <<<<<<<<<<<<<<
@@ -2900,22 +2900,22 @@ static PyObject *__pyx_f_4orso_8compiled_extract_dict_columns(PyObject *__pyx_v_
  */
   if (unlikely(__pyx_v_fields == Py_None)) {
     PyErr_SetString(PyExc_TypeError, "object of type 'NoneType' has no len()");
-    __PYX_ERR(0, 61, __pyx_L1_error)
+    __PYX_ERR(0, 73, __pyx_L1_error)
   }
-  __pyx_t_1 = __Pyx_PyTuple_GET_SIZE(__pyx_v_fields); if (unlikely(__pyx_t_1 == ((Py_ssize_t)-1))) __PYX_ERR(0, 61, __pyx_L1_error)
-  __pyx_t_2 = PyList_New(1 * ((__pyx_t_1<0) ? 0:__pyx_t_1)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 61, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyTuple_GET_SIZE(__pyx_v_fields); if (unlikely(__pyx_t_1 == ((Py_ssize_t)-1))) __PYX_ERR(0, 73, __pyx_L1_error)
+  __pyx_t_2 = PyList_New(1 * ((__pyx_t_1<0) ? 0:__pyx_t_1)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 73, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   { Py_ssize_t __pyx_temp;
     for (__pyx_temp=0; __pyx_temp < __pyx_t_1; __pyx_temp++) {
       __Pyx_INCREF(Py_None);
       __Pyx_GIVEREF(Py_None);
-      if (__Pyx_PyList_SET_ITEM(__pyx_t_2, __pyx_temp, Py_None)) __PYX_ERR(0, 61, __pyx_L1_error);
+      if (__Pyx_PyList_SET_ITEM(__pyx_t_2, __pyx_temp, Py_None)) __PYX_ERR(0, 73, __pyx_L1_error);
     }
   }
   __pyx_v_sorted_data = ((PyObject*)__pyx_t_2);
   __pyx_t_2 = 0;
 
-  /* "orso/compiled.pyx":62
+  /* "orso/compiled.pyx":74
  *     cdef str field
  *     cdef list sorted_data = [None] * len(fields)  # Preallocate list size
  *     for i in range(len(fields)):             # <<<<<<<<<<<<<<
@@ -2924,14 +2924,14 @@ static PyObject *__pyx_f_4orso_8compiled_extract_dict_columns(PyObject *__pyx_v_
  */
   if (unlikely(__pyx_v_fields == Py_None)) {
     PyErr_SetString(PyExc_TypeError, "object of type 'NoneType' has no len()");
-    __PYX_ERR(0, 62, __pyx_L1_error)
+    __PYX_ERR(0, 74, __pyx_L1_error)
   }
-  __pyx_t_1 = __Pyx_PyTuple_GET_SIZE(__pyx_v_fields); if (unlikely(__pyx_t_1 == ((Py_ssize_t)-1))) __PYX_ERR(0, 62, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyTuple_GET_SIZE(__pyx_v_fields); if (unlikely(__pyx_t_1 == ((Py_ssize_t)-1))) __PYX_ERR(0, 74, __pyx_L1_error)
   __pyx_t_3 = __pyx_t_1;
   for (__pyx_t_4 = 0; __pyx_t_4 < __pyx_t_3; __pyx_t_4+=1) {
     __pyx_v_i = __pyx_t_4;
 
-    /* "orso/compiled.pyx":63
+    /* "orso/compiled.pyx":75
  *     cdef list sorted_data = [None] * len(fields)  # Preallocate list size
  *     for i in range(len(fields)):
  *         field = fields[i]             # <<<<<<<<<<<<<<
@@ -2940,15 +2940,15 @@ static PyObject *__pyx_f_4orso_8compiled_extract_dict_columns(PyObject *__pyx_v_
  */
     if (unlikely(__pyx_v_fields == Py_None)) {
       PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-      __PYX_ERR(0, 63, __pyx_L1_error)
+      __PYX_ERR(0, 75, __pyx_L1_error)
     }
-    __pyx_t_2 = __Pyx_GetItemInt_Tuple(__pyx_v_fields, __pyx_v_i, int, 1, __Pyx_PyInt_From_int, 0, 1, 1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 63, __pyx_L1_error)
+    __pyx_t_2 = __Pyx_GetItemInt_Tuple(__pyx_v_fields, __pyx_v_i, int, 1, __Pyx_PyInt_From_int, 0, 1, 1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 75, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
-    if (!(likely(PyUnicode_CheckExact(__pyx_t_2))||((__pyx_t_2) == Py_None) || __Pyx_RaiseUnexpectedTypeError("unicode", __pyx_t_2))) __PYX_ERR(0, 63, __pyx_L1_error)
+    if (!(likely(PyUnicode_CheckExact(__pyx_t_2))||((__pyx_t_2) == Py_None) || __Pyx_RaiseUnexpectedTypeError("unicode", __pyx_t_2))) __PYX_ERR(0, 75, __pyx_L1_error)
     __Pyx_XDECREF_SET(__pyx_v_field, ((PyObject*)__pyx_t_2));
     __pyx_t_2 = 0;
 
-    /* "orso/compiled.pyx":64
+    /* "orso/compiled.pyx":76
  *     for i in range(len(fields)):
  *         field = fields[i]
  *         sorted_data[i] = data[field]             # <<<<<<<<<<<<<<
@@ -2956,27 +2956,27 @@ static PyObject *__pyx_f_4orso_8compiled_extract_dict_columns(PyObject *__pyx_v_
  */
     if (unlikely(__pyx_v_data == Py_None)) {
       PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-      __PYX_ERR(0, 64, __pyx_L1_error)
+      __PYX_ERR(0, 76, __pyx_L1_error)
     }
-    __pyx_t_2 = __Pyx_PyDict_GetItem(__pyx_v_data, __pyx_v_field); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 64, __pyx_L1_error)
+    __pyx_t_2 = __Pyx_PyDict_GetItem(__pyx_v_data, __pyx_v_field); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 76, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
-    if (unlikely((__Pyx_SetItemInt(__pyx_v_sorted_data, __pyx_v_i, __pyx_t_2, int, 1, __Pyx_PyInt_From_int, 1, 1, 1) < 0))) __PYX_ERR(0, 64, __pyx_L1_error)
+    if (unlikely((__Pyx_SetItemInt(__pyx_v_sorted_data, __pyx_v_i, __pyx_t_2, int, 1, __Pyx_PyInt_From_int, 1, 1, 1) < 0))) __PYX_ERR(0, 76, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   }
 
-  /* "orso/compiled.pyx":65
+  /* "orso/compiled.pyx":77
  *         field = fields[i]
  *         sorted_data[i] = data[field]
  *     return tuple(sorted_data)  # Convert list to tuple             # <<<<<<<<<<<<<<
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_2 = PyList_AsTuple(__pyx_v_sorted_data); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 65, __pyx_L1_error)
+  __pyx_t_2 = PyList_AsTuple(__pyx_v_sorted_data); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 77, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __pyx_r = ((PyObject*)__pyx_t_2);
   __pyx_t_2 = 0;
   goto __pyx_L0;
 
-  /* "orso/compiled.pyx":58
+  /* "orso/compiled.pyx":70
  * 
  * 
  * cpdef tuple extract_dict_columns(dict data, tuple fields):             # <<<<<<<<<<<<<<
@@ -3053,7 +3053,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
           (void)__Pyx_Arg_NewRef_FASTCALL(values[0]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 58, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 70, __pyx_L3_error)
         else goto __pyx_L5_argtuple_error;
         CYTHON_FALLTHROUGH;
         case  1:
@@ -3061,14 +3061,14 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
           (void)__Pyx_Arg_NewRef_FASTCALL(values[1]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 58, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 70, __pyx_L3_error)
         else {
-          __Pyx_RaiseArgtupleInvalid("extract_dict_columns", 1, 2, 2, 1); __PYX_ERR(0, 58, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("extract_dict_columns", 1, 2, 2, 1); __PYX_ERR(0, 70, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
         const Py_ssize_t kwd_pos_args = __pyx_nargs;
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "extract_dict_columns") < 0)) __PYX_ERR(0, 58, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "extract_dict_columns") < 0)) __PYX_ERR(0, 70, __pyx_L3_error)
       }
     } else if (unlikely(__pyx_nargs != 2)) {
       goto __pyx_L5_argtuple_error;
@@ -3081,7 +3081,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   }
   goto __pyx_L6_skip;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("extract_dict_columns", 1, 2, 2, __pyx_nargs); __PYX_ERR(0, 58, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("extract_dict_columns", 1, 2, 2, __pyx_nargs); __PYX_ERR(0, 70, __pyx_L3_error)
   __pyx_L6_skip:;
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -3095,8 +3095,8 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_data), (&PyDict_Type), 1, "data", 1))) __PYX_ERR(0, 58, __pyx_L1_error)
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_fields), (&PyTuple_Type), 1, "fields", 1))) __PYX_ERR(0, 58, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_data), (&PyDict_Type), 1, "data", 1))) __PYX_ERR(0, 70, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_fields), (&PyTuple_Type), 1, "fields", 1))) __PYX_ERR(0, 70, __pyx_L1_error)
   __pyx_r = __pyx_pf_4orso_8compiled_2extract_dict_columns(__pyx_self, __pyx_v_data, __pyx_v_fields);
 
   /* function exit code */
@@ -3123,7 +3123,7 @@ static PyObject *__pyx_pf_4orso_8compiled_2extract_dict_columns(CYTHON_UNUSED Py
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("extract_dict_columns", 1);
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __pyx_f_4orso_8compiled_extract_dict_columns(__pyx_v_data, __pyx_v_fields, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 58, __pyx_L1_error)
+  __pyx_t_1 = __pyx_f_4orso_8compiled_extract_dict_columns(__pyx_v_data, __pyx_v_fields, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 70, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -3190,7 +3190,7 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
 }
 /* #### Code section: cached_builtins ### */
 static CYTHON_SMALL_CODE int __Pyx_InitCachedBuiltins(void) {
-  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 62, __pyx_L1_error)
+  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 74, __pyx_L1_error)
   return 0;
   __pyx_L1_error:;
   return -1;
@@ -3582,121 +3582,121 @@ if (!__Pyx_RefNanny) {
   if (__Pyx_patch_abc() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #endif
 
-  /* "orso/compiled.pyx":8
+  /* "orso/compiled.pyx":20
  * from cpython.bytes cimport PyBytes_AsString, PyBytes_GET_SIZE
  * from cython cimport int
  * from datetime import datetime             # <<<<<<<<<<<<<<
  * from ormsgpack import unpackb
  * from orso.exceptions import DataError
  */
-  __pyx_t_2 = PyList_New(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 8, __pyx_L1_error)
+  __pyx_t_2 = PyList_New(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 20, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_INCREF(__pyx_n_s_datetime_2);
   __Pyx_GIVEREF(__pyx_n_s_datetime_2);
-  if (__Pyx_PyList_SET_ITEM(__pyx_t_2, 0, __pyx_n_s_datetime_2)) __PYX_ERR(0, 8, __pyx_L1_error);
-  __pyx_t_3 = __Pyx_Import(__pyx_n_s_datetime_2, __pyx_t_2, 0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 8, __pyx_L1_error)
+  if (__Pyx_PyList_SET_ITEM(__pyx_t_2, 0, __pyx_n_s_datetime_2)) __PYX_ERR(0, 20, __pyx_L1_error);
+  __pyx_t_3 = __Pyx_Import(__pyx_n_s_datetime_2, __pyx_t_2, 0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 20, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_2 = __Pyx_ImportFrom(__pyx_t_3, __pyx_n_s_datetime_2); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 8, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_ImportFrom(__pyx_t_3, __pyx_n_s_datetime_2); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 20, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_datetime_2, __pyx_t_2) < 0) __PYX_ERR(0, 8, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_datetime_2, __pyx_t_2) < 0) __PYX_ERR(0, 20, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-  /* "orso/compiled.pyx":9
+  /* "orso/compiled.pyx":21
  * from cython cimport int
  * from datetime import datetime
  * from ormsgpack import unpackb             # <<<<<<<<<<<<<<
  * from orso.exceptions import DataError
  * from typing import Dict, Any, Tuple
  */
-  __pyx_t_3 = PyList_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 9, __pyx_L1_error)
+  __pyx_t_3 = PyList_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 21, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_INCREF(__pyx_n_s_unpackb);
   __Pyx_GIVEREF(__pyx_n_s_unpackb);
-  if (__Pyx_PyList_SET_ITEM(__pyx_t_3, 0, __pyx_n_s_unpackb)) __PYX_ERR(0, 9, __pyx_L1_error);
-  __pyx_t_2 = __Pyx_Import(__pyx_n_s_ormsgpack, __pyx_t_3, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 9, __pyx_L1_error)
+  if (__Pyx_PyList_SET_ITEM(__pyx_t_3, 0, __pyx_n_s_unpackb)) __PYX_ERR(0, 21, __pyx_L1_error);
+  __pyx_t_2 = __Pyx_Import(__pyx_n_s_ormsgpack, __pyx_t_3, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 21, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_3 = __Pyx_ImportFrom(__pyx_t_2, __pyx_n_s_unpackb); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 9, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_ImportFrom(__pyx_t_2, __pyx_n_s_unpackb); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 21, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_unpackb, __pyx_t_3) < 0) __PYX_ERR(0, 9, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_unpackb, __pyx_t_3) < 0) __PYX_ERR(0, 21, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "orso/compiled.pyx":10
+  /* "orso/compiled.pyx":22
  * from datetime import datetime
  * from ormsgpack import unpackb
  * from orso.exceptions import DataError             # <<<<<<<<<<<<<<
  * from typing import Dict, Any, Tuple
  * 
  */
-  __pyx_t_2 = PyList_New(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 10, __pyx_L1_error)
+  __pyx_t_2 = PyList_New(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 22, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_INCREF(__pyx_n_s_DataError);
   __Pyx_GIVEREF(__pyx_n_s_DataError);
-  if (__Pyx_PyList_SET_ITEM(__pyx_t_2, 0, __pyx_n_s_DataError)) __PYX_ERR(0, 10, __pyx_L1_error);
-  __pyx_t_3 = __Pyx_Import(__pyx_n_s_orso_exceptions, __pyx_t_2, 0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 10, __pyx_L1_error)
+  if (__Pyx_PyList_SET_ITEM(__pyx_t_2, 0, __pyx_n_s_DataError)) __PYX_ERR(0, 22, __pyx_L1_error);
+  __pyx_t_3 = __Pyx_Import(__pyx_n_s_orso_exceptions, __pyx_t_2, 0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 22, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_2 = __Pyx_ImportFrom(__pyx_t_3, __pyx_n_s_DataError); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 10, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_ImportFrom(__pyx_t_3, __pyx_n_s_DataError); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 22, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_DataError, __pyx_t_2) < 0) __PYX_ERR(0, 10, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_DataError, __pyx_t_2) < 0) __PYX_ERR(0, 22, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-  /* "orso/compiled.pyx":11
+  /* "orso/compiled.pyx":23
  * from ormsgpack import unpackb
  * from orso.exceptions import DataError
  * from typing import Dict, Any, Tuple             # <<<<<<<<<<<<<<
  * 
  * cimport cython
  */
-  __pyx_t_3 = PyList_New(3); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 11, __pyx_L1_error)
+  __pyx_t_3 = PyList_New(3); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 23, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_INCREF(__pyx_n_s_Dict);
   __Pyx_GIVEREF(__pyx_n_s_Dict);
-  if (__Pyx_PyList_SET_ITEM(__pyx_t_3, 0, __pyx_n_s_Dict)) __PYX_ERR(0, 11, __pyx_L1_error);
+  if (__Pyx_PyList_SET_ITEM(__pyx_t_3, 0, __pyx_n_s_Dict)) __PYX_ERR(0, 23, __pyx_L1_error);
   __Pyx_INCREF(__pyx_n_s_Any);
   __Pyx_GIVEREF(__pyx_n_s_Any);
-  if (__Pyx_PyList_SET_ITEM(__pyx_t_3, 1, __pyx_n_s_Any)) __PYX_ERR(0, 11, __pyx_L1_error);
+  if (__Pyx_PyList_SET_ITEM(__pyx_t_3, 1, __pyx_n_s_Any)) __PYX_ERR(0, 23, __pyx_L1_error);
   __Pyx_INCREF(__pyx_n_s_Tuple);
   __Pyx_GIVEREF(__pyx_n_s_Tuple);
-  if (__Pyx_PyList_SET_ITEM(__pyx_t_3, 2, __pyx_n_s_Tuple)) __PYX_ERR(0, 11, __pyx_L1_error);
-  __pyx_t_2 = __Pyx_Import(__pyx_n_s_typing, __pyx_t_3, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 11, __pyx_L1_error)
+  if (__Pyx_PyList_SET_ITEM(__pyx_t_3, 2, __pyx_n_s_Tuple)) __PYX_ERR(0, 23, __pyx_L1_error);
+  __pyx_t_2 = __Pyx_Import(__pyx_n_s_typing, __pyx_t_3, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 23, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_3 = __Pyx_ImportFrom(__pyx_t_2, __pyx_n_s_Dict); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 11, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_ImportFrom(__pyx_t_2, __pyx_n_s_Dict); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 23, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_Dict, __pyx_t_3) < 0) __PYX_ERR(0, 11, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_Dict, __pyx_t_3) < 0) __PYX_ERR(0, 23, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_3 = __Pyx_ImportFrom(__pyx_t_2, __pyx_n_s_Any); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 11, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_ImportFrom(__pyx_t_2, __pyx_n_s_Any); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 23, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_Any, __pyx_t_3) < 0) __PYX_ERR(0, 11, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_Any, __pyx_t_3) < 0) __PYX_ERR(0, 23, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_3 = __Pyx_ImportFrom(__pyx_t_2, __pyx_n_s_Tuple); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 11, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_ImportFrom(__pyx_t_2, __pyx_n_s_Tuple); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 23, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_Tuple, __pyx_t_3) < 0) __PYX_ERR(0, 11, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_Tuple, __pyx_t_3) < 0) __PYX_ERR(0, 23, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "orso/compiled.pyx":15
+  /* "orso/compiled.pyx":27
  * cimport cython
  * 
  * HEADER_PREFIX = b"\x10\x00"             # <<<<<<<<<<<<<<
  * MAXIMUM_RECORD_SIZE = 8 * 1024 * 1024
  * 
  */
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_HEADER_PREFIX, __pyx_kp_b__2) < 0) __PYX_ERR(0, 15, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_HEADER_PREFIX, __pyx_kp_b__2) < 0) __PYX_ERR(0, 27, __pyx_L1_error)
 
-  /* "orso/compiled.pyx":16
+  /* "orso/compiled.pyx":28
  * 
  * HEADER_PREFIX = b"\x10\x00"
  * MAXIMUM_RECORD_SIZE = 8 * 1024 * 1024             # <<<<<<<<<<<<<<
  * 
  * @cython.boundscheck(False)  # Deactivate bounds checking
  */
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_MAXIMUM_RECORD_SIZE, __pyx_int_8388608) < 0) __PYX_ERR(0, 16, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_MAXIMUM_RECORD_SIZE, __pyx_int_8388608) < 0) __PYX_ERR(0, 28, __pyx_L1_error)
 
   /* "orso/compiled.pyx":1
  * #cython: infer_types=True             # <<<<<<<<<<<<<<
