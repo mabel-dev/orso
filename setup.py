@@ -1,3 +1,5 @@
+import platform
+
 from Cython.Build import cythonize
 from setuptools import Extension
 from setuptools import find_packages
@@ -5,6 +7,15 @@ from setuptools import setup
 
 LIBRARY = "orso"
 
+
+def is_mac():  # pragma: no cover
+    return platform.system().lower() == "darwin"
+
+
+if is_mac():
+    COMPILE_FLAGS = ["-O2"]
+else:
+    COMPILE_FLAGS = ["-O2", "-march=native"]
 
 __version__ = "notset"
 with open(f"{LIBRARY}/version.py", mode="r") as v:
@@ -35,12 +46,14 @@ extensions = [
     Extension(
         name="orso.bitarray.cbitarray",
         sources=["orso/bitarray/cbitarray.pyx"],
+        extra_compile_args=COMPILE_FLAGS,
+        extra_link_args=COMPILE_FLAGS,
     ),
     Extension(
         name="orso.compiled",
         sources=["orso/compiled.pyx"],
-        extra_compile_args=["-O2"],
-        extra_link_args=["-O2"],
+        extra_compile_args=COMPILE_FLAGS,
+        extra_link_args=COMPILE_FLAGS,
     ),
 ]
 

@@ -15,6 +15,7 @@
 """
 This module was written with assistance from ChatGPT
 """
+
 cdef extern from "Python.h":
     void *PyMem_Malloc(int size) nogil
     void PyMem_Free(void *ptr) nogil
