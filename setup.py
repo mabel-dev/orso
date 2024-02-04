@@ -33,15 +33,6 @@ except:
         required = f.read().splitlines()
 
 extensions = [
-    # Compile C++ code first
-    Extension(
-        name="orso.cityhash.cityhash",
-        sources=[
-            "orso/cityhash/city.cc",
-            "orso/cityhash/cityhash.cpp",
-        ],
-        language="c++",
-    ),
     # Cython code
     Extension(
         name="orso.bitarray.cbitarray",
