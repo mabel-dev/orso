@@ -3,10 +3,11 @@
 name: Release to PyPI
 
 on:
-  release:
-    types: [published]
-    branches:
-      - 'main'
+  push
+#  release:
+#    types: [published]
+#    branches:
+#      - 'main'
 
 jobs:
 
@@ -412,9 +413,9 @@ jobs:
           CIBW_BUILD: "cp39-*"
           CIBW_ARCHS: ${{ matrix.cibw_archs }}
 
-      - name: Publish distribution 📦 to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
-          packages-dir: wheelhouse
+#      - name: Publish distribution 📦 to PyPI
+#        uses: pypa/gh-action-pypi-publish@release/v1
+#        with:
+#          password: ${{ secrets.PYPI_API_TOKEN }}
+#          packages-dir: wheelhouse
   
