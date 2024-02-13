@@ -88,7 +88,7 @@ def table_profiler(dataframe):
 
             profile = profile_collector.get(column, orjson.loads(empty_profile))
             _type = [col for col in morsel.description if col[0] == column][0][1]
-            if _type.startswith("DECIMAL"):
+            if str(_type).startswith("DECIMAL"):
                 _type = "DECIMAL"
             _type = OrsoTypes(_type)
             profile["type"] = _type
