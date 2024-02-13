@@ -90,6 +90,8 @@ def table_profiler(dataframe):
             _type = [col for col in morsel.description if col[0] == column][0][1]
             if str(_type).startswith("DECIMAL"):
                 _type = "DECIMAL"
+            if _type is None:
+                _type = "NULL"
             _type = OrsoTypes(_type)
             profile["type"] = _type
             profile["count"] += len(column_data)
