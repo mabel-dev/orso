@@ -1,5 +1,7 @@
 import datetime
 import functools
+import os
+import sys
 
 import numpy
 import orjson
@@ -10,7 +12,10 @@ from orso.schema import RelationSchema
 from orso.types import PYTHON_TO_ORSO_MAP
 from orso.types import OrsoTypes
 
-MAX_STRING_SIZE: int = 64
+sys.path.insert(1, os.path.join(sys.path[0], "../.."))
+
+
+MAX_STRING_SIZE: int = 128
 MAX_UNIQUE_COLLECTOR: int = 8
 
 
@@ -48,7 +53,7 @@ def _to_unix_epoch(date):
         return None
     # Not all platforms can handle negative timestamp()
     # https://bugs.python.org/issue29097
-    return (date - UNIX_EPOCH).total_seconds()
+    return date.astype("datetime64[s]").astype("int64")
 
 
 def table_profiler(dataframe):
@@ -72,7 +77,7 @@ def table_profiler(dataframe):
         }
     )
 
-    for morsel in dataframe.to_batches(10000):
+    for morsel in dataframe.to_batches(1000):
         uncollected_columns = []
         profile_collector: dict = {}
 
@@ -82,19 +87,15 @@ def table_profiler(dataframe):
                 continue
 
             profile = profile_collector.get(column, orjson.loads(empty_profile))
-            _type: set = functools.reduce(
-                lambda a, b: a if b is None else a.union({type(b).__name__}), column_data, set()
-            )  # type:ignore
-
-            profile["type"] = list(set(profile["type"]).union(_type))
-            if len(profile["type"]) > 1:
-                uncollected_columns.append(column)
-            if len(_type) > 0:
-                _type = _type.pop()
-            else:
-                _type = None
+            _type = [col for col in morsel.description if col[0] == column][0][1]
+            if str(_type).startswith("DECIMAL"):
+                _type = "DECIMAL"
+            if _type is None:
+                _type = "NULL"
+            _type = OrsoTypes(_type)
+            profile["type"] = _type
             profile["count"] += len(column_data)
-            profile["missing"] += sum(1 for a in column_data if a is None)
+            profile["missing"] += sum(1 for a in column_data if a is not None)
 
             # interim save
             profile_collector[column] = profile
@@ -104,11 +105,11 @@ def table_profiler(dataframe):
                 continue
 
             # don't collect columns we can't analyse
-            if _type in {"list", "dict", "NoneType"}:
+            if _type in {OrsoTypes._MISSING_TYPE, OrsoTypes.ARRAY, OrsoTypes.STRUCT}:
                 continue
 
             # long strings are meaningless
-            if _type == "str":
+            if _type == OrsoTypes.VARCHAR:
                 column_data = [v for v in column_data if v is not None]
 
                 max_len = functools.reduce(
@@ -136,14 +137,18 @@ def table_profiler(dataframe):
                     )
 
             # convert TIMESTAMP into a NUMERIC (seconds after Unix Epoch)
-            if _type == "datetime":
+            if _type.is_temporal():
                 column_data = (_to_unix_epoch(i) for i in column_data)
 
-            if _type in {"bool", "datetime", "int", "float", "str"}:
+            if (
+                _type.is_temporal()
+                or _type.is_numeric()
+                or _type in {OrsoTypes.BOOLEAN, OrsoTypes.VARCHAR}
+            ):
                 # remove empty values
                 column_data = numpy.array([i for i in column_data if i not in (None, numpy.nan)])
 
-            if _type == "bool":
+            if _type == OrsoTypes.BOOLEAN:
                 # we can make it easier to collect booleans
                 counter = profile.get("counter")
                 if counter is None:
@@ -153,7 +158,7 @@ def table_profiler(dataframe):
                 counter["False"] += column_data.size - trues
                 profile["counter"] = counter
 
-            if _type == "str" and profile.get("counter") != {}:
+            if _type == OrsoTypes.VARCHAR:
                 # counter is used to collect and count unique values
                 vals, counts = numpy.unique(column_data, return_counts=True)
                 counter = {}
@@ -165,7 +170,7 @@ def table_profiler(dataframe):
                         counter = {}
                 profile["counter"] = counter
 
-            if _type in {"int", "float", "datetime"}:
+            if _type.is_temporal() or _type.is_numeric():
                 # populate the distogram, this is used for distribution statistics
                 dgram = profile.get("dgram")
                 if dgram is None:
@@ -179,9 +184,7 @@ def table_profiler(dataframe):
 
         for column, profile in profile_collector.items():
             profile["name"] = column
-            profile["type"] = ", ".join(
-                [PYTHON_TO_ORSO_MAP.get(t, "OTHER") for t in profile["type"]]
-            )
+            profile["type"] = profile["type"].name
 
             if column not in uncollected_columns:
                 dgram = profile.pop("dgram", None)
@@ -235,7 +238,6 @@ if __name__ == "__main__":  # pragme: no cover
 
     import opteryx
 
-    df = opteryx.query("SELECT graduate_major, len(graduate_major) FROM $astronauts")
+    df = opteryx.query("SELECT * FROM $satellites")
     print(df)
-
-    print(table_profiler(df))
+    print(df.profile)
