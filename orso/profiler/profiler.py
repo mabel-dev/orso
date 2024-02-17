@@ -1,4 +1,3 @@
-import datetime
 import functools
 import os
 import sys
@@ -19,33 +18,53 @@ MAX_STRING_SIZE: int = 128
 MAX_UNIQUE_COLLECTOR: int = 8
 
 
-class DataProfile(orso.DataFrame):
+class DataProfile:
+
+    SCHEMA: RelationSchema = RelationSchema(
+        name="profile",
+        columns=[
+            FlatColumn(name="name", type=OrsoTypes.VARCHAR),
+            FlatColumn(name="type", type=OrsoTypes.VARCHAR),
+            FlatColumn(name="count", type=OrsoTypes.INTEGER),
+            FlatColumn(name="missing", type=OrsoTypes.INTEGER),
+            FlatColumn(name="most_frequent_values", type=OrsoTypes.ARRAY),
+            FlatColumn(name="most_frequent_counts", type=OrsoTypes.ARRAY),
+            FlatColumn(name="numeric_range", type=OrsoTypes.ARRAY),
+            FlatColumn(name="varchar_range", type=OrsoTypes.ARRAY),
+            FlatColumn(name="distogram_values", type=OrsoTypes.ARRAY),
+            FlatColumn(name="distogram_counts", type=OrsoTypes.ARRAY),
+        ],
+    )
+
+    ROW_FACTORY = orso.Row.create_class(SCHEMA, tuples_only=True)
+
     def __add__(self, data_profile):
+
+        profile = orso.DataFrame(schema=self.SCHEMA)
+
+        for my_row in self:
+            new_row = my_row.as_dict
+            for added_row in data_profile:
+                added_row = added_row.as_dict
+                if added_row["name"] == new_row["name"]:
+                    new_row["count"] += added_row["count"]
+                    new_row["missing"] += added_row["missing"]
+
+            profile.append(new_row)
+
+        return profile
         raise NotImplementedError("cannot add profiles")
 
     @classmethod
     def from_dataset(cls, dataset):
-        rows = table_profiler(dataset)
-        schema = RelationSchema(
-            name="profile",
-            columns=[
-                FlatColumn(name="name", type=OrsoTypes.VARCHAR),
-                FlatColumn(name="type", type=OrsoTypes.VARCHAR),
-                FlatColumn(name="count", type=OrsoTypes.INTEGER),
-                FlatColumn(name="missing", type=OrsoTypes.INTEGER),
-                FlatColumn(name="most_frequent_values", type=OrsoTypes.ARRAY),
-                FlatColumn(name="most_frequent_counts", type=OrsoTypes.ARRAY),
-                FlatColumn(name="numeric_range", type=OrsoTypes.ARRAY),
-                FlatColumn(name="varchar_range", type=OrsoTypes.ARRAY),
-                FlatColumn(name="distogram_values", type=OrsoTypes.ARRAY),
-                FlatColumn(name="distogram_counts", type=OrsoTypes.ARRAY),
-            ],
-        )
-        profile = cls(rows=rows, schema=schema)
+        profile = cls(schema=cls.SCHEMA)
+        for row in table_profiler(dataset):
+            profile._rows.append(cls.ROW_FACTORY(row))
         return profile
 
-
-UNIX_EPOCH = datetime.datetime(1970, 1, 1)
+    @property
+    def as_dataframe(self):
+        pass
 
 
 def _to_unix_epoch(date):
@@ -241,3 +260,4 @@ if __name__ == "__main__":  # pragme: no cover
     df = opteryx.query("SELECT * FROM $satellites")
     print(df)
     print(df.profile)
+    print(df.profile + df.profile)

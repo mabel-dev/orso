@@ -201,21 +201,9 @@ class DataFrame:
             Union[list, tuple]:
                 A tuple containing lists of the column data, or a single list if only one column is specified.
         """
-        from operator import itemgetter
+        from orso.compiled import collect_cython
 
-        single = False
-        if not isinstance(columns, list) or isinstance(columns, str):
-            single = True
-            columns = [columns]
-
-        columns = (
-            c if isinstance(c, int) else self.column_names.index(c) for c in columns
-        )  # type:ignore
-
-        getters = (itemgetter(column) for column in columns)
-        result = [[getter(row) for row in self._rows] for getter in getters]
-
-        return result[0] if single else tuple(result)
+        return collect_cython(self, columns)
 
     def slice(self, offset: int = 0, length: int = None) -> "DataFrame":
         self.materialize()
@@ -389,13 +377,17 @@ class DataFrame:
         self.materialize()
         return len(self._rows)
 
+    @property
+    def schema(self) -> RelationSchema:
+        return self._schema
+
     def __hash__(self):
-        from orso.cityhash import CityHash32
+        from cityhash import CityHash64
 
         _hash = 0
-        for row in self._rows:
-            row_hash = CityHash32(str(row).encode())
-            _hash = _hash ^ row_hash
+        for i, row in enumerate(self._rows):
+            row_hash = CityHash64(str(row).encode())
+            _hash = i ^ _hash ^ row_hash
         return _hash
 
     def __iter__(self):
