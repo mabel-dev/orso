@@ -1,22 +1,30 @@
 import os
 import sys
+from copy import deepcopy
+from dataclasses import asdict
+from dataclasses import dataclass
+from dataclasses import field
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Optional
+from typing import Tuple
 
 import numpy
-import orjson
 
-
-sys.path.insert(1, os.path.join(sys.path[0], "../.."))
-
-from orso.profiler.distogram import Distogram  # type:ignore
+from orso.profiler.distogram import Distogram
+from orso.profiler.distogram import load
+from orso.profiler.distogram import merge
 from orso.schema import FlatColumn
 from orso.types import OrsoTypes
 
+sys.path.insert(1, os.path.join(sys.path[0], "../.."))
 
 
 MOST_FREQUENT_VALUE_SIZE: int = 32
+INFINITY = float("inf")
+SIXTY_FOUR_BITS: int = 8
+SIXTY_FOUR_BYTES: int = 64
 
 
 def string_to_int64(value: str) -> int:
@@ -29,7 +37,7 @@ def string_to_int64(value: str) -> int:
     Returns:
         An integer representation of the first 8 characters of the string.
     """
-    byte_value = value.ljust(8)[:8].encode("utf-8")
+    byte_value = value.ljust(SIXTY_FOUR_BITS)[:SIXTY_FOUR_BITS].encode("utf-8")
     int_value = int.from_bytes(byte_value, "big")
     return min(int_value, 9223372036854775807)
 
@@ -39,7 +47,7 @@ def int64_to_string(value: int) -> str:
     if value >= 9223372036854775807:
         return None
 
-    byte_value = value.to_bytes(8, "big")
+    byte_value = value.to_bytes(SIXTY_FOUR_BITS, "big")
 
     # Decode the byte array back to a UTF-8 string
     # You might need to strip any padding characters that were added when encoding
@@ -48,7 +56,7 @@ def int64_to_string(value: int) -> str:
     return string_value
 
 
-def find_mfvs(data, top_n=32):
+def find_mfvs(data, top_n=MOST_FREQUENT_VALUE_SIZE):
     """
     Find the top N most frequent values (MFVs) in a NumPy array along with their counts.
 
@@ -79,139 +87,151 @@ def _to_unix_epoch(date):
     return date.astype("datetime64[s]").astype("int64")
 
 
-class BaseProfiler:
-    def __init__(self, column: FlatColumn):
-        self.column = column
-        self.profile = {
-            "name": column.name,
-            "type": column.type.value,
-            "count": 0,
-            "missing": 0,
-            "minimum": None,
-            "maximum": None,
-            "most_frequent_values": None,
-            "most_frequent_counts": None,
-        }
+@dataclass
+class ColumnProfile:
+    name: str
+    type: OrsoTypes
+    count: int = 0
+    missing: int = 0
+    maximum: Optional[int] = None
+    minimum: Optional[int] = None
+    most_frequent_values: List[str] = field(default_factory=list)
+    most_frequent_counts: List[int] = field(default_factory=list)
+    bins: List[Tuple] = field(default_factory=list)
 
-    def __call__(self, column_data: List[Any]):
-        raise NotImplementedError("Must be implemented by subclass.")
+    def deep_copy(self):
+        """Create a deep copy of the Profile instance."""
+        return deepcopy(self)
 
-    def __add__(self, profile):
+    def __add__(self, profile: "ColumnProfile") -> "ColumnProfile":
 
-        INFINITY = float("inf")
+        new_profile = self.deep_copy()
+        new_profile.count += profile.count
+        new_profile.missing += profile.missing
+        new_profile.minimum = min([self.minimum or INFINITY, profile.minimum or INFINITY])
+        if new_profile.minimum == INFINITY:
+            new_profile.minimum = None
+        new_profile.maximum = max([self.maximum or -INFINITY, profile.maximum or -INFINITY])
+        if new_profile.maximum == -INFINITY:
+            new_profile.maximum = None
 
-        new_profile = BaseProfiler(self.column)
-        new_profile.profile["count"] = self.profile["count"] + profile.profile["count"]
-        new_profile.profile["missing"] = self.profile["missing"] + profile.profile["missing"]
-        new_profile.profile["minimum"] = min(
-            [self.profile["minimum"] or INFINITY, profile.profile["minimum"] or INFINITY]
-        )
-        if new_profile.profile["minimum"] == INFINITY:
-            new_profile.profile["minimum"] = None
-        new_profile.profile["maximum"] = max(
-            [self.profile["maximum"] or -INFINITY, profile.profile["maximum"] or -INFINITY]
-        )
-        if new_profile.profile["maximum"] == -INFINITY:
-            new_profile.profile["maximum"] = None
-
-        if self.profile["most_frequent_values"] and profile.profile["most_frequent_values"]:
-            morsel1_map = dict(
-                zip(self.profile["most_frequent_values"], self.profile["most_frequent_counts"])
-            )
-            morsel2_map = dict(
-                zip(
-                    profile.profile["most_frequent_values"], profile.profile["most_frequent_counts"]
-                )
-            )
+        if self.most_frequent_values and profile.most_frequent_values:
+            morsel1_map = dict(zip(self.most_frequent_values, self.most_frequent_counts))
+            morsel2_map = dict(zip(profile.most_frequent_values, profile.most_frequent_counts))
 
             combined_map = {}
             for value in morsel1_map:
                 if value in morsel2_map:  # Ensure the value is present in both morsels
                     combined_map[value] = morsel1_map[value] + morsel2_map[value]
 
-            new_profile.profile["most_frequent_values"] = list(combined_map.keys())
-            new_profile.profile["most_frequent_counts"] = list(combined_map.values())
+            new_profile.most_frequent_values = list(combined_map.keys())
+            new_profile.most_frequent_counts = list(combined_map.values())
+        else:
+            new_profile.most_frequent_values = []
+            new_profile.most_frequent_counts = []
+
+        if self.bins and profile.bins:
+            my_dgram = load(self.bins, self.minimum, self.maximum)
+            profile_dgram = load(profile.bins, profile.minimum, profile.maximum)
+            if len(profile.bins) > len(self.bins):
+                new_profile.bins = merge(profile_dgram, my_dgram).bins
+            else:
+                new_profile.bins = merge(my_dgram, profile_dgram).bins
+        else:
+            new_profile.bins = []
 
         return new_profile
+
+
+class BaseProfiler:
+    def __init__(self, column: FlatColumn):
+        self.column = column
+        self.profile = ColumnProfile(name=column.name, type=column.type)
+
+    def __call__(self, column_data: List[Any]):
+        raise NotImplementedError("Must be implemented by subclass.")
 
 
 class ListStructProfiler(BaseProfiler):
     def __call__(self, column_data: List[Any]):
 
-        self.profile["count"] = len(column_data)
-        self.profile["missing"] = sum(1 for val in column_data if val is None)
+        self.profile.count = len(column_data)
+        self.profile.missing = sum(1 for val in column_data if val is None)
 
 
 class DefaultProfiler(BaseProfiler):
     def __call__(self, column_data: List[Any]):
 
-        self.profile["count"] = len(column_data)
-        self.profile["missing"] = sum(1 for val in column_data if val != val)
+        self.profile.count = len(column_data)
+        self.profile.missing = sum(1 for val in column_data if val != val)
 
 
 class BooleanProfiler(BaseProfiler):
     def __call__(self, column_data: List[Any]):
-        self.profile["count"] = len(column_data)
+        self.profile.count = len(column_data)
 
         column_data = [col for col in column_data if col is not None]
-        self.profile["missing"] = self.profile["count"] - len(column_data)
+        self.profile.missing = self.profile.count - len(column_data)
 
-        self.profile["most_frequent_values"] = ["True", "False"]
-        self.profile["most_frequent_counts"] = [column_data.count(True), column_data.count(False)]
+        self.profile.most_frequent_values = ["True", "False"]
+        self.profile.most_frequent_counts = [column_data.count(True), column_data.count(False)]
 
 
 class NumericProfiler(BaseProfiler):
 
     def __call__(self, column_data: List[Any]):
 
-        self.profile["count"] = len(column_data)
+        self.profile.count = len(column_data)
         column_data = numpy.array(column_data, copy=False)  # Ensure column_data is a NumPy array
         column_data = column_data[~numpy.isnan(column_data)]
-        self.profile["missing"] = self.profile["count"] - len(column_data)
+        self.profile.missing = self.profile.count - len(column_data)
         # Compute min and max only if necessary
         if len(column_data) > 0:
-            self.profile["minimum"] = int(numpy.min(column_data))
-            self.profile["maximum"] = int(numpy.max(column_data))
+            self.profile.minimum = int(numpy.min(column_data))
+            self.profile.maximum = int(numpy.max(column_data))
 
-        mf_values, mf_counts = find_mfvs(column_data, MOST_FREQUENT_VALUE_SIZE)
-        self.profile["most_frequent_values"] = map(str, mf_values)
-        self.profile["most_frequent_counts"] = mf_counts
+            mf_values, mf_counts = find_mfvs(column_data, MOST_FREQUENT_VALUE_SIZE)
+            self.profile.most_frequent_values = [f"{n:f}".rstrip("0").strip(".") for n in mf_values]
+            self.profile.most_frequent_counts = mf_counts
 
-        # distogram = None
+            dgram = Distogram()
+            dgram.bulkload(column_data)
+            self.profile.bins = dgram.bins
 
 
 class VarcharProfiler(BaseProfiler):
 
     def __call__(self, column_data: List[Any]):
 
-        self.profile["count"] = len(column_data)
-        column_data = [col for col in column_data if col is not None]
-        self.profile["missing"] = self.profile["count"] - len(column_data)
-        self.profile["minimum"] = string_to_int64(min(column_data))
-        self.profile["maximum"] = string_to_int64(max(column_data))
+        self.profile.count = len(column_data)
+        column_data = [col[:SIXTY_FOUR_BYTES] for col in column_data if col is not None]
+        self.profile.missing = self.profile.count - len(column_data)
+        self.profile.minimum = string_to_int64(min(column_data))
+        self.profile.maximum = string_to_int64(max(column_data))
 
         mf_values, mf_counts = find_mfvs(column_data, MOST_FREQUENT_VALUE_SIZE)
-        self.profile["most_frequent_values"] = [val for val in mf_values]
-        self.profile["most_frequent_counts"] = mf_counts
+        self.profile.most_frequent_values = mf_values
+        self.profile.most_frequent_counts = mf_counts
 
 
 class DateProfiler(BaseProfiler):
 
     def __call__(self, column_data: List[Any]):
 
-        self.profile["count"] = len(column_data)
+        self.profile.count = len(column_data)
         column_data = [col for col in column_data if col == col]
-        self.profile["missing"] = self.profile["count"] - len(column_data)
+        self.profile.missing = self.profile.count - len(column_data)
         column_data = [_to_unix_epoch(i) for i in column_data]
 
         numeric_profiler = NumericProfiler(self.column)
         numeric_profiler(column_data)
         numeric_profile = numeric_profiler.profile
 
-        self.profile["minimum"] = numeric_profile["minimum"]
-        self.profile["maximum"] = numeric_profile["maximum"]
-        self.profile["most_frequent_values"] = numeric_profile["most_frequent_values"]
-        self.profile["most_frequent_counts"] = numeric_profile["most_frequent_counts"]
+        self.profile.minimum = numeric_profile.minimum
+        self.profile.maximum = numeric_profile.maximum
+        self.profile.most_frequent_values = numeric_profile.most_frequent_values
+        self.profile.most_frequent_counts = numeric_profile.most_frequent_counts
+        self.profile.bins = numeric_profile.bins
 
 
 def table_profiler(dataframe) -> List[Dict[str, Any]]:
@@ -239,11 +259,11 @@ def table_profiler(dataframe) -> List[Dict[str, Any]]:
             profiler = profiler_class(column)
             profiler(column_data=column_data)
             if column.name in profiles:
-                profiles[column.name] += profiler
+                profiles[column.name] += profiler.profile
             else:
-                profiles[column.name] = profiler
+                profiles[column.name] = profiler.profile
 
-    return [v.profile for v in profiles.values()]
+    return [asdict(v) for v in profiles.values()]
 
 
 if __name__ == "__main__":
@@ -259,15 +279,13 @@ if __name__ == "__main__":
     df = opteryx.query("SELECT * FROM 'scratch/tweets.arrow'")
     print(df)
     t = time.monotonic_ns()
-    #    pr = table_profiler(df)
+    pr = table_profiler(df)
     print((time.monotonic_ns() - t) / 1e9)
-    #    print(orso.DataFrame(pr))
+    print(orso.DataFrame(pr))
+    print(orso.DataFrame(pr + pr))
 
-    t = time.monotonic_ns()
-    pr = df.arrow()
-    print((time.monotonic_ns() - t) / 1e9)
-    # quit()
-    print(pr.shape)
+    quit()
+
     import cProfile
     import pstats
 
