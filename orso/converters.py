@@ -13,7 +13,6 @@
 import itertools
 import typing
 
-from orso.compiled import extract_dict_columns
 from orso.exceptions import MissingDependencyError
 from orso.row import Row
 from orso.schema import FlatColumn
@@ -26,11 +25,11 @@ def to_arrow(dataset, size=None):
     except ImportError as import_error:
         raise MissingDependencyError(import_error.name) from import_error
 
-    # Create a list of PyArrow arrays from the rows
-    rows = dataset._rows
-    arrays = [
-        pyarrow.array(col) for col in zip(*(rows if size is None else itertools.islice(rows, size)))
-    ]
+    if size is None:
+        size = -1
+
+    # Create a list of column arrays from the rows
+    arrays = dataset.collect(list(range(dataset.columncount)), size)
 
     # Create a PyArrow table from the arrays and schema
     if arrays:

@@ -80,30 +80,29 @@ cpdef tuple extract_dict_columns(dict data, tuple fields):
 
 
 
+from libc.stdlib cimport malloc, free
+import numpy as np
+cimport cython
+cimport numpy as cnp
 
-
-@cython.boundscheck(False)  # Disable bounds checking for entire function
-@cython.wraparound(False)  # Disable negative indexing
-def collect_cython(object self, columns):
-    cdef int single = False
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def collect_cython(list rows, cnp.ndarray[cnp.int32_t, ndim=1] columns, int limit=-1, int single=False) -> list:
     cdef int i, j
-    cdef int num_rows = len(self._rows)
+    cdef int num_rows = len(rows)
+    cdef int num_cols = columns.shape[0]
 
-    if not isinstance(columns, list):
-        single = True
-        columns = [columns]
+    if limit >= 0 and limit < num_rows:
+        num_rows = limit
 
-    cdef int num_cols = len(columns)
-    cdef list result = [[] for _ in range(num_cols)]
-
-    # Pre-resolve column indices
-    column_indices = [
-        c if isinstance(c, int) else self.column_names.index(c) for c in columns
-    ]
+    # Initialize result list
+    cdef list result = [[None] * num_rows for _ in range(num_cols)]
 
     # Iterate over rows and columns, collecting data
     for i in range(num_rows):
+        row = rows[i]
         for j in range(num_cols):
-            result[j].append(self._rows[i][column_indices[j]])
+            result[j][i] = row[columns[j]]
 
-    return result[0] if single else tuple(result)
+    return result[0] if single else result
+

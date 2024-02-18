@@ -1,5 +1,6 @@
 import platform
 
+import numpy
 from Cython.Build import cythonize
 from setuptools import Extension
 from setuptools import find_packages
@@ -43,6 +44,7 @@ extensions = [
     Extension(
         name="orso.compiled",
         sources=["orso/compiled.pyx"],
+        include_dirs=[numpy.get_include()],
         extra_compile_args=COMPILE_FLAGS,
         extra_link_args=COMPILE_FLAGS,
     ),

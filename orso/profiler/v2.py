@@ -7,11 +7,13 @@ from typing import List
 import numpy
 import orjson
 
+
+sys.path.insert(1, os.path.join(sys.path[0], "../.."))
+
 from orso.profiler.distogram import Distogram  # type:ignore
 from orso.schema import FlatColumn
 from orso.types import OrsoTypes
 
-sys.path.insert(1, os.path.join(sys.path[0], "../.."))
 
 
 MOST_FREQUENT_VALUE_SIZE: int = 32
@@ -257,20 +259,21 @@ if __name__ == "__main__":
     df = opteryx.query("SELECT * FROM 'scratch/tweets.arrow'")
     print(df)
     t = time.monotonic_ns()
-    pr = table_profiler(df)
+    #    pr = table_profiler(df)
     print((time.monotonic_ns() - t) / 1e9)
-    print(orso.DataFrame(pr))
+    #    print(orso.DataFrame(pr))
 
-    print(int64_to_string(9223372036854775807))
-
-    quit()
-
+    t = time.monotonic_ns()
+    pr = df.arrow()
+    print((time.monotonic_ns() - t) / 1e9)
+    # quit()
+    print(pr.shape)
     import cProfile
     import pstats
 
     with cProfile.Profile(subcalls=False) as pr:
 
-        prr = table_profiler(df)
+        prr = df.arrow()
 
         # stats = pstats.Stats(pr).strip_dirs().sort_stats("tottime")
         stats = pstats.Stats(pr).sort_stats("tottime")
@@ -278,7 +281,7 @@ if __name__ == "__main__":
         func_list = [
             (k, v)
             for k, v in stats.stats.items()
-            if "orso" in k[0]
+            if True  # "orso" in k[0]
             and "." in k[0]
             and (not "debugging.py" in k[0] and not "brace.py" in k[0])
         ]
