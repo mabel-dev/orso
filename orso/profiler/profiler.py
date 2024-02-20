@@ -257,7 +257,10 @@ if __name__ == "__main__":  # pragme: no cover
 
     import opteryx
 
-    df = opteryx.query("SELECT * FROM $satellites")
+    df = opteryx.query("SELECT * FROM 'scratch/tweets.arrow'")
     print(df)
+    import time
+
+    t = time.monotonic_ns()
     print(df.profile)
-    print(df.profile + df.profile)
+    print((time.monotonic_ns() - t) / 1e9)

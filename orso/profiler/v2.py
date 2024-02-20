@@ -9,12 +9,12 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
+from typing import Union
 
 import numpy
 
-from orso.profiler.distogram import Distogram
-from orso.profiler.distogram import load
-from orso.profiler.distogram import merge
+from cityhash import CityHash32
+from orso.profiler import distogram
 from orso.schema import FlatColumn
 from orso.types import OrsoTypes
 
@@ -22,9 +22,11 @@ sys.path.insert(1, os.path.join(sys.path[0], "../.."))
 
 
 MOST_FREQUENT_VALUE_SIZE: int = 32
+KVM_SIZE: int = 32
 INFINITY = float("inf")
 SIXTY_FOUR_BITS: int = 8
 SIXTY_FOUR_BYTES: int = 64
+DISTOGRAM_BIN_COUNT: int = 50
 
 
 def string_to_int64(value: str) -> int:
@@ -97,11 +99,38 @@ class ColumnProfile:
     minimum: Optional[int] = None
     most_frequent_values: List[str] = field(default_factory=list)
     most_frequent_counts: List[int] = field(default_factory=list)
-    bins: List[Tuple] = field(default_factory=list)
+    histogram: List[Tuple] = field(default_factory=list)
+    kmv_hashes: List[int] = field(default_factory=list)
 
     def deep_copy(self):
         """Create a deep copy of the Profile instance."""
         return deepcopy(self)
+
+    def estimate_cardinality(self) -> int:
+        """
+        Estimates the cardinality of the elements seen so far.
+        """
+        if not self.kmv_hashes:
+            return 0
+        # Use the k-th smallest hash value (the last/largest in the sorted list) to estimate cardinality
+        kth_min_value = self.kmv_hashes[-1]
+        # Cardinality estimation formula
+        return int((KVM_SIZE - 1) / kth_min_value * (2**32))
+
+    def estimate_values_at(self, point) -> int:
+        if not hasattr(self, "distogram"):
+            self.distogram = distogram.load(self.histogram, self.minimum, self.maximum)
+        return distogram.bin_size(self.distogram, point)
+
+    def estimate_values_below(self, point) -> int:
+        if not hasattr(self, "distogram"):
+            self.distogram = distogram.load(self.histogram, self.minimum, self.maximum)
+        return distogram.count_at(self.distogram, point)
+
+    def estimate_values_above(self, point) -> int:
+        if not hasattr(self, "distogram"):
+            self.distogram = distogram.load(self.histogram, self.minimum, self.maximum)
+        return (self.count - self.missing) - distogram.count_at(self.distogram, point)
 
     def __add__(self, profile: "ColumnProfile") -> "ColumnProfile":
 
@@ -130,17 +159,65 @@ class ColumnProfile:
             new_profile.most_frequent_values = []
             new_profile.most_frequent_counts = []
 
-        if self.bins and profile.bins:
-            my_dgram = load(self.bins, self.minimum, self.maximum)
-            profile_dgram = load(profile.bins, profile.minimum, profile.maximum)
-            if len(profile.bins) > len(self.bins):
-                new_profile.bins = merge(profile_dgram, my_dgram).bins
+        if self.histogram and profile.histogram:
+            my_dgram = distogram.load(self.histogram, self.minimum, self.maximum)
+            profile_dgram = distogram.load(profile.histogram, profile.minimum, profile.maximum)
+            if len(profile.histogram) > len(self.histogram):
+                new_profile.histogram = distogram.merge(profile_dgram, my_dgram).bins
             else:
-                new_profile.bins = merge(my_dgram, profile_dgram).bins
+                new_profile.histogram = distogram.merge(my_dgram, profile_dgram).bins
         else:
-            new_profile.bins = []
+            new_profile.histogram = []
+
+        if self.kmv_hashes and profile.kmv_hashes:
+            new_profile.kmv_hashes = sorted(set(self.kmv_hashes + profile.kmv_hashes))[:KVM_SIZE]
 
         return new_profile
+
+
+class TableProfile:
+
+    def __init__(self):
+        self._columns: List[ColumnProfile] = []
+        self._column_names: List[str] = []
+
+    def __add__(self, right_profile: "TableProfile") -> "TableProfile":
+        new_profile = TableProfile()
+
+        for column_name in self._column_names:
+            left_column = self.column(column_name)
+            right_column = right_profile.column(column_name)
+            if not right_column:
+                right_column = ColumnProfile(
+                    column_name, left_column.type, left_column.count, left_column.count
+                )
+            new_profile.add_column(left_column + right_column, column_name)
+
+        return new_profile
+
+    def add_column(self, profile: ColumnProfile, name: str):
+        self._columns.append(profile)
+        self._column_names.append(name)
+
+    def __iter__(self):
+        """An iterator over columns"""
+        return iter(self.column)
+
+    def column(self, i: Union[int, str]) -> Union[ColumnProfile, None]:
+        """Get a column by its name or index"""
+        if isinstance(i, str):
+            for name, column in zip(self._column_names, self._columns):
+                if name == i:
+                    return column
+            return None
+
+        if isinstance(i, int):
+            return self._columns[i]
+
+    def to_arrow(self):
+        import pyarrow
+
+        return pyarrow.Table.from_pylist([asdict(v) for v in self._columns.profile()])
 
 
 class BaseProfiler:
@@ -183,7 +260,10 @@ class NumericProfiler(BaseProfiler):
 
         self.profile.count = len(column_data)
         column_data = numpy.array(column_data, copy=False)  # Ensure column_data is a NumPy array
-        column_data = column_data[~numpy.isnan(column_data)]
+        if column_data.dtype.name == "object":
+            column_data = [float(c) for c in column_data if c is not None]
+        else:
+            column_data = column_data[~numpy.isnan(column_data)]
         self.profile.missing = self.profile.count - len(column_data)
         # Compute min and max only if necessary
         if len(column_data) > 0:
@@ -194,9 +274,18 @@ class NumericProfiler(BaseProfiler):
             self.profile.most_frequent_values = [f"{n:f}".rstrip("0").strip(".") for n in mf_values]
             self.profile.most_frequent_counts = mf_counts
 
-            dgram = Distogram()
-            dgram.bulkload(column_data)
-            self.profile.bins = dgram.bins
+            # Create a histogram of the data
+            hist_counts, bin_edges = numpy.histogram(column_data, bins=DISTOGRAM_BIN_COUNT)
+            self.profile.histogram = [
+                (left_edge, count)
+                for count, left_edge in zip(hist_counts, bin_edges[:-1])
+                if count > 0
+            ]
+
+            # K-minimum value hashes, used for cardinality estimation
+            self.profile.kmv_hashes = sorted([CityHash32(str(element)) for element in column_data])[
+                :KVM_SIZE
+            ]
 
 
 class VarcharProfiler(BaseProfiler):
@@ -204,7 +293,11 @@ class VarcharProfiler(BaseProfiler):
     def __call__(self, column_data: List[Any]):
 
         self.profile.count = len(column_data)
-        column_data = [col[:SIXTY_FOUR_BYTES] for col in column_data if col is not None]
+        column_data = [col for col in column_data if col is not None]
+        self.profile.kmv_hashes = sorted([CityHash32(str(element)) for element in column_data])[
+            :KVM_SIZE
+        ]
+        column_data = [col[:SIXTY_FOUR_BYTES] for col in column_data]
         self.profile.missing = self.profile.count - len(column_data)
         self.profile.minimum = string_to_int64(min(column_data))
         self.profile.maximum = string_to_int64(max(column_data))
@@ -231,7 +324,8 @@ class DateProfiler(BaseProfiler):
         self.profile.maximum = numeric_profile.maximum
         self.profile.most_frequent_values = numeric_profile.most_frequent_values
         self.profile.most_frequent_counts = numeric_profile.most_frequent_counts
-        self.profile.bins = numeric_profile.bins
+        self.profile.histogram = numeric_profile.histogram
+        self.profile.kmv_hashes = numeric_profile.kmv_hashes
 
 
 def table_profiler(dataframe) -> List[Dict[str, Any]]:
@@ -282,7 +376,6 @@ if __name__ == "__main__":
     pr = table_profiler(df)
     print((time.monotonic_ns() - t) / 1e9)
     print(orso.DataFrame(pr))
-    print(orso.DataFrame(pr + pr))
 
     quit()
 

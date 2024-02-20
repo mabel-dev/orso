@@ -398,6 +398,13 @@ def count(h: Distogram) -> float:  # pragma: no cover
     return sum(f for _, f in h.bins)
 
 
+def bin_size(h: Distogram, value) -> int:  # pragma: no cover
+    for v, c in h.bins:
+        if value < v:
+            return c
+    return None
+
+
 def bounds(h: Distogram) -> Tuple[float, float]:  # pragma: no cover
     """Returns the min and max values of the distribution.
 
