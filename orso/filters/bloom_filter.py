@@ -25,8 +25,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from cityhash import CityHash32
 from orso.bitarray import BitArray
-from orso.cityhash import CityHash32
 
 HASH_SEEDS = (
     b"ANTHROPOMORPHISM",
@@ -133,7 +133,7 @@ if __name__ == "__main__":  # pragma: no cover
     b = BloomFilter()
     import time
 
-    from opteryx.utils import random_string
+    from orso.tools import random_string
 
     n = time.monotonic_ns()
     for i in range(1000000):

@@ -1,6 +1,6 @@
 import random
 
-from orso.cityhash import CityHash64
+from cityhash import CityHash64
 
 
 class CuckooFilter:
@@ -69,12 +69,11 @@ if __name__ == "__main__":  # pragma: no cover
 
     sys.path.insert(1, os.path.join(sys.path[0], "../.."))
 
-    ITERATIONS = 100000
+    ITERATIONS = 1000000
     import time
 
-    from opteryx.utils import random_string
-
     from orso.filters import BloomFilter
+    from orso.tools import random_string
 
     t = time.monotonic_ns()
     tokens = (random_string(48) for i in range(ITERATIONS))

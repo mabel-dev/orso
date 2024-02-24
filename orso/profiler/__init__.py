@@ -1,2 +1,2 @@
-from .profiler import DataProfile
+from .profiler import TableProfile
 from .profiler import table_profiler

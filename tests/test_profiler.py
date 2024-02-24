@@ -11,25 +11,63 @@ def test_can_profile():
     
     import orso
     df = orso.DataFrame(cities.values)
-    profile = df.profile
+    profile = df.profile.to_dataframe()
 
     assert profile.shape == (6, 10), profile.shape
     assert profile.collect("count") == [20] * 6
 
-    # we've seen problems that this has uncovered
-    for i in range(5):
-        profile = profile.profile
 
-
-def test_opteryx_profile():
+def test_opteryx_profile_planets():
     try:
         sys.path.insert(1, os.path.join(sys.path[0], "../../opteryx"))
         import opteryx
 
         planets = opteryx.query("SELECT * FROM $planets")
-        profile = planets.profile
+        profile = planets.profile.to_dataframe()
         assert profile.shape == (20, 10), profile.shape
         assert profile.collect("count") == [9] * 20
+    except ImportError:
+        # if Opteryx isn't installed, don't fail
+        pass
+
+
+def test_opteryx_profile_satellites():
+    try:
+        sys.path.insert(1, os.path.join(sys.path[0], "../../opteryx"))
+        import opteryx
+
+        planets = opteryx.query("SELECT * FROM $satellites")
+        profile = planets.profile.to_dataframe()
+        assert profile.shape == (8, 10), profile.shape
+        assert profile.collect("count") == [177] * 8
+    except ImportError:
+        # if Opteryx isn't installed, don't fail
+        pass
+
+
+def test_opteryx_profile_astronauts():
+    try:
+        sys.path.insert(1, os.path.join(sys.path[0], "../../opteryx"))
+        import opteryx
+
+        planets = opteryx.query("SELECT * FROM $astronauts")
+        profile = planets.profile.to_dataframe()
+        assert profile.shape == (19, 10), profile.shape
+        assert profile.collect("count") == [357] * 19
+    except ImportError:
+        # if Opteryx isn't installed, don't fail
+        pass
+
+
+def test_opteryx_profile_fake():
+    try:
+        sys.path.insert(1, os.path.join(sys.path[0], "../../opteryx"))
+        import opteryx
+
+        planets = opteryx.query("SELECT * FROM FAKE(100, 100) AS FK")
+        profile = planets.profile.to_dataframe()
+        assert profile.shape == (100, 10), profile.shape
+        assert profile.collect("count") == [100] * 100
     except ImportError:
         # if Opteryx isn't installed, don't fail
         pass

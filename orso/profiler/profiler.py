@@ -1,51 +1,79 @@
-import datetime
-import functools
-import os
-import sys
+from copy import deepcopy
+from dataclasses import asdict
+from dataclasses import dataclass
+from dataclasses import field
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import Union
 
 import numpy
-import orjson
 
-import orso
+from cityhash import CityHash32
+from orso.profiler import distogram
 from orso.schema import FlatColumn
-from orso.schema import RelationSchema
-from orso.types import PYTHON_TO_ORSO_MAP
 from orso.types import OrsoTypes
 
-sys.path.insert(1, os.path.join(sys.path[0], "../.."))
+MOST_FREQUENT_VALUE_SIZE: int = 32
+KVM_SIZE: int = 32
+INFINITY = float("inf")
+SIXTY_FOUR_BITS: int = 8
+SIXTY_FOUR_BYTES: int = 64
+DISTOGRAM_BIN_COUNT: int = 50
 
 
-MAX_STRING_SIZE: int = 128
-MAX_UNIQUE_COLLECTOR: int = 8
+def string_to_int64(value: str) -> int:
+    """Convert the first 8 characters of a string to an integer representation.
+
+    Parameters:
+        value: str
+            The string value to be converted.
+
+    Returns:
+        An integer representation of the first 8 characters of the string.
+    """
+    byte_value = value.ljust(SIXTY_FOUR_BITS)[:SIXTY_FOUR_BITS].encode("utf-8")
+    int_value = int.from_bytes(byte_value, "big")
+    return min(int_value, 9223372036854775807)
 
 
-class DataProfile(orso.DataFrame):
-    def __add__(self, data_profile):
-        raise NotImplementedError("cannot add profiles")
+def int64_to_string(value: int) -> str:
+    # Convert the integer back to 8 bytes using big-endian byte order
+    if value >= 9223372036854775807:
+        return None
 
-    @classmethod
-    def from_dataset(cls, dataset):
-        rows = table_profiler(dataset)
-        schema = RelationSchema(
-            name="profile",
-            columns=[
-                FlatColumn(name="name", type=OrsoTypes.VARCHAR),
-                FlatColumn(name="type", type=OrsoTypes.VARCHAR),
-                FlatColumn(name="count", type=OrsoTypes.INTEGER),
-                FlatColumn(name="missing", type=OrsoTypes.INTEGER),
-                FlatColumn(name="most_frequent_values", type=OrsoTypes.ARRAY),
-                FlatColumn(name="most_frequent_counts", type=OrsoTypes.ARRAY),
-                FlatColumn(name="numeric_range", type=OrsoTypes.ARRAY),
-                FlatColumn(name="varchar_range", type=OrsoTypes.ARRAY),
-                FlatColumn(name="distogram_values", type=OrsoTypes.ARRAY),
-                FlatColumn(name="distogram_counts", type=OrsoTypes.ARRAY),
-            ],
-        )
-        profile = cls(rows=rows, schema=schema)
-        return profile
+    byte_value = value.to_bytes(SIXTY_FOUR_BITS, "big")
+
+    # Decode the byte array back to a UTF-8 string
+    # You might need to strip any padding characters that were added when encoding
+    string_value = byte_value.decode("utf-8").rstrip("\x00")
+
+    return string_value
 
 
-UNIX_EPOCH = datetime.datetime(1970, 1, 1)
+def find_mfvs(data, top_n=MOST_FREQUENT_VALUE_SIZE):
+    """
+    Find the top N most frequent values (MFVs) in a NumPy array along with their counts.
+
+    Parameters:
+        data (np.ndarray): The input NumPy array containing numerical data.
+        top_n (int): The number of top MFVs to return. Default is 32.
+
+    Returns:
+        top_values (np.ndarray): The top N most frequent values in the data.
+        top_counts (np.ndarray): The counts of the top N most frequent values.
+    """
+    from collections import Counter
+
+    counter = Counter(data)
+
+    # Most common returns tuples of (value, count), so separate them
+    top_items = counter.most_common(top_n)
+    top_values, top_counts = zip(*top_items) if top_items else ([], [])
+
+    return top_values, top_counts
 
 
 def _to_unix_epoch(date):
@@ -56,188 +84,323 @@ def _to_unix_epoch(date):
     return date.astype("datetime64[s]").astype("int64")
 
 
-def table_profiler(dataframe):
-    """
-    Collect summary statistics about each column
-    """
-    from orso.profiler.distogram import Distogram  # type:ignore
+@dataclass
+class ColumnProfile:
+    name: str
+    type: OrsoTypes
+    count: int = 0
+    missing: int = 0
+    maximum: Optional[int] = None
+    minimum: Optional[int] = None
+    most_frequent_values: List[str] = field(default_factory=list)
+    most_frequent_counts: List[int] = field(default_factory=list)
+    histogram: List[Tuple] = field(default_factory=list)
+    kmv_hashes: List[int] = field(default_factory=list)
 
-    empty_profile = orjson.dumps(
-        {
-            "name": None,
-            "type": [],
-            "count": 0,
-            "missing": 0,
-            "most_frequent_values": None,
-            "most_frequent_counts": None,
-            "numeric_range": None,
-            "varchar_range": None,
-            "distogram_values": None,
-            "distogram_counts": None,
-        }
-    )
+    def deep_copy(self):
+        """Create a deep copy of the Profile instance."""
+        return deepcopy(self)
 
-    for morsel in dataframe.to_batches(1000):
-        uncollected_columns = []
-        profile_collector: dict = {}
+    def estimate_cardinality(self) -> int:
+        """
+        Estimates the cardinality of the elements seen so far.
+        """
+        if not self.kmv_hashes:
+            return 0
+        # Use the k-th smallest hash value (the last/largest in the sorted list) to estimate cardinality
+        kth_min_value = self.kmv_hashes[-1]
+        # Cardinality estimation formula
+        return int((KVM_SIZE - 1) / kth_min_value * (2**32))
 
-        for column in morsel.column_names:
-            column_data = morsel.collect(column)
-            if len(column_data) == 0:
-                continue
+    def estimate_values_at(self, point) -> int:
+        if not hasattr(self, "distogram"):
+            self.distogram = distogram.load(self.histogram, self.minimum, self.maximum)
+        return distogram.bin_size(self.distogram, point)
 
-            profile = profile_collector.get(column, orjson.loads(empty_profile))
-            _type = [col for col in morsel.description if col[0] == column][0][1]
-            if str(_type).startswith("DECIMAL"):
-                _type = "DECIMAL"
-            if _type is None:
-                _type = "NULL"
-            _type = OrsoTypes(_type)
-            profile["type"] = _type
-            profile["count"] += len(column_data)
-            profile["missing"] += sum(1 for a in column_data if a is not None)
+    def estimate_values_below(self, point) -> int:
+        if not hasattr(self, "distogram"):
+            self.distogram = distogram.load(self.histogram, self.minimum, self.maximum)
+        return distogram.count_at(self.distogram, point)
 
-            # interim save
-            profile_collector[column] = profile
+    def estimate_values_above(self, point) -> int:
+        if not hasattr(self, "distogram"):
+            self.distogram = distogram.load(self.histogram, self.minimum, self.maximum)
+        return (self.count - self.missing) - distogram.count_at(self.distogram, point)
 
-            # don't collect problematic columns
-            if column in uncollected_columns:
-                continue
+    def __add__(self, profile: "ColumnProfile") -> "ColumnProfile":
 
-            # don't collect columns we can't analyse
-            if _type in {OrsoTypes._MISSING_TYPE, OrsoTypes.ARRAY, OrsoTypes.STRUCT}:
-                continue
+        new_profile = self.deep_copy()
+        new_profile.count += profile.count
+        new_profile.missing += profile.missing
+        new_profile.minimum = min([self.minimum or INFINITY, profile.minimum or INFINITY])
+        if new_profile.minimum == INFINITY:
+            new_profile.minimum = None
+        new_profile.maximum = max([self.maximum or -INFINITY, profile.maximum or -INFINITY])
+        if new_profile.maximum == -INFINITY:
+            new_profile.maximum = None
 
-            # long strings are meaningless
-            if _type == OrsoTypes.VARCHAR:
-                column_data = [v for v in column_data if v is not None]
+        if self.most_frequent_values and profile.most_frequent_values:
+            morsel1_map = dict(zip(self.most_frequent_values, self.most_frequent_counts))
+            morsel2_map = dict(zip(profile.most_frequent_values, profile.most_frequent_counts))
 
-                max_len = functools.reduce(
-                    lambda x, y: max(len(y), x),
-                    column_data,
-                    0,
+            combined_map = {}
+            for value in morsel1_map:
+                if value in morsel2_map:  # Ensure the value is present in both morsels
+                    combined_map[value] = morsel1_map[value] + morsel2_map[value]
+
+            new_profile.most_frequent_values = (
+                [] if len(combined_map) == 0 else list(combined_map.keys())
+            )
+            new_profile.most_frequent_counts = (
+                [] if len(combined_map) == 0 else list(combined_map.values())
+            )
+        else:
+            new_profile.most_frequent_values = []
+            new_profile.most_frequent_counts = []
+
+        if self.histogram and profile.histogram:
+            my_dgram = distogram.load(self.histogram, self.minimum, self.maximum)
+            profile_dgram = distogram.load(profile.histogram, profile.minimum, profile.maximum)
+            if len(profile.histogram) > len(self.histogram):
+                new_profile.histogram = distogram.merge(profile_dgram, my_dgram).bins
+            else:
+                new_profile.histogram = distogram.merge(my_dgram, profile_dgram).bins
+        else:
+            new_profile.histogram = []
+
+        if self.kmv_hashes and profile.kmv_hashes:
+            new_profile.kmv_hashes = sorted(set(self.kmv_hashes + profile.kmv_hashes))[:KVM_SIZE]
+
+        return new_profile
+
+
+class TableProfile:
+
+    def __init__(self):
+        self._columns: List[ColumnProfile] = []
+        self._column_names: List[str] = []
+
+    def __add__(self, right_profile: "TableProfile") -> "TableProfile":
+        new_profile = TableProfile()
+
+        for column_name in self._column_names:
+            left_column = self.column(column_name)
+            right_column = right_profile.column(column_name)
+            if not right_column:
+                right_column = ColumnProfile(
+                    column_name, left_column.type, left_column.count, left_column.count
                 )
-                if max_len > MAX_STRING_SIZE:
-                    if column not in uncollected_columns:
-                        uncollected_columns.append(column)
+            new_profile.add_column(left_column + right_column, column_name)
+
+        return new_profile
+
+    def add_column(self, profile: ColumnProfile, name: str):
+        self._columns.append(profile)
+        self._column_names.append(name)
+
+    def __iter__(self):
+        """An iterator over columns"""
+        return iter(self.column)
+
+    def column(self, i: Union[int, str]) -> Union[ColumnProfile, None]:
+        """Get a column by its name or index"""
+        if isinstance(i, str):
+            for name, column in zip(self._column_names, self._columns):
+                if name == i:
+                    return column
+            return None
+
+        if isinstance(i, int):
+            return self._columns[i]
+
+    def to_dicts(self) -> List[dict]:
+        return [asdict(v) for v in self._columns]
+
+    def to_arrow(self) -> "pyarrow.Table":
+        import pyarrow
+
+        return pyarrow.Table.from_pylist(self.to_dicts())
+
+    def to_dataframe(self) -> "DataFrame":
+        import orso
+
+        return orso.DataFrame(self.to_dicts())
+
+    @classmethod
+    def from_dataframe(cls, table) -> "TableProfile":
+        from orso.schema import FlatColumn
+        from orso.schema import RelationSchema
+
+        profile = cls()
+
+        profiler_classes = {
+            OrsoTypes.VARCHAR: VarcharProfiler,
+            OrsoTypes.INTEGER: NumericProfiler,
+            OrsoTypes.DOUBLE: NumericProfiler,
+            OrsoTypes.DECIMAL: NumericProfiler,
+            OrsoTypes.ARRAY: ListStructProfiler,
+            OrsoTypes.STRUCT: ListStructProfiler,
+            OrsoTypes.BOOLEAN: BooleanProfiler,
+            OrsoTypes.DATE: DateProfiler,
+            OrsoTypes.TIMESTAMP: DateProfiler,
+        }
+
+        profiles = {}
+
+        for morsel in table.to_batches(25000):
+
+            if not isinstance(morsel.schema, RelationSchema):
+                morsel._schema = RelationSchema(
+                    name="morsel", columns=[FlatColumn(name=c) for c in morsel.schema]
+                )
+
+            for column in morsel.schema.columns:
+                column_data = morsel.collect(column.name)
+                if not column_data:
                     continue
 
-                # collect the range values
-                if len(column_data) > 0:
-                    varchar_range_min = min(column_data)
-                    varchar_range_max = max(column_data)
+                profiler_class = profiler_classes.get(column.type, DefaultProfiler)
+                profiler = profiler_class(column)
+                profiler(column_data=column_data)
+                if column.name in profiles:
+                    profiles[column.name] += profiler.profile
+                else:
+                    profiles[column.name] = profiler.profile
 
-                    if profile["varchar_range"] is not None:
-                        varchar_range_min = min(varchar_range_min, profile["varchar_range"][0])
-                        varchar_range_max = max(varchar_range_max, profile["varchar_range"][1])
+        for name, summary in profiles.items():
+            profile.add_column(summary, name)
 
-                    profile["varchar_range"] = (
-                        varchar_range_min,
-                        varchar_range_max,
-                    )
-
-            # convert TIMESTAMP into a NUMERIC (seconds after Unix Epoch)
-            if _type.is_temporal():
-                column_data = (_to_unix_epoch(i) for i in column_data)
-
-            if (
-                _type.is_temporal()
-                or _type.is_numeric()
-                or _type in {OrsoTypes.BOOLEAN, OrsoTypes.VARCHAR}
-            ):
-                # remove empty values
-                column_data = numpy.array([i for i in column_data if i not in (None, numpy.nan)])
-
-            if _type == OrsoTypes.BOOLEAN:
-                # we can make it easier to collect booleans
-                counter = profile.get("counter")
-                if counter is None:
-                    counter = {"True": 0, "False": 0}
-                trues = sum(column_data)
-                counter["True"] += trues
-                counter["False"] += column_data.size - trues
-                profile["counter"] = counter
-
-            if _type == OrsoTypes.VARCHAR:
-                # counter is used to collect and count unique values
-                vals, counts = numpy.unique(column_data, return_counts=True)
-                counter = {}
-                if len(vals) <= MAX_UNIQUE_COLLECTOR:
-                    counter = dict(zip(vals, counts))
-                    for k, v in profile.get("counter", {}).items():
-                        counter[k] = counter.pop(k, 0) + v
-                    if len(counter) > MAX_UNIQUE_COLLECTOR:
-                        counter = {}
-                profile["counter"] = counter
-
-            if _type.is_temporal() or _type.is_numeric():
-                # populate the distogram, this is used for distribution statistics
-                dgram = profile.get("dgram")
-                if dgram is None:
-                    dgram = Distogram()  # type:ignore
-                dgram.bulkload(column_data)
-                profile["dgram"] = dgram
-
-            profile_collector[column] = profile
-
-        buffer = []
-
-        for column, profile in profile_collector.items():
-            profile["name"] = column
-            profile["type"] = profile["type"].name
-
-            if column not in uncollected_columns:
-                dgram = profile.pop("dgram", None)
-                if dgram:
-                    # force numeric types to be the same
-                    profile["numeric_range"] = (
-                        numpy.double(dgram.min),
-                        numpy.double(dgram.max),
-                    )
-                    profile["distogram_values"], profile["distogram_counts"] = zip(*dgram.bins)
-                    profile["distogram_values"] = list(
-                        numpy.array(profile["distogram_values"], numpy.double)
-                    )
-
-                counter = profile.pop("counter", None)
-                if counter:
-                    counts = list(counter.values())
-                    if min(counts) != max(counts):
-                        profile["most_frequent_values"] = [str(k) for k in counter.keys()]
-                        profile["most_frequent_counts"] = counts
-
-            # remove collectors
-            profile.pop("dgram", None)
-            profile.pop("counter", None)
-
-            buffer.append(tuple(profile.values()))
-
-        return buffer
+        return profile
 
 
-if __name__ == "__main__":  # pragme: no cover
-    # fmt:off
-    cities_list:list = [
-        {"name": "Tokyo", "population": 13929286, "country": "Japan", "founded": "1457", "area": 2191, "language": "Japanese"},
-        {"name": "London", "population": 8982000, "country": "United Kingdom", "founded": "43 AD", "area": 1572, "language": "English"},
-        {"name": "New York City", "population": 8399000, "country": "United States", "founded": "1624", "area": 468.9, "language": "English"},
-        {"name": "Mumbai", "population": 18500000, "country": "India", "founded": "7th century BC", "area": 603.4, "language": "Hindi, English"},
-        {"name": "Cape Town", "population": 433688, "country": "South Africa", "founded": "1652", "area": 400, "language": "Afrikaans, English"},
-        {"name": "Paris", "population": 2148000, "country": "France", "founded": "3rd century BC", "area": 105.4, "language": "French"},
-        {"name": "Beijing", "population": 21710000, "country": "China", "founded": "1045", "area": 16410.54, "language": "Mandarin"},
-        {"name": "Rio de Janeiro", "population": 6747815, "country": "Brazil", "founded": "1 March 1565", "area": 1264, "language": "Portuguese"}
-    ]
-    import orso
-    cities = orso.DataFrame(cities_list)
-    # fmt:on
+class BaseProfiler:
+    def __init__(self, column: FlatColumn):
+        self.column = column
+        self.profile = ColumnProfile(name=column.name, type=column.type)
 
-    import os
-    import sys
+    def __call__(self, column_data: List[Any]):
+        raise NotImplementedError("Must be implemented by subclass.")
 
-    sys.path.insert(1, os.path.join(sys.path[0], "../.."))
+
+class ListStructProfiler(BaseProfiler):
+    def __call__(self, column_data: List[Any]):
+
+        self.profile.count = len(column_data)
+        self.profile.missing = sum(1 for val in column_data if val is None)
+
+
+class DefaultProfiler(BaseProfiler):
+    def __call__(self, column_data: List[Any]):
+
+        self.profile.count = len(column_data)
+        self.profile.missing = sum(1 for val in column_data if val != val)
+
+
+class BooleanProfiler(BaseProfiler):
+    def __call__(self, column_data: List[Any]):
+        self.profile.count = len(column_data)
+
+        column_data = [col for col in column_data if col is not None]
+        self.profile.missing = self.profile.count - len(column_data)
+
+        self.profile.most_frequent_values = ["True", "False"]
+        self.profile.most_frequent_counts = [column_data.count(True), column_data.count(False)]
+
+
+class NumericProfiler(BaseProfiler):
+
+    def __call__(self, column_data: List[Any]):
+
+        self.profile.count = len(column_data)
+        column_data = numpy.array(column_data, copy=False)  # Ensure column_data is a NumPy array
+        if column_data.dtype.name == "object":
+            column_data = [float(c) for c in column_data if c is not None]
+        else:
+            column_data = column_data[~numpy.isnan(column_data)]
+        self.profile.missing = self.profile.count - len(column_data)
+        # Compute min and max only if necessary
+        if len(column_data) > 0:
+            self.profile.minimum = int(numpy.min(column_data))
+            self.profile.maximum = int(numpy.max(column_data))
+
+            mf_values, mf_counts = find_mfvs(column_data, MOST_FREQUENT_VALUE_SIZE)
+            self.profile.most_frequent_values = [f"{n:f}".rstrip("0").strip(".") for n in mf_values]
+            self.profile.most_frequent_counts = mf_counts
+
+            # Create a histogram of the data
+            hist_counts, bin_edges = numpy.histogram(column_data, bins=DISTOGRAM_BIN_COUNT)
+            self.profile.histogram = [
+                (left_edge, count)
+                for count, left_edge in zip(hist_counts, bin_edges[:-1])
+                if count > 0
+            ]
+
+            # K-minimum value hashes, used for cardinality estimation
+            self.profile.kmv_hashes = sorted([CityHash32(str(element)) for element in column_data])[
+                :KVM_SIZE
+            ]
+
+
+class VarcharProfiler(BaseProfiler):
+
+    def __call__(self, column_data: List[Any]):
+
+        self.profile.count = len(column_data)
+        column_data = [col for col in column_data if col is not None]
+        self.profile.kmv_hashes = sorted([CityHash32(str(element)) for element in column_data])[
+            :KVM_SIZE
+        ]
+        column_data = [col[:SIXTY_FOUR_BYTES] for col in column_data]
+        self.profile.missing = self.profile.count - len(column_data)
+        self.profile.minimum = string_to_int64(min(column_data))
+        self.profile.maximum = string_to_int64(max(column_data))
+
+        mf_values, mf_counts = find_mfvs(column_data, MOST_FREQUENT_VALUE_SIZE)
+        self.profile.most_frequent_values = mf_values
+        self.profile.most_frequent_counts = mf_counts
+
+
+class DateProfiler(BaseProfiler):
+
+    def __call__(self, column_data: List[Any]):
+
+        self.profile.count = len(column_data)
+        column_data = [col for col in column_data if col == col]
+        self.profile.missing = self.profile.count - len(column_data)
+        column_data = [_to_unix_epoch(i) for i in column_data]
+
+        numeric_profiler = NumericProfiler(self.column)
+        numeric_profiler(column_data)
+        numeric_profile = numeric_profiler.profile
+
+        self.profile.minimum = numeric_profile.minimum
+        self.profile.maximum = numeric_profile.maximum
+        self.profile.most_frequent_values = numeric_profile.most_frequent_values
+        self.profile.most_frequent_counts = numeric_profile.most_frequent_counts
+        self.profile.histogram = numeric_profile.histogram
+        self.profile.kmv_hashes = numeric_profile.kmv_hashes
+
+
+def table_profiler(dataframe) -> List[Dict[str, Any]]:
+    return TableProfile.from_dataframe(dataframe)
+
+
+if __name__ == "__main__":
+
+    import time
 
     import opteryx
 
-    df = opteryx.query("SELECT * FROM $satellites")
+    import orso
+
+    df = opteryx.query("SELECT * FROM '$astronauts'")
     print(df)
-    print(df.profile)
+    t = time.monotonic_ns()
+    for i in range(1000):
+        pr = table_profiler(df)
+    print((time.monotonic_ns() - t) / 1e9)
+    print(pr.to_dataframe())
+    print(pr.to_dicts()[0])
+    print((pr + pr).to_dataframe())
+
+    quit()

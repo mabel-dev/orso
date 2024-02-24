@@ -1,7 +1,6 @@
 # type:ignore
 import math
 from bisect import bisect_left
-from functools import reduce
 from itertools import accumulate
 from operator import itemgetter
 from typing import List
@@ -127,20 +126,18 @@ class Distogram:  # pragma: no cover
 
 
 # added for opteryx
-def load(dic):  # pragma: no cover
-    if not isinstance(dic, dict):
-        import orjson
+def load(bins: list, minimum, maximum):  # pragma: no cover
 
-        dic = orjson.loads(dic)
     dgram = Distogram()
-    dgram.bins = dic["bins"]
-    dgram.min = dic["min"]
-    dgram.max = dic["max"]
+    dgram.bins = bins
+    dgram.min = minimum
+    dgram.max = maximum
+    dgram.diffs = []
 
     for i in range(len(dgram.bins) - 1):
         diff = dgram.bins[i][0] - dgram.bins[i - 1][0]
         dgram.diffs.append(diff)
-    dgram.min_diff = min(dgram.min_diff)
+    dgram.min_diff = min(dgram.diffs)
 
     return dgram
 
@@ -313,6 +310,7 @@ def update(h: Distogram, value: float, count: int = 1) -> Distogram:  # pragma: 
         h.max = value
 
     h = _trim(h)
+    return h
 
 
 def merge(h1: Distogram, h2: Distogram) -> Distogram:  # pragma: no cover
@@ -326,11 +324,16 @@ def merge(h1: Distogram, h2: Distogram) -> Distogram:  # pragma: no cover
         A Distogram object being the composition of h1 and h2. The number of
         bins in this Distogram is equal to the number of bins in h1.
     """
-    h = reduce(
-        lambda residual, b: update(residual, *b),
-        h2.bins,
-        h1,
-    )
+    if h1 is None:
+        return h2
+    if h2 is None:
+        return h1
+
+    h = h1  # Start with the initial value
+
+    # Loop through each item in h2.bins
+    for value, counts in h2.bins:
+        h = update(h, value, counts)
     return h
 
 
@@ -392,6 +395,13 @@ def count(h: Distogram) -> float:  # pragma: no cover
         The number of elements in the distribution.
     """
     return sum(f for _, f in h.bins)
+
+
+def bin_size(h: Distogram, value) -> int:  # pragma: no cover
+    for v, c in h.bins:
+        if value < v:
+            return c
+    return None
 
 
 def bounds(h: Distogram) -> Tuple[float, float]:  # pragma: no cover

@@ -10,7 +10,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import typing
 from typing import Generator
 from typing import Iterable
@@ -18,6 +17,8 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 from typing import Union
+
+import numpy
 
 from orso import Row
 from orso.group_by import GroupBy
@@ -189,33 +190,40 @@ class DataFrame:
         ]
         return DataFrame(rows=unique_rows, schema=self._schema)
 
-    def collect(self, columns: Union[int, str, List[Union[int, str]]]) -> Union[List, Tuple]:
+    def collect(
+        self, columns: Union[int, str, List[Union[int, str]]], limit: int = None
+    ) -> Union[List, Tuple]:
         """
         Collects specified columns from the internal row storage into a tuple of lists.
 
         Parameters:
             columns: Union[int, str, List[Union[int, str]]]
                 The column(s) to collect. Could be an integer index, string name, or list thereof.
+            limit: int (optional)
+                The number of rows to return, defaults to all rows
 
         Returns:
             Union[list, tuple]:
                 A tuple containing lists of the column data, or a single list if only one column is specified.
         """
-        from operator import itemgetter
+        from orso.compiled import collect_cython
+
+        if limit is None or limit < 0:
+            limit = -1
 
         single = False
-        if not isinstance(columns, list) or isinstance(columns, str):
+        if not isinstance(columns, list):
             single = True
             columns = [columns]
 
-        columns = (
-            c if isinstance(c, int) else self.column_names.index(c) for c in columns
-        )  # type:ignore
+        column_indicies = columns
+        for i, c in enumerate(columns):
+            if not isinstance(c, int):
+                column_indicies[i] = self.column_names.index(c)
 
-        getters = (itemgetter(column) for column in columns)
-        result = [[getter(row) for row in self._rows] for getter in getters]
-
-        return result[0] if single else tuple(result)
+        return collect_cython(
+            self._rows, numpy.array(column_indicies, dtype=numpy.int32), limit, single
+        )
 
     def slice(self, offset: int = 0, length: int = None) -> "DataFrame":
         self.materialize()
@@ -309,10 +317,10 @@ class DataFrame:
             yield DataFrame(rows=self._rows[i : i + batch_size], schema=self._schema)
 
     @property
-    def profile(self) -> "DataFrame":
-        from orso.profiler import DataProfile
+    def profile(self) -> "TableProfile":
+        from orso.profiler import TableProfile
 
-        return DataProfile.from_dataset(self)
+        return TableProfile.from_dataframe(self)
 
     @property
     def description(
@@ -389,13 +397,17 @@ class DataFrame:
         self.materialize()
         return len(self._rows)
 
+    @property
+    def schema(self) -> RelationSchema:
+        return self._schema
+
     def __hash__(self):
-        from orso.cityhash import CityHash32
+        from cityhash import CityHash64
 
         _hash = 0
-        for row in self._rows:
-            row_hash = CityHash32(str(row).encode())
-            _hash = _hash ^ row_hash
+        for i, row in enumerate(self._rows):
+            row_hash = CityHash64(str(row).encode())
+            _hash = i ^ _hash ^ row_hash
         return _hash
 
     def __iter__(self):

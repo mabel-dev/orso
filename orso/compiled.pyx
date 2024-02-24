@@ -21,6 +21,7 @@ from datetime import datetime
 from ormsgpack import unpackb
 from orso.exceptions import DataError
 from typing import Dict, Any, Tuple
+from libc.stdlib cimport malloc, free
 
 cimport cython
 
@@ -75,3 +76,33 @@ cpdef tuple extract_dict_columns(dict data, tuple fields):
         field = fields[i]
         sorted_data[i] = data[field]
     return tuple(sorted_data)  # Convert list to tuple
+
+
+
+
+from libc.stdlib cimport malloc, free
+import numpy as np
+cimport cython
+cimport numpy as cnp
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def collect_cython(list rows, cnp.ndarray[cnp.int32_t, ndim=1] columns, int limit=-1, int single=False) -> list:
+    cdef int i, j
+    cdef int num_rows = len(rows)
+    cdef int num_cols = columns.shape[0]
+
+    if limit >= 0 and limit < num_rows:
+        num_rows = limit
+
+    # Initialize result list
+    cdef list result = [[None] * num_rows for _ in range(num_cols)]
+
+    # Iterate over rows and columns, collecting data
+    for i in range(num_rows):
+        row = rows[i]
+        for j in range(num_cols):
+            result[j][i] = row[columns[j]]
+
+    return result[0] if single else result
+

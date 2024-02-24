@@ -43,6 +43,9 @@ class OrsoTypes(str, Enum):
         """is the type time-based"""
         return self in (self.DATE, self.TIME, self.TIMESTAMP)
 
+    def __str__(self):
+        return self.value
+
 
 ORSO_TO_PYTHON_MAP: dict = {
     OrsoTypes.BOOLEAN: bool,
