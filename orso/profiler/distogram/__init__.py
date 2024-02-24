@@ -1,7 +1,6 @@
 # type:ignore
 import math
 from bisect import bisect_left
-from functools import reduce
 from itertools import accumulate
 from operator import itemgetter
 from typing import List

@@ -317,10 +317,10 @@ class DataFrame:
             yield DataFrame(rows=self._rows[i : i + batch_size], schema=self._schema)
 
     @property
-    def profile(self) -> "DataFrame":
-        from orso.profiler import DataProfile
+    def profile(self) -> "TableProfile":
+        from orso.profiler import TableProfile
 
-        return DataProfile.from_dataset(self)
+        return TableProfile.from_dataframe(self)
 
     @property
     def description(

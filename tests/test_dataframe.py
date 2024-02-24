@@ -254,7 +254,7 @@ def test_appending():
 
 def test_profile():
     df = create_dataframe()
-    profile = df.profile
+    profile = df.profile.to_dataframe()
     assert isinstance(profile, DataFrame)
 
 
@@ -263,7 +263,7 @@ def test_build_and_then_profile():
     for city in cities.values:
         df.append(city)
 
-    p = df.profile
+    p = df.profile.to_dataframe()
     assert p.rowcount == df.columncount
     assert p.collect("count") == [df.rowcount] * df.columncount
 
