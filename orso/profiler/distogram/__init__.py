@@ -137,7 +137,10 @@ def load(bins: list, minimum, maximum):  # pragma: no cover
     for i in range(len(dgram.bins) - 1):
         diff = dgram.bins[i][0] - dgram.bins[i - 1][0]
         dgram.diffs.append(diff)
-    dgram.min_diff = min(dgram.diffs)
+    if dgram.diffs:
+        dgram.min_diff = min(dgram.diffs)
+    else:
+        dgram.min_diff = float("inf")
 
     return dgram
 
