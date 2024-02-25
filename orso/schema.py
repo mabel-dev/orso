@@ -140,6 +140,7 @@ class FlatColumn:
     precision: Optional[int] = None
     scale: Optional[int] = None
     origin: Optional[str] = None
+    statistics: Optional[dict] = field(default_factory=dict)
 
     def __init__(self, **kwargs):
         attributes = {f.name: f for f in fields(self.__class__)}
@@ -415,6 +416,7 @@ class RelationSchema:
     name: str
     aliases: List[str] = field(default_factory=list)
     columns: List[FlatColumn] = field(default_factory=list)
+    statistics: Dict[str, Any] = field(default_factory=dict)
 
     def __iter__(self):
         """Return an iterator over column names."""

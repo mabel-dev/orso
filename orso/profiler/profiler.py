@@ -383,24 +383,3 @@ class DateProfiler(BaseProfiler):
 
 def table_profiler(dataframe) -> List[Dict[str, Any]]:
     return TableProfile.from_dataframe(dataframe)
-
-
-if __name__ == "__main__":
-
-    import time
-
-    import opteryx
-
-    import orso
-
-    df = opteryx.query("SELECT * FROM '$astronauts'")
-    print(df)
-    t = time.monotonic_ns()
-    for i in range(1000):
-        pr = table_profiler(df)
-    print((time.monotonic_ns() - t) / 1e9)
-    print(pr.to_dataframe())
-    print(pr.to_dicts()[0])
-    print((pr + pr).to_dataframe())
-
-    quit()
