@@ -126,10 +126,7 @@ class DataFrame:
     def nbytes(self):
         """Approximate the number of bytes used by the DataFrame"""
         self.materialize()
-        size = 0
-        for row in self._rows:
-            size += len(row.as_bytes)
-        return size
+        return sum(row.nbytes() for row in self._rows)
 
     def append(self, entry):
         if isinstance(self._schema, RelationSchema):

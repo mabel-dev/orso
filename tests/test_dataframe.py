@@ -326,6 +326,22 @@ def test_adding_dicts_in_wrong_order():
     )
 
 
+def test_bytes():
+    import opteryx
+    import time
+
+    gb = opteryx.query("SELECT * FROM $astronauts")
+    t = time.monotonic_ns()
+    first_bytes = gb.nbytes()
+    first = time.monotonic_ns() - t
+    t = time.monotonic_ns()
+    second_bytes = gb.nbytes()
+    second = time.monotonic_ns() - t
+
+    assert first_bytes == second_bytes
+    assert first > second
+
+
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests
 

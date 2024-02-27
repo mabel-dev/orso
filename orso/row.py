@@ -70,6 +70,7 @@ class Row(tuple):
     __slots__ = ()
     _fields: Tuple[str, ...] = None
     _cached_map: Tuple[Tuple[str, Any]] = None
+    _cached_byte_size: int = None
 
     def __new__(cls, data: Union[Dict[str, Any], Tuple[Any, ...]]):
         """
@@ -128,6 +129,11 @@ class Row(tuple):
             A new Row instance.
         """
         return cls(from_bytes_cython(data))
+
+    def nbytes(self) -> int:
+        if self._cached_byte_size is None:
+            self._cached_byte_size = len(self.as_bytes)
+        return self._cached_byte_size
 
     @property
     def as_bytes(self) -> bytes:
