@@ -314,6 +314,7 @@ def ascii_table(
         ]
         from orso.schema import RelationSchema
         from orso.types import OrsoTypes
+
         if isinstance(t.schema, RelationSchema):
             col_types = [column.type for column in t.schema.columns]
         else:
