@@ -303,8 +303,9 @@ class BooleanProfiler(BaseProfiler):
         column_data = [col for col in column_data if col is not None]
         self.profile.missing = self.profile.count - len(column_data)
 
-        self.profile.most_frequent_values = ["True", "False"]
-        self.profile.most_frequent_counts = [column_data.count(True), column_data.count(False)]
+        if len(column_data) > 0:
+            self.profile.most_frequent_values = ["True", "False"]
+            self.profile.most_frequent_counts = [column_data.count(True), column_data.count(False)]
 
 
 class NumericProfiler(BaseProfiler):
@@ -347,17 +348,18 @@ class VarcharProfiler(BaseProfiler):
 
         self.profile.count = len(column_data)
         column_data = [col for col in column_data if col is not None]
-        self.profile.kmv_hashes = sorted([CityHash32(str(element)) for element in column_data])[
-            :KVM_SIZE
-        ]
-        column_data = [col[:SIXTY_FOUR_BYTES] for col in column_data]
-        self.profile.missing = self.profile.count - len(column_data)
-        self.profile.minimum = string_to_int64(min(column_data))
-        self.profile.maximum = string_to_int64(max(column_data))
+        if len(column_data) > 0:
+            self.profile.kmv_hashes = sorted([CityHash32(str(element)) for element in column_data])[
+                :KVM_SIZE
+            ]
+            column_data = [col[:SIXTY_FOUR_BYTES] for col in column_data]
+            self.profile.missing = self.profile.count - len(column_data)
+            self.profile.minimum = string_to_int64(min(column_data))
+            self.profile.maximum = string_to_int64(max(column_data))
 
-        mf_values, mf_counts = find_mfvs(column_data, MOST_FREQUENT_VALUE_SIZE)
-        self.profile.most_frequent_values = mf_values
-        self.profile.most_frequent_counts = mf_counts
+            mf_values, mf_counts = find_mfvs(column_data, MOST_FREQUENT_VALUE_SIZE)
+            self.profile.most_frequent_values = mf_values
+            self.profile.most_frequent_counts = mf_counts
 
 
 class DateProfiler(BaseProfiler):
@@ -367,18 +369,18 @@ class DateProfiler(BaseProfiler):
         self.profile.count = len(column_data)
         column_data = [col for col in column_data if col == col]
         self.profile.missing = self.profile.count - len(column_data)
-        column_data = [_to_unix_epoch(i) for i in column_data]
+        if len(column_data) > 0:
+            column_data = [_to_unix_epoch(i) for i in column_data]
+            numeric_profiler = NumericProfiler(self.column)
+            numeric_profiler(column_data)
+            numeric_profile = numeric_profiler.profile
 
-        numeric_profiler = NumericProfiler(self.column)
-        numeric_profiler(column_data)
-        numeric_profile = numeric_profiler.profile
-
-        self.profile.minimum = numeric_profile.minimum
-        self.profile.maximum = numeric_profile.maximum
-        self.profile.most_frequent_values = numeric_profile.most_frequent_values
-        self.profile.most_frequent_counts = numeric_profile.most_frequent_counts
-        self.profile.histogram = numeric_profile.histogram
-        self.profile.kmv_hashes = numeric_profile.kmv_hashes
+            self.profile.minimum = numeric_profile.minimum
+            self.profile.maximum = numeric_profile.maximum
+            self.profile.most_frequent_values = numeric_profile.most_frequent_values
+            self.profile.most_frequent_counts = numeric_profile.most_frequent_counts
+            self.profile.histogram = numeric_profile.histogram
+            self.profile.kmv_hashes = numeric_profile.kmv_hashes
 
 
 def table_profiler(dataframe) -> List[Dict[str, Any]]:

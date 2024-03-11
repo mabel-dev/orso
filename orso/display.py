@@ -203,7 +203,7 @@ def ascii_table(
 
         return str(value)
 
-    def type_formatter(value, width):
+    def type_formatter(value, width, type_):
 
         if isinstance(value, (numpy.generic, numpy.ndarray)):
             value = numpy_type_mapper(value)
@@ -312,7 +312,12 @@ def ascii_table(
             max(list(map(len, map(str, [p for p in h if p is not None]))) + [4])
             for h in (t.collect(i) for i in range(t.columncount))
         ]
-        col_types = [str(t.description[c][1]).lower() for c in range(len(t.column_names))]
+        from orso.schema import RelationSchema
+        from orso.types import OrsoTypes
+        if isinstance(t.schema, RelationSchema):
+            col_types = [column.type for column in t.schema.columns]
+        else:
+            col_types = [OrsoTypes._MISSING_TYPE] * len(t.schema)
         if show_types:
             col_type_width = list(map(len, col_types))
         else:
@@ -351,7 +356,7 @@ def ascii_table(
                     yield "\001PUNCm...\001OFFm"
                 if i >= limit:
                     i += len(table) - (limit * 2)
-            formatted = [type_formatter(v, w) for v, w in zip(row, col_width)]
+            formatted = [type_formatter(v, w, t) for v, w, t in zip(row, col_width, col_types)]
             yield (
                 "│\001TYPEm"
                 + str(i + 1).rjust(index_width - 1)
