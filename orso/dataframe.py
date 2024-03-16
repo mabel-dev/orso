@@ -31,7 +31,7 @@ class DataFrame:
     Orso DataFrames are a lightweight container for tabular data.
     """
 
-    __slots__ = ("_schema", "_rows", "_cursor", "_row_factory", "arraysize")
+    __slots__ = ("_schema", "_rows", "_cursor", "_row_factory", "arraysize", "_nbytes")
 
     def __init__(
         self,
@@ -60,6 +60,7 @@ class DataFrame:
                 'dictionaries'
 
         """
+        self._nbytes = None
         if dictionaries is not None:
             if schema is not None or rows is not None:
                 raise ValueError(
@@ -87,6 +88,8 @@ class DataFrame:
             self._schema = schema  # type:ignore
             self._rows = rows or []  # type:ignore
             self._row_factory = Row.create_class(self._schema)
+            if isinstance(self._rows, list) and len(self._rows) == 0:
+                self._nbytes = 0
         self.arraysize = 100
         self._cursor = iter(self._rows or [])
 
@@ -126,12 +129,16 @@ class DataFrame:
     def nbytes(self):
         """Approximate the number of bytes used by the DataFrame"""
         self.materialize()
-        return sum(row.nbytes() for row in self._rows)
+        if self._nbytes is None:
+            self._nbytes = sum(row.nbytes() for row in self._rows)
+        return self._nbytes
 
     def append(self, entry):
         if isinstance(self._schema, RelationSchema):
             self._schema.validate(entry)
-        self._rows.append(self._row_factory(entry))
+        new_row = self._row_factory(entry)
+        self._rows.append(new_row)
+        self._nbytes += new_row.nbytes()
         self._cursor = None
 
     def head(self, size: int = 5):

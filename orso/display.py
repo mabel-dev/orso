@@ -226,7 +226,11 @@ def ascii_table(
             value = f"{value.strftime('%Y-%m-%d')}"
             return "\001DATEm" + trunc_printable(value.rjust(width), width) + "\001OFFm"
         if isinstance(value, (bytes, bytearray)):
-            return "\001BLOBm" + trunc_printable(str(value).ljust(width), width) + "\001OFFm"
+            return (
+                "\001BLOBm"
+                + trunc_printable(value.decode("utf-8").ljust(width), width)
+                + "\001OFFm"
+            )
         if isinstance(value, dict):
             value = (
                 "\001PUNCm{"
