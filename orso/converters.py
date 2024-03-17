@@ -79,9 +79,10 @@ def from_arrow(tables, size=None):
         batches = table.to_batches(max_chunksize=BATCH_SIZE)
         for batch in batches:
             # Here we're converting columnar data to row-based data
-            # - this is relatively slow
-            # column_data = (column.to_numpy(zero_copy_only=False) for column in batch.columns)
-            # column_data = (column.tolist()  for column in batch.columns)
+            # - this is relatively slow. Using Numpy is faster than using
+            # Python lists, but Numpy doesn't handle int and date columns
+            # correctly, so we use the slower Python converter for these.
+            # Fast is good, but not at the expense of correctness.
             column_data = (
                 (
                     column.to_numpy(zero_copy_only=False)
