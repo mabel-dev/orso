@@ -1,3 +1,4 @@
+import heapq
 from copy import deepcopy
 from dataclasses import asdict
 from dataclasses import dataclass
@@ -10,6 +11,7 @@ from typing import Tuple
 from typing import Union
 
 import numpy
+import orjson
 
 from cityhash import CityHash32
 from orso.profiler import distogram
@@ -22,6 +24,7 @@ INFINITY = float("inf")
 SIXTY_FOUR_BITS: int = 8
 SIXTY_FOUR_BYTES: int = 64
 DISTOGRAM_BIN_COUNT: int = 50
+MAX_INT64: int = 9223372036854775807
 
 
 def string_to_int64(value: str) -> int:
@@ -34,14 +37,14 @@ def string_to_int64(value: str) -> int:
     Returns:
         An integer representation of the first 8 characters of the string.
     """
-    byte_value = value.ljust(SIXTY_FOUR_BITS)[:SIXTY_FOUR_BITS].encode("utf-8")
+    byte_value = (value + "\x00\x00\x00\x00")[:SIXTY_FOUR_BITS].encode("utf-8")
     int_value = int.from_bytes(byte_value, "big")
-    return min(int_value, 9223372036854775807)
+    return int_value if int_value <= MAX_INT64 else MAX_INT64
 
 
 def int64_to_string(value: int) -> str:
     # Convert the integer back to 8 bytes using big-endian byte order
-    if value >= 9223372036854775807:
+    if value >= MAX_INT64:
         return None
 
     byte_value = value.to_bytes(SIXTY_FOUR_BITS, "big")
@@ -76,12 +79,26 @@ def find_mfvs(data, top_n=MOST_FREQUENT_VALUE_SIZE):
     return top_values, top_counts
 
 
-def _to_unix_epoch(date):
-    if date is None:
-        return None
-    # Not all platforms can handle negative timestamp()
-    # https://bugs.python.org/issue29097
-    return date.astype("datetime64[s]").astype("int64")
+def get_kvm_hashes(data, size: int):  # slowest function
+    min_hashes = []
+
+    data = list(set(data))
+
+    # Build a list with the hash values of the first 'size' elements or all elements if fewer.
+    min_hashes = [-CityHash32(str(element)) for element in data[:size]]
+
+    # Transform the list into a heap in-place.
+    heapq.heapify(min_hashes)
+
+    for element in data[size:]:
+        hash_value = CityHash32(str(element))
+
+        # If the current hash is smaller than the largest in the heap
+        if hash_value < -min_hashes[0]:
+            heapq.heappushpop(min_hashes, -hash_value)
+
+    # Convert back to positive values and sort before returning
+    return sorted(-x for x in min_hashes)
 
 
 @dataclass
@@ -103,14 +120,18 @@ class ColumnProfile:
 
     def estimate_cardinality(self) -> int:
         """
-        Estimates the cardinality of the elements seen so far.
+        Estimates the cardinality (number of unique values) of the elements seen so far.
         """
         if not self.kmv_hashes:
             return 0
+        # don't estimate if we know the number
+        if len(self.kmv_hashes) < KVM_SIZE:
+            return len(self.kmv_hashes)
         # Use the k-th smallest hash value (the last/largest in the sorted list) to estimate cardinality
         kth_min_value = self.kmv_hashes[-1]
+
         # Cardinality estimation formula
-        return int((KVM_SIZE - 1) / kth_min_value * (2**32))
+        return int((KVM_SIZE - 1) / ((kth_min_value / 2**32)))
 
     def estimate_values_at(self, point) -> int:
         if not hasattr(self, "distogram"):
@@ -256,7 +277,7 @@ class TableProfile:
 
             for column in morsel.schema.columns:
                 column_data = morsel.collect(column.name)
-                if not column_data:
+                if len(column_data) == 0:
                     continue
 
                 profiler_class = profiler_classes.get(column.type, DefaultProfiler)
@@ -337,9 +358,7 @@ class NumericProfiler(BaseProfiler):
             ]
 
             # K-minimum value hashes, used for cardinality estimation
-            self.profile.kmv_hashes = sorted([CityHash32(str(element)) for element in column_data])[
-                :KVM_SIZE
-            ]
+            self.profile.kmv_hashes = get_kvm_hashes(column_data, KVM_SIZE)
 
 
 class VarcharProfiler(BaseProfiler):
@@ -349,9 +368,8 @@ class VarcharProfiler(BaseProfiler):
         self.profile.count = len(column_data)
         column_data = [col for col in column_data if col is not None]
         if len(column_data) > 0:
-            self.profile.kmv_hashes = sorted([CityHash32(str(element)) for element in column_data])[
-                :KVM_SIZE
-            ]
+            # K-minimum value hashes, used for cardinality estimation
+            self.profile.kmv_hashes = get_kvm_hashes(column_data, KVM_SIZE)
             column_data = [col[:SIXTY_FOUR_BYTES] for col in column_data]
             self.profile.missing = self.profile.count - len(column_data)
             self.profile.minimum = string_to_int64(min(column_data))
@@ -367,10 +385,10 @@ class DateProfiler(BaseProfiler):
     def __call__(self, column_data: List[Any]):
 
         self.profile.count = len(column_data)
-        column_data = [col for col in column_data if col == col]
+        column_data = numpy.array(column_data, dtype="datetime64[s]").astype("int64")
+        column_data = column_data[~numpy.equal(column_data, -9223372036854775808)]
         self.profile.missing = self.profile.count - len(column_data)
         if len(column_data) > 0:
-            column_data = [_to_unix_epoch(i) for i in column_data]
             numeric_profiler = NumericProfiler(self.column)
             numeric_profiler(column_data)
             numeric_profile = numeric_profiler.profile
