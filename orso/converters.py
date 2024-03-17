@@ -10,6 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import datetime
 import itertools
 import typing
 
@@ -17,6 +18,7 @@ from orso.exceptions import MissingDependencyError
 from orso.row import Row
 from orso.schema import FlatColumn
 from orso.schema import RelationSchema
+from orso.tools import arrow_type_map
 
 
 def to_arrow(dataset, size=None):
@@ -77,8 +79,18 @@ def from_arrow(tables, size=None):
         batches = table.to_batches(max_chunksize=BATCH_SIZE)
         for batch in batches:
             # Here we're converting columnar data to row-based data
-            # - this is relatively slow
-            column_data = tuple(column.to_numpy(zero_copy_only=False) for column in batch.columns)
+            # - this is relatively slow. Using Numpy is faster than using
+            # Python lists, but Numpy doesn't handle int and date columns
+            # correctly, so we use the slower Python converter for these.
+            # Fast is good, but not at the expense of correctness.
+            column_data = (
+                (
+                    column.to_numpy(zero_copy_only=False)
+                    if arrow_type_map(column.type) not in (int, datetime.datetime, datetime.date)
+                    else column.tolist()
+                )
+                for column in batch.columns
+            )
             rows.extend(row_factory(row) for row in zip(*column_data))
             if len(rows) >= size:
                 break
