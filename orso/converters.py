@@ -66,7 +66,7 @@ def from_arrow(tables, size=None):
     # Create a generator of tuples from the columns
     row_factory = Row.create_class(orso_schema, tuples_only=True)
 
-    BATCH_SIZE: int = 5000
+    BATCH_SIZE: int = 10000
     if size:
         BATCH_SIZE = min(size, BATCH_SIZE)
     else:
@@ -76,6 +76,8 @@ def from_arrow(tables, size=None):
     for table in itertools.chain([first_table], tables):
         batches = table.to_batches(max_chunksize=BATCH_SIZE)
         for batch in batches:
+            # Here we're converting columnar data to row-based data
+            # - this is relatively slow
             column_data = tuple(column.to_numpy(zero_copy_only=False) for column in batch.columns)
             rows.extend(row_factory(row) for row in zip(*column_data))
             if len(rows) >= size:

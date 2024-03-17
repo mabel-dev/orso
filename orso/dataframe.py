@@ -88,8 +88,7 @@ class DataFrame:
             self._schema = schema  # type:ignore
             self._rows = rows or []  # type:ignore
             self._row_factory = Row.create_class(self._schema)
-            if isinstance(self._rows, list) and len(self._rows) == 0:
-                self._nbytes = 0
+            self._nbytes = 0
         self.arraysize = 100
         self._cursor = iter(self._rows or [])
 

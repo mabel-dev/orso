@@ -172,11 +172,6 @@ class Row(tuple):
         """
         return orjson.dumps(self.as_dict, default=str)
 
-    def __optimized_new__(cls, data):
-        # we roughly halve the time if we can assume we're only going to get tuples
-        # this avoid the test for it if't a tuple or a dict
-        return super().__new__(cls, data)  # type:ignore
-
     @classmethod
     def create_class(
         cls, schema: Union[RelationSchema, Tuple[str, ...], List[str]], tuples_only: bool = False
@@ -197,5 +192,6 @@ class Row(tuple):
             raise ValueError("Row requires either a list of field names or a RelationSchema")
 
         if tuples_only:
-            return type("RowFactory", (Row,), {"_fields": fields, "__new__": cls.__optimized_new__})
+            # if we're only handling tuples, we can delegate to super
+            return type("RowFactory", (Row,), {"_fields": fields, "__new__": super().__new__})
         return type("RowFactory", (Row,), {"_fields": fields})
