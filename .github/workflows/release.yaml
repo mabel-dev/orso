@@ -369,7 +369,7 @@ jobs:
 
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    runs-on: buildjet-2vcpu-ubuntu-2204-arm
     env:
       CIBW_BEFORE_ALL: "pip install --upgrade cython wheel numpy"
       CIBW_SKIP: "*-musllinux*"
@@ -382,14 +382,14 @@ jobs:
             cibw_archs: "aarch64"
 
     steps:
-      - name: Set up QEMU
-        if: matrix.cibw_archs == 'aarch64'
-        uses: docker/setup-qemu-action@v2
-        with:
-          platforms: arm64
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+#      - name: Set up QEMU
+#        if: matrix.cibw_archs == 'aarch64'
+#        uses: docker/setup-qemu-action@v2
+#        with:
+#          platforms: arm64
+#      - uses: actions/checkout@v3
+#        with:
+#          fetch-depth: 0
 
 #      - name: Build wheels for CPython 3.12
 #        uses: pypa/cibuildwheel@v2.12.1
@@ -397,11 +397,11 @@ jobs:
 #          CIBW_BUILD: "cp312-*"
 #          CIBW_ARCHS: ${{ matrix.cibw_archs }}
 
-#      - name: Build wheels for CPython 3.11
-#        uses: pypa/cibuildwheel@v2.12.1
-#        env:
-#          CIBW_BUILD: "cp311-*"
-#          CIBW_ARCHS: ${{ matrix.cibw_archs }}
+      - name: Build wheels for CPython 3.11
+        uses: pypa/cibuildwheel@v2.12.1
+        env:
+          CIBW_BUILD: "cp311-*"
+          CIBW_ARCHS: ${{ matrix.cibw_archs }}
 
       - name: Build wheels for CPython 3.10
         uses: pypa/cibuildwheel@v2.12.1
