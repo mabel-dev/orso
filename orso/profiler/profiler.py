@@ -11,7 +11,6 @@ from typing import Tuple
 from typing import Union
 
 import numpy
-import orjson
 
 from cityhash import CityHash32
 from orso.profiler import distogram
@@ -101,6 +100,24 @@ def get_kvm_hashes(data, size: int):  # slowest function
     return sorted(-x for x in min_hashes)
 
 
+def get_ordered_and_transitions(data) -> tuple:
+    ordered = None
+    transitions = 0
+    last_value = data[0]
+    for value in data[1:]:
+        if value != last_value:
+            transitions += 1
+            if ordered is None:
+                ordered = -1 if value < last_value else 1
+            elif value > last_value and ordered == -1:
+                ordered = 0
+            elif value < last_value and ordered == 1:
+                ordered = 0
+        last_value = value
+
+    return (ordered, transitions)
+
+
 @dataclass
 class ColumnProfile:
     name: str
@@ -109,6 +126,8 @@ class ColumnProfile:
     missing: int = 0
     maximum: Optional[int] = None
     minimum: Optional[int] = None
+    order: int = None
+    transitions: int = 0
     most_frequent_values: List[str] = field(default_factory=list)
     most_frequent_counts: List[int] = field(default_factory=list)
     histogram: List[Tuple] = field(default_factory=list)
@@ -153,6 +172,8 @@ class ColumnProfile:
         new_profile = self.deep_copy()
         new_profile.count += profile.count
         new_profile.missing += profile.missing
+        new_profile.transitions += profile.transitions + 1
+        new_profile.order = 0 if new_profile.order == profile.order else new_profile.order
         new_profile.minimum = min([self.minimum or INFINITY, profile.minimum or INFINITY])
         if new_profile.minimum == INFINITY:
             new_profile.minimum = None
@@ -359,6 +380,7 @@ class NumericProfiler(BaseProfiler):
 
             # K-minimum value hashes, used for cardinality estimation
             self.profile.kmv_hashes = get_kvm_hashes(column_data, KVM_SIZE)
+            self.profile.order, self.profile.transitions = get_ordered_and_transitions(column_data)
 
 
 class VarcharProfiler(BaseProfiler):
@@ -378,6 +400,7 @@ class VarcharProfiler(BaseProfiler):
             mf_values, mf_counts = find_mfvs(column_data, MOST_FREQUENT_VALUE_SIZE)
             self.profile.most_frequent_values = mf_values
             self.profile.most_frequent_counts = mf_counts
+            self.profile.order, self.profile.transitions = get_ordered_and_transitions(column_data)
 
 
 class DateProfiler(BaseProfiler):

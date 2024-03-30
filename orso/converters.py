@@ -86,7 +86,8 @@ def from_arrow(tables, size=None):
             column_data = (
                 (
                     column.to_numpy(zero_copy_only=False)
-                    if arrow_type_map(column.type) not in (int, datetime.datetime, datetime.date, list)
+                    if arrow_type_map(column.type)
+                    not in (int, datetime.datetime, datetime.date, list)
                     else column.tolist()
                 )
                 for column in batch.columns
