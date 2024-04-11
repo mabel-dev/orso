@@ -33,6 +33,7 @@ class OrsoTypes(str, Enum):
     TIME = "TIME"
     VARCHAR = "VARCHAR"
     NULL = "NULL"
+    BSON = "BSON"
     _MISSING_TYPE = 0
 
     def is_numeric(self):
@@ -60,8 +61,11 @@ ORSO_TO_PYTHON_MAP: dict = {
     OrsoTypes.INTEGER: int,
     OrsoTypes.ARRAY: list,
     OrsoTypes.VARCHAR: str,
+    OrsoTypes.BSON: bytes,
     OrsoTypes.NULL: None,
 }
 
-PYTHON_TO_ORSO_MAP: dict = {value: key for key, value in ORSO_TO_PYTHON_MAP.items()}
+PYTHON_TO_ORSO_MAP: dict = {
+    value: key for key, value in ORSO_TO_PYTHON_MAP.items() if key != OrsoTypes.BSON
+}
 PYTHON_TO_ORSO_MAP.update({tuple: OrsoTypes.ARRAY, set: OrsoTypes.ARRAY})  # map other python types

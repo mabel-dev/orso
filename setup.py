@@ -36,17 +36,29 @@ except:
 extensions = [
     # Cython code
     Extension(
-        name="orso.bitarray.cbitarray",
-        sources=["orso/bitarray/cbitarray.pyx"],
+        name="orso.compute.cbitarray",
+        sources=["orso/compute/cbitarray.pyx"],
         extra_compile_args=COMPILE_FLAGS,
         extra_link_args=COMPILE_FLAGS,
     ),
     Extension(
-        name="orso.compiled",
-        sources=["orso/compiled.pyx"],
+        name="orso.compute.compiled",
+        sources=["orso/compute/compiled.pyx"],
         include_dirs=[numpy.get_include()],
         extra_compile_args=COMPILE_FLAGS,
         extra_link_args=COMPILE_FLAGS,
+    ),
+    Extension(
+        name="orso.compute.bloom_filter.bloom_filter",
+        sources=["orso/compute/bloom_filter/bloom_filter.pyx"],
+        extra_compile_args=COMPILE_FLAGS,
+    ),
+    Extension(
+        name="orso.compute.varchar_array",
+        sources=["orso/compute/varchar_array.pyx"],
+        include_dirs=[numpy.get_include()],
+        language="c++",
+        extra_compile_args=COMPILE_FLAGS + ["-std=c++11"],
     ),
 ]
 

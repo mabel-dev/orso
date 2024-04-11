@@ -14,6 +14,8 @@ import datetime
 import decimal
 from typing import Union
 
+from orso.compute.compiled import calculate_data_width
+
 # Background		#282a36	40 42 54	231° 15% 18%
 # Current Line		#44475a	68 71 90	232° 14% 31%
 # Foreground		#f8f8f2	248 248 242	60° 30% 96%
@@ -312,10 +314,8 @@ def ascii_table(
     def _inner():
         # Calculate width
         col_width = list(map(len, t.column_names))
-        data_width = [
-            max(list(map(len, map(str, [p for p in h if p is not None]))) + [4])
-            for h in (t.collect(i) for i in range(t.columncount))
-        ]
+
+        data_width = [calculate_data_width(t.collect(i)) for i in range(t.columncount)]
         from orso.schema import RelationSchema
         from orso.types import OrsoTypes
 

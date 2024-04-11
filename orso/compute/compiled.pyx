@@ -34,7 +34,7 @@ cpdef from_bytes_cython(bytes data):
     cdef const char* data_ptr = PyBytes_AsString(data)
     cdef Py_ssize_t length = PyBytes_GET_SIZE(data)
 
-    HEADER_SIZE = 6
+    HEADER_SIZE = 14
     # Validate header and size, now using pointer arithmetic
     if length < HEADER_SIZE or (data_ptr[0] & 0xF0 != 0x10):
         raise DataError("Data malformed")
@@ -106,3 +106,19 @@ def collect_cython(list rows, cnp.ndarray[cnp.int32_t, ndim=1] columns, int limi
 
     return result[0] if single else result
 
+from cpython.object cimport PyObject_Str
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef int calculate_data_width(list column_values):
+    cdef int width, max_width
+    cdef object value
+    
+    max_width = 4  # Default width
+    for value in column_values:
+        if value:
+            width = PyBytes_GET_SIZE(PyObject_Str(value))
+            if width > max_width:
+                max_width = width
+
+    return max_width
