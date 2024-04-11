@@ -41,7 +41,7 @@ from orso.schema import RelationSchema
 
 HEADER_SIZE: int = 6
 HEADER_PREFIX: bytes = b"\x10\x00"
-MAXIMUM_RECORD_SIZE: int = 8 * 1024 * 1024
+MAXIMUM_RECORD_SIZE: int = 16 * 1024 * 1024
 
 
 def extract_columns(table: List[Dict[str, Any]], columns: List[str]) -> Tuple[List[Any], ...]:
@@ -158,7 +158,7 @@ class Row(tuple):
         record_bytes = packb(tuple(self), option=OPT_SERIALIZE_NUMPY, default=serialize)
         record_size = len(record_bytes)
         if record_size > MAXIMUM_RECORD_SIZE:
-            raise DataError("Record length cannot exceed 8Mb")
+            raise DataError("Record length cannot exceed 16Mb")
 
         return HEADER_PREFIX + record_size.to_bytes(4, "big") + record_bytes
 
