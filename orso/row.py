@@ -23,6 +23,7 @@
 # such as as_dict() to render as a dictionary.
 
 import datetime
+import time
 from typing import Any
 from typing import Dict
 from typing import List
@@ -34,14 +35,14 @@ import orjson
 from ormsgpack import OPT_SERIALIZE_NUMPY
 from ormsgpack import packb
 
-from orso.compiled import extract_dict_columns
-from orso.compiled import from_bytes_cython
+# from orso.compiled import extract_dict_columns
+from orso.compute.compiled import from_bytes_cython
 from orso.exceptions import DataError
 from orso.schema import RelationSchema
 
-HEADER_SIZE: int = 6
+HEADER_SIZE: int = 14
 HEADER_PREFIX: bytes = b"\x10\x00"
-MAXIMUM_RECORD_SIZE: int = 8 * 1024 * 1024
+MAXIMUM_RECORD_SIZE: int = 16 * 1024 * 1024
 
 
 def extract_columns(table: List[Dict[str, Any]], columns: List[str]) -> Tuple[List[Any], ...]:
@@ -71,6 +72,7 @@ class Row(tuple):
     _fields: Tuple[str, ...] = None
     _cached_map: Tuple[Tuple[str, Any]] = None
     _cached_byte_size: int = None
+    _key: Tuple[int, int] = None
 
     def __new__(cls, data: Union[Dict[str, Any], Tuple[Any, ...]]):
         """
@@ -157,10 +159,17 @@ class Row(tuple):
 
         record_bytes = packb(tuple(self), option=OPT_SERIALIZE_NUMPY, default=serialize)
         record_size = len(record_bytes)
-        if record_size > MAXIMUM_RECORD_SIZE:
-            raise DataError("Record length cannot exceed 8Mb")
+        timestamp = time.time_ns()
 
-        return HEADER_PREFIX + record_size.to_bytes(4, "big") + record_bytes
+        if record_size > MAXIMUM_RECORD_SIZE:
+            raise DataError("Record length cannot exceed 16Mb")
+
+        return (
+            HEADER_PREFIX
+            + record_size.to_bytes(4, "big")
+            + timestamp.to_bytes(8, "big")
+            + record_bytes
+        )
 
     @property
     def as_json(self) -> bytes:

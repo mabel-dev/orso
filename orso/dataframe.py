@@ -209,7 +209,7 @@ class DataFrame:
             Union[list, tuple]:
                 A tuple containing lists of the column data, or a single list if only one column is specified.
         """
-        from orso.compiled import collect_cython
+        from orso.compute.compiled import collect_cython
 
         if limit is None or limit < 0:
             limit = -1

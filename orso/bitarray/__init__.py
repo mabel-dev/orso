@@ -1,1 +1,1 @@
-from .cbitarray import BitArray
+from orso.compute.cbitarray import BitArray
