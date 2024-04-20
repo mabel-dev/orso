@@ -58,6 +58,24 @@ def test_dataframe_collect():
     assert result == [1, 2, 3, 4, 5], result
 
 
+def test_dataframe_get_item():
+    dataframe = create_dataframe()
+    result = dataframe["A", "C"]
+    assert result == [[1, 2, 3, 4, 5], [1.1, 2.2, 3.3, 4.4, 5.5]], result
+
+    result = dataframe[0, 2]
+    assert result == [[1, 2, 3, 4, 5], [1.1, 2.2, 3.3, 4.4, 5.5]], result
+
+    result = dataframe["A", 2]
+    assert result == [[1, 2, 3, 4, 5], [1.1, 2.2, 3.3, 4.4, 5.5]], result
+
+    result = dataframe["A"]
+    assert result == [1, 2, 3, 4, 5], result
+
+    result = dataframe[0]
+    assert result == [1, 2, 3, 4, 5], result
+
+
 def test_dataframe_slice():
     dataframe = create_dataframe()
     result = dataframe.slice(offset=1, length=2)

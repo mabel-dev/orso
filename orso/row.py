@@ -91,6 +91,12 @@ class Row(tuple):
         instance = super().__new__(cls, data)  # type:ignore
         return instance
 
+    def get(self, item, default=None):
+        index = self._fields.index(item)
+        if index == -1:
+            return default
+        return self[index]
+
     @property
     def as_map(self) -> Tuple[Tuple[str, Any], ...]:
         """

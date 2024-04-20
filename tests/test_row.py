@@ -85,6 +85,28 @@ def test_row_to_json():
     assert json_result == b'{"col1":1,"col2":"a"}'
 
 
+def test_item_get_access():
+    import opteryx
+
+    rows = opteryx.query("SELECT * FROM $planets")
+    items = []
+    for row in rows:
+        assert isinstance(row, Row)
+        items.append(row.get("name"))
+
+    assert items == [
+        "Mercury",
+        "Venus",
+        "Earth",
+        "Mars",
+        "Jupiter",
+        "Saturn",
+        "Uranus",
+        "Neptune",
+        "Pluto",
+    ]
+
+
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests
 
