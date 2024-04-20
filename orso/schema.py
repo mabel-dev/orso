@@ -85,10 +85,6 @@ from orso.types import OrsoTypes
 _MISSING_VALUE: str = str()
 
 
-def identity():
-    pass
-
-
 class ColumnDisposition(Enum):
     NAME = "name"
     AGE = "age"
@@ -144,7 +140,6 @@ class FlatColumn:
     precision: Optional[int] = None
     scale: Optional[int] = None
     origin: Optional[str] = None
-    statistics: Optional[dict] = field(default_factory=dict)
 
     def __init__(self, **kwargs):
         attributes = {f.name: f for f in fields(self.__class__)}
@@ -420,8 +415,7 @@ class RelationSchema:
     name: str
     aliases: List[str] = field(default_factory=list)
     columns: List[FlatColumn] = field(default_factory=list)
-    statistics: Dict[str, Any] = field(default_factory=dict)
-    primary_key: str = identity()
+    primary_key: str = None
 
     def __iter__(self):
         """Return an iterator over column names."""

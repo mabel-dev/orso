@@ -215,9 +215,11 @@ class DataFrame:
             limit = -1
 
         single = False
-        if not isinstance(columns, list):
+        if not isinstance(columns, (list, set, tuple)):
             single = True
             columns = [columns]
+        else:
+            columns = list(columns)
 
         column_indicies = columns
         for i, c in enumerate(columns):
@@ -227,6 +229,9 @@ class DataFrame:
         return collect_cython(
             self._rows, numpy.array(column_indicies, dtype=numpy.int32), limit, single
         )
+
+    def __getitem__(self, items):
+        return self.collect(columns=items, limit=None)
 
     def slice(self, offset: int = 0, length: int = None) -> "DataFrame":
         self.materialize()
