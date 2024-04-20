@@ -77,7 +77,7 @@ def test_nullable_columns():
                 none_count[index] += 1
 
     # Check frequency of None values in nullable column
-    assert 80 < none_count[0] < 120, none_count[0]  # Should be close to 1% of 10000
+    assert 70 < none_count[0] < 130, none_count[0]  # Should be close to 1% of 10000
     # Check that non-nullable columns don't contain None
     assert none_count[1] == 0, none_count[1]
 

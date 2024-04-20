@@ -139,7 +139,7 @@ class FlatColumn:
     identity: str = field(default_factory=random_string)
     precision: Optional[int] = None
     scale: Optional[int] = None
-    origin: Optional[str] = None
+    origin: Optional[List[str]] = field(default_factory=list)
 
     def __init__(self, **kwargs):
         attributes = {f.name: f for f in fields(self.__class__)}
