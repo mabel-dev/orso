@@ -139,7 +139,7 @@ def ascii_table(
     colorize: bool = True,
     top_and_tail: bool = True,
     show_types: bool = False,
-):
+):  # pragma: no cover
     """
     Render the dictset as a ASCII table.
 
@@ -380,7 +380,7 @@ def markdown(
     table,
     limit: int = 5,
     max_column_width: int = 30,
-):
+):  # pragma: no cover
     # Extract head data
     if limit > 0:
         t = table.slice(length=limit)
