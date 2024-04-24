@@ -36,8 +36,8 @@ def test_from_arrow():
     result = DataFrame(rows=rows, schema=schema)
 
     # Verify that the result has the correct number of rows and columns
-    assert len(result) == 4
-    assert len(result.column_names) == 3
+    assert len(result) == 4, len(result)
+    assert len(result.column_names) == 3, len(result.column_names)
 
     # Verify that the result has the correct column names and data types
     assert result.column_names == ("id", "name", "active")
@@ -108,7 +108,7 @@ def test_from_arrow_with_multiple_tables():
 
 def test_from_arrow_none():
     rows, schema = converters.from_arrow(None)
-    assert rows == []
+    assert list(rows) == [], rows
     assert schema == {}
 
 

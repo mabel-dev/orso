@@ -408,7 +408,10 @@ class DateProfiler(BaseProfiler):
     def __call__(self, column_data: List[Any]):
 
         self.profile.count = len(column_data)
-        column_data = numpy.array(column_data, dtype="datetime64[s]").astype("int64")
+        if hasattr(column_data[0], "value"):
+            column_data = numpy.array([v.value for v in column_data], dtype="int64")
+        else:
+            column_data = numpy.array(column_data, dtype="datetime64[s]").astype("int64")
         column_data = column_data[~numpy.equal(column_data, -9223372036854775808)]
         self.profile.missing = self.profile.count - len(column_data)
         if len(column_data) > 0:
