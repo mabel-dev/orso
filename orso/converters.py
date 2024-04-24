@@ -10,7 +10,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
 import itertools
 import typing
 
@@ -45,7 +44,7 @@ def to_arrow(dataset, size=None):
 def from_arrow(tables, size=None):
     """
     Convert an Arrow table or an iterable of Arrow tables to a generator of
-    Python objects.
+    Python objects, handling each block one at a time.
     """
     if not isinstance(tables, (typing.Generator, list, tuple)):
         tables = [tables]
@@ -53,53 +52,36 @@ def from_arrow(tables, size=None):
     if isinstance(tables, (list, tuple)):
         tables = iter(tables)
 
-    # Extract schema information from the first table
-    first_table = next(tables, None)
-    if first_table is None:
-        return [], {}
-
-    arrow_schema = first_table.schema
-
-    orso_schema = RelationSchema(
-        name="arrow",
-        columns=[FlatColumn.from_arrow(field) for field in arrow_schema],
-    )
-
-    # Create a generator of tuples from the columns
-    row_factory = Row.create_class(orso_schema, tuples_only=True)
-
-    BATCH_SIZE: int = 10000
+    BATCH_SIZE: int = 10_000
     if size:
         BATCH_SIZE = min(size, BATCH_SIZE)
     else:
         size = float("inf")
 
+    # Extract schema information from the first table
+    first_table = next(tables, None)
+    if first_table is None:
+        return iter([]), {}
+
+    arrow_schema = first_table.schema
+    orso_schema = RelationSchema(
+        name="arrow",
+        columns=[FlatColumn.from_arrow(field) for field in arrow_schema],
+    )
+    row_factory = Row.create_class(orso_schema, tuples_only=True)
     rows: typing.List[Row] = []
+
     for table in itertools.chain([first_table], tables):
         batches = table.to_batches(max_chunksize=BATCH_SIZE)
         for batch in batches:
-            # Here we're converting columnar data to row-based data
-            # - this is relatively slow. Using Numpy is faster than using
-            # Python lists, but Numpy doesn't handle int and date columns
-            # correctly, so we use the slower Python converter for these.
-            # Fast is good, but not at the expense of correctness.
-            column_data = (
-                (
-                    column.to_numpy(zero_copy_only=False)
-                    if arrow_type_map(column.type)
-                    not in (int, datetime.datetime, datetime.date, list)
-                    else column.tolist()
-                )
-                for column in batch.columns
-            )
-            rows.extend(row_factory(row) for row in zip(*column_data))
+            pandas_frame = batch.to_pandas()
+            rows.extend((row_factory(i) for i in pandas_frame.itertuples(index=False, name=None)))
             if len(rows) >= size:
                 break
 
     # Limit the number of rows to 'size'
     if isinstance(size, int):
-        rows = itertools.islice(rows, size)  # type:ignore
-
+        rows = itertools.islice(rows, size)
     return rows, orso_schema
 
 

@@ -116,7 +116,7 @@ cpdef int calculate_data_width(list column_values):
     
     max_width = 4  # Default width
     for value in column_values:
-        if value:
+        if value is not None:
             width = PyBytes_GET_SIZE(PyObject_Str(value))
             if width > max_width:
                 max_width = width
