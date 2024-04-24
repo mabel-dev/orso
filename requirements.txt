@@ -2,5 +2,5 @@ cityhash
 data-expectations>=1.6.0
 orjson
 ormsgpack
-pandas>=2.*
+pandas
 numpy==1.*
