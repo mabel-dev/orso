@@ -122,3 +122,18 @@ cpdef int calculate_data_width(list column_values):
                 max_width = width
 
     return max_width
+
+
+
+import numpy as np
+from numpy cimport ndarray
+
+def process_table(table, row_factory, int max_chunksize):
+    cdef list[] batches = table.to_batches(max_chunksize)
+    cdef list rows = []
+    cdef ndarray df_array
+
+    for batch in batches:
+        df_array = batch.to_pandas().replace({np.nan: None}).to_numpy()
+        rows.extend(row_factory(i) for i in df_array)
+    return rows

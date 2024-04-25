@@ -3,4 +3,5 @@ data-expectations>=1.6.0
 orjson
 ormsgpack
 pandas
+pyarrow
 numpy==1.*

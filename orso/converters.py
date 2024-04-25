@@ -13,6 +13,7 @@
 import itertools
 import typing
 
+from orso.compute.compiled import process_table
 from orso.exceptions import MissingDependencyError
 from orso.row import Row
 from orso.schema import FlatColumn
@@ -72,12 +73,9 @@ def from_arrow(tables, size=None):
     rows: typing.List[Row] = []
 
     for table in itertools.chain([first_table], tables):
-        batches = table.to_batches(max_chunksize=BATCH_SIZE)
-        for batch in batches:
-            pandas_frame = batch.to_pandas()
-            rows.extend((row_factory(i) for i in pandas_frame.itertuples(index=False, name=None)))
-            if len(rows) >= size:
-                break
+        rows.extend(process_table(table, row_factory, BATCH_SIZE))
+        if len(rows) > size:
+            break
 
     # Limit the number of rows to 'size'
     if isinstance(size, int):
