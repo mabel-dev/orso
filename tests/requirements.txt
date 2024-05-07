@@ -6,3 +6,5 @@ pandas
 polars
 pyarrow
 opteryx
+
+aiohttp
