@@ -12,5 +12,5 @@ force_single_line = true
 float_to_top = true
 
 [build-system]
-requires = ["setuptools>=42", "wheel", "Cython"]
+requires = ["setuptools>=42", "wheel", "Cython", "numpy"]
 build-backend = "setuptools.build_meta"

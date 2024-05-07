@@ -357,6 +357,7 @@ class NumericProfiler(BaseProfiler):
         self.profile.count = len(column_data)
         column_data = numpy.array(column_data, copy=False)  # Ensure column_data is a NumPy array
         if column_data.dtype.name == "object":
+            column_data = column_data[~numpy.equal(column_data, -9223372036854775808)]
             column_data = [float(c) for c in column_data if c is not None]
         else:
             column_data = column_data[~numpy.isnan(column_data)]
@@ -409,7 +410,9 @@ class DateProfiler(BaseProfiler):
 
         self.profile.count = len(column_data)
         if hasattr(column_data[0], "value"):
-            column_data = numpy.array([v.value for v in column_data], dtype="int64")
+            column_data = numpy.array(
+                [v.value for v in column_data if v is not None], dtype="int64"
+            )
         else:
             column_data = numpy.array(column_data, dtype="datetime64[s]").astype("int64")
         column_data = column_data[~numpy.equal(column_data, -9223372036854775808)]

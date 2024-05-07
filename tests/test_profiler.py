@@ -152,5 +152,4 @@ def test_profile_estimators():
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests
 
-    test_profile_estimators()
     run_tests()
