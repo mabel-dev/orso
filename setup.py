@@ -73,6 +73,9 @@ setup_config = {
     "url": "https://github.com/mabel-dev/orso/",
     "ext_modules": cythonize(extensions),
     "install_requires": required,
+    "package_data": {
+        "": ["*.pyx", "*.pxd"],
+    },
 }
 
 setup(**setup_config)
