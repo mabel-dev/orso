@@ -38,6 +38,22 @@ def test_types_is_temporal():
     assert not OrsoTypes.VARCHAR.is_temporal()
 
 
+def test_types_is_large_object():
+    # is temporal
+    assert not OrsoTypes.ARRAY.is_large_object()
+    assert OrsoTypes.BLOB.is_large_object()
+    assert not OrsoTypes.BOOLEAN.is_large_object()
+    assert not OrsoTypes.DATE.is_large_object()
+    assert not OrsoTypes.DECIMAL.is_large_object()
+    assert not OrsoTypes.DOUBLE.is_large_object()
+    assert not OrsoTypes.INTEGER.is_large_object()
+    assert not OrsoTypes.INTERVAL.is_large_object()
+    assert not OrsoTypes.STRUCT.is_large_object()
+    assert not OrsoTypes.TIME.is_large_object()
+    assert not OrsoTypes.TIMESTAMP.is_large_object()
+    assert OrsoTypes.VARCHAR.is_large_object()
+
+
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests
 

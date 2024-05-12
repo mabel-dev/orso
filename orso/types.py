@@ -44,6 +44,13 @@ class OrsoTypes(str, Enum):
         """is the type time-based"""
         return self in (self.DATE, self.TIME, self.TIMESTAMP)
 
+    def is_large_object(self):
+        """is the type arbitrary length string"""
+        return self in (self.VARCHAR, self.BLOB)
+
+    def is_complex(self):
+        return self in (self.ARRAY, self.STRUCT, self.BSON, self.INTERVAL)
+
     def __str__(self):
         return self.value
 
