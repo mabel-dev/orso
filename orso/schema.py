@@ -71,6 +71,7 @@ from typing import Union
 from warnings import warn
 
 import numpy
+import orjson
 from data_expectations import Expectation
 
 from orso.exceptions import ColumnDefinitionError
@@ -259,6 +260,54 @@ class FlatColumn:
         if self.aliases is not None:
             return self.aliases + [self.name]
         return [self.name]
+
+    @property
+    def arrow_field(self):
+        import pyarrow
+
+        TYPE_MAP: dict = {
+            OrsoTypes.BOOLEAN: pyarrow.bool_(),
+            OrsoTypes.BLOB: pyarrow.binary(),
+            OrsoTypes.DATE: pyarrow.date64(),
+            OrsoTypes.TIMESTAMP: pyarrow.timestamp("us"),
+            OrsoTypes.TIME: pyarrow.time32("ms"),
+            OrsoTypes.INTERVAL: pyarrow.month_day_nano_interval(),
+            OrsoTypes.STRUCT: pyarrow.struct([]),
+            OrsoTypes.DECIMAL: lambda col: pyarrow.decimal128(col.precision, col.scale),
+            OrsoTypes.DOUBLE: pyarrow.float64(),
+            OrsoTypes.INTEGER: pyarrow.int64(),
+            OrsoTypes.ARRAY: pyarrow.list_(pyarrow.string()),
+            OrsoTypes.VARCHAR: pyarrow.string(),
+            OrsoTypes.BSON: pyarrow.binary(),
+            OrsoTypes.NULL: pyarrow.null(),
+        }
+
+        return pyarrow.field(name=self.name, type=TYPE_MAP.get(self.type, pyarrow.string()))
+
+    def to_json(self) -> str:
+        def default_serializer(o):
+            if isinstance(o, OrsoTypes):
+                return str(o)
+            if isinstance(o, Expectation):
+                return o.__dict__
+            raise TypeError(f"Object of type {o.__class__.__name__} is not JSON serializable")
+
+        return orjson.dumps(asdict(self), default=default_serializer)
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "FlatColumn":
+        def custom_decoder(dct):
+            if "type" in dct:
+                dct["type"] = OrsoTypes.__members__.get(dct["type"], OrsoTypes._MISSING_TYPE)
+            if "expectations" in dct and isinstance(dct["expectations"], list):
+                dct["expectations"] = [
+                    SchemaExpectation.load(v) if isinstance(v, dict) else v
+                    for v in dct["expectations"]
+                ]
+            return dct
+
+        data = orjson.loads(json_str)
+        return cls(**data)
 
 
 @dataclass(init=False)
@@ -605,3 +654,24 @@ class RelationSchema:
         if errors:
             raise DataValidationError(errors=errors)
         return True
+
+    def to_json(self):
+        return {
+            "name": self.name,
+            "aliases": self.aliases,
+            "primary_key": self.primary_key,
+            "columns": [col.to_json() for col in self.columns],
+        }
+
+
+def convert_arrow_schema_to_orso_schema(arrow_schema):
+    return RelationSchema(
+        name="arrow",
+        columns=[FlatColumn.from_arrow(field) for field in arrow_schema],
+    )
+
+
+def convert_orso_schema_to_arrow_schema(orso_schema):
+    from pyarrow import schema
+
+    return schema([col.arrow_field for col in orso_schema.columns])

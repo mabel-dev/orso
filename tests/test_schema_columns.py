@@ -359,6 +359,29 @@ def test_to_flatcolumn_preserve_attributes():
         assert getattr(new_column, field) == getattr(flat_column, field), field
 
 
+def test_to_json_and_back():
+    """
+    Test that to_flatcolumn preserves the attributes.
+    """
+    flat_column = FlatColumn(
+        name="id",
+        type=OrsoTypes.INTEGER,
+        description="An ID column",
+        aliases=["ID"],
+        nullable=False,
+        precision=5,
+    )
+    as_json = flat_column.to_json()
+    as_column = FlatColumn.from_json(as_json)
+
+    for field in [
+        f
+        for f in dir(FlatColumn)
+        if (f[0] != "_" and isinstance(getattr(flat_column, f), (int, str, float, list, OrsoTypes)))
+    ]:
+        assert getattr(as_column, field) == getattr(flat_column, field), field
+
+
 def test_aliasing():
     col = FlatColumn(name="alpha", type=OrsoTypes.VARCHAR)
 
@@ -375,7 +398,17 @@ def test_minimum_definition():
     col = FlatColumn(name="a")
 
 
+def test_arrow_conversion():
+    from tests.cities import schema as city_schema
+    from pyarrow import schema as arrow_schema
+
+    _arrow_schema = arrow_schema([col.arrow_field for col in city_schema.columns])
+
+    print(_arrow_schema)
+
+
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests
 
+    test_arrow_conversion()
     run_tests()
