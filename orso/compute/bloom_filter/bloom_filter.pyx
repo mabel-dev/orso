@@ -1,7 +1,6 @@
 # cython: language_level=3
 # cython: boundscheck=False
 # cython: wraparound=False
-# _cython: cdivision=True
 """
 approximately 500 items, with two hashes, in 4092 bits, would have a 5% FP rate.
 This implementation runs in about 3x faster than previous implementations.
@@ -12,7 +11,7 @@ perform entirely as expected.
 
 
 from libc.stdlib cimport malloc, free
-from libc.string cimport memset
+from libc.string cimport memset, memcpy
 
 cdef class BloomFilter:
     cdef:
@@ -48,6 +47,17 @@ cdef class BloomFilter:
         # Check bits using bitwise AND
         return (self.bit_array[h1 // 8] & (1 << (h1 % 8))) and \
                (self.bit_array[h2 // 8] & (1 << (h2 % 8)))
+
+    cpdef memoryview serialize(self):
+        """Serialize the Bloom filter to a memory view"""
+        return memoryview(self.bit_array)[:self.size // 8 + 1]
+
+    @staticmethod
+    cdef BloomFilter deserialize(const unsigned char* data, long size):
+        """Deserialize a memory view to a Bloom filter"""
+        bf = BloomFilter(size)
+        memcpy(bf.bit_array, data, size // 8 + 1)
+        return bf
 
 def create_bloom_filter(int size, items):
     """Create and populate a Bloom filter"""
