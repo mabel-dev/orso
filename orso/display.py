@@ -206,7 +206,6 @@ def ascii_table(
         return str(value)
 
     def type_formatter(value, width, type_):
-
         if isinstance(value, (numpy.generic, numpy.ndarray)):
             value = numpy_type_mapper(value)
 
@@ -323,10 +322,7 @@ def ascii_table(
             col_types = [column.type for column in t.schema.columns]
         else:
             col_types = [OrsoTypes._MISSING_TYPE] * len(t.schema)
-        if show_types:
-            col_type_width = list(map(len, col_types))
-        else:
-            col_type_width = [0] * len(col_types)
+        col_type_width = list(map(len, col_types)) if show_types else [0] * len(col_types)
         col_width = [
             min(max(cw, ctw, dw), max_column_width)
             for cw, ctw, dw in zip(col_width, col_type_width, data_width)
@@ -382,10 +378,7 @@ def markdown(
     max_column_width: int = 30,
 ):  # pragma: no cover
     # Extract head data
-    if limit > 0:
-        t = table.slice(length=limit)
-    else:
-        t = table
+    t = table.slice(length=limit) if limit > 0 else table
 
     # width of index column
     index_width = len(str(len(table)))

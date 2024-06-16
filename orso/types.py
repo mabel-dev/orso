@@ -13,6 +13,9 @@
 import datetime
 import decimal
 from enum import Enum
+from typing import Any
+
+from orso.tools import parse_iso
 
 
 class OrsoTypes(str, Enum):
@@ -54,6 +57,9 @@ class OrsoTypes(str, Enum):
     def __str__(self):
         return self.value
 
+    def parse(self, value: Any) -> Any:
+        return ORSO_TO_PYTHON_PARSER[self.value](value)
+
 
 ORSO_TO_PYTHON_MAP: dict = {
     OrsoTypes.BOOLEAN: bool,
@@ -76,3 +82,20 @@ PYTHON_TO_ORSO_MAP: dict = {
     value: key for key, value in ORSO_TO_PYTHON_MAP.items() if key != OrsoTypes.BSON
 }
 PYTHON_TO_ORSO_MAP.update({tuple: OrsoTypes.ARRAY, set: OrsoTypes.ARRAY})  # map other python types
+
+ORSO_TO_PYTHON_PARSER: dict = {
+    OrsoTypes.BOOLEAN: bool,
+    OrsoTypes.BLOB: bytes,
+    OrsoTypes.DATE: lambda x: parse_iso(x).date(),
+    OrsoTypes.TIMESTAMP: parse_iso,
+    OrsoTypes.TIME: lambda x: parse_iso(x).time(),
+    OrsoTypes.INTERVAL: datetime.timedelta,
+    OrsoTypes.STRUCT: dict,
+    OrsoTypes.DECIMAL: decimal.Decimal,
+    OrsoTypes.DOUBLE: float,
+    OrsoTypes.INTEGER: int,
+    OrsoTypes.ARRAY: list,
+    OrsoTypes.VARCHAR: str,
+    OrsoTypes.BSON: bytes,
+    OrsoTypes.NULL: lambda x: None,
+}

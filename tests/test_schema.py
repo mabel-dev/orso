@@ -261,6 +261,64 @@ def test_minimum_definition():
     with pytest.raises(ExcessColumnsInDataError):
         rs.validate({"apples": "green", "oranges": "orange"})
 
+def test_parsers():
+    import datetime
+    import decimal
+    from orso.tools import parse_iso
+
+    field = OrsoTypes.DATE
+    parsed = field.parse("2023-01-01")
+    assert isinstance(parsed, datetime.date), type(parsed)
+    assert parsed == parse_iso("2023-01-01").date(), parsed
+
+    field = OrsoTypes.DATE
+    parsed = field.parse("2023-01-01T00:00:01")
+    assert isinstance(parsed, datetime.date), type(parsed)
+    assert parsed == parse_iso("2023-01-01").date(), parsed
+
+    field = OrsoTypes.DATE
+    with pytest.raises(Exception):
+        parsed = field.parse("apples")
+    
+    field = OrsoTypes.DECIMAL
+    parsed = field.parse("8.7")
+    assert isinstance(parsed, decimal.Decimal), type(parsed)
+    assert parsed == decimal.Decimal("8.7"), parsed
+
+    field = OrsoTypes.DOUBLE
+    parsed = field.parse("8.7")
+    assert isinstance(parsed, float), type(parsed)
+    assert parsed == 8.7, parsed
+
+    field = OrsoTypes.DOUBLE
+    parsed = field.parse("8")
+    assert isinstance(parsed, float), type(parsed)
+    assert parsed == 8.0, parsed
+
+    field = OrsoTypes.INTEGER
+    parsed = field.parse("8")
+    assert isinstance(parsed, int), type(parsed)
+    assert parsed == 8, parsed
+
+    field = OrsoTypes.INTEGER
+    parsed = field.parse("-8")
+    assert isinstance(parsed, int), type(parsed)
+    assert parsed == -8, parsed
+
+    field = OrsoTypes.TIMESTAMP
+    parsed = field.parse("2023-01-01T00:00:01")
+    assert isinstance(parsed, datetime.datetime), type(parsed)
+    assert parsed == parse_iso("2023-01-01 00:00:01"), parsed
+
+    field = OrsoTypes.TIMESTAMP
+    parsed = field.parse("1718530754")
+    assert isinstance(parsed, datetime.datetime), type(parsed)
+    assert parsed == parse_iso("2024-06-16 09:39:14"), parsed
+
+    field = OrsoTypes.VARCHAR
+    parsed = field.parse("1718530754")
+    assert isinstance(parsed, str), type(parsed)
+    assert parsed == "1718530754", parsed
 
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests

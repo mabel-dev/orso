@@ -13,10 +13,7 @@ def is_mac():  # pragma: no cover
     return platform.system().lower() == "darwin"
 
 
-if is_mac():
-    COMPILE_FLAGS = ["-O2"]
-else:
-    COMPILE_FLAGS = ["-O2", "-march=native"]
+COMPILE_FLAGS = ["-O2"] if is_mac() else   ["-O2", "-march=native"]
 
 __version__ = "notset"
 with open(f"{LIBRARY}/version.py", mode="r") as v:

@@ -109,9 +109,7 @@ def get_ordered_and_transitions(data) -> tuple:
             transitions += 1
             if ordered is None:
                 ordered = -1 if value < last_value else 1
-            elif value > last_value and ordered == -1:
-                ordered = 0
-            elif value < last_value and ordered == 1:
+            elif value > last_value and ordered == -1 or value < last_value and ordered == 1:
                 ordered = 0
         last_value = value
 
@@ -150,7 +148,7 @@ class ColumnProfile:
         kth_min_value = self.kmv_hashes[-1]
 
         # Cardinality estimation formula
-        return int((KVM_SIZE - 1) / ((kth_min_value / 2**32)))
+        return int((KVM_SIZE - 1) / (kth_min_value / 2**32))
 
     def estimate_values_at(self, point) -> int:
         if not hasattr(self, "distogram"):
@@ -168,7 +166,6 @@ class ColumnProfile:
         return (self.count - self.missing) - distogram.count_at(self.distogram, point)
 
     def __add__(self, profile: "ColumnProfile") -> "ColumnProfile":
-
         new_profile = self.deep_copy()
         new_profile.count += profile.count
         new_profile.missing += profile.missing
@@ -217,7 +214,6 @@ class ColumnProfile:
 
 
 class TableProfile:
-
     def __init__(self):
         self._columns: List[ColumnProfile] = []
         self._column_names: List[str] = []
@@ -290,7 +286,6 @@ class TableProfile:
         profiles = {}
 
         for morsel in table.to_batches(25000):
-
             if not isinstance(morsel.schema, RelationSchema):
                 morsel._schema = RelationSchema(
                     name="morsel", columns=[FlatColumn(name=c) for c in morsel.schema]
@@ -326,14 +321,12 @@ class BaseProfiler:
 
 class ListStructProfiler(BaseProfiler):
     def __call__(self, column_data: List[Any]):
-
         self.profile.count = len(column_data)
         self.profile.missing = sum(1 for val in column_data if val is None)
 
 
 class DefaultProfiler(BaseProfiler):
     def __call__(self, column_data: List[Any]):
-
         self.profile.count = len(column_data)
         self.profile.missing = sum(1 for val in column_data if val != val)
 
@@ -351,9 +344,7 @@ class BooleanProfiler(BaseProfiler):
 
 
 class NumericProfiler(BaseProfiler):
-
     def __call__(self, column_data: List[Any]):
-
         self.profile.count = len(column_data)
         column_data = numpy.array(column_data, copy=False)  # Ensure column_data is a NumPy array
         if column_data.dtype.name == "object":
@@ -385,9 +376,7 @@ class NumericProfiler(BaseProfiler):
 
 
 class VarcharProfiler(BaseProfiler):
-
     def __call__(self, column_data: List[Any]):
-
         self.profile.count = len(column_data)
         column_data = [col for col in column_data if col is not None]
         if len(column_data) > 0:
@@ -405,9 +394,7 @@ class VarcharProfiler(BaseProfiler):
 
 
 class DateProfiler(BaseProfiler):
-
     def __call__(self, column_data: List[Any]):
-
         self.profile.count = len(column_data)
         if hasattr(column_data[0], "value"):
             column_data = numpy.array(

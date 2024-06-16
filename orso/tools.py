@@ -24,6 +24,8 @@ from typing import List
 from typing import Type
 from typing import Union
 
+import numpy
+
 from orso.exceptions import MissingDependencyError
 
 
@@ -219,8 +221,7 @@ def counter(func: Callable) -> Callable:
             str: The formatted report string.
         """
         stats = (
-            f"\nExecution Statistics for `{self.__name__}`\n  "
-            f"Count   : {self.count}\n"  # type:ignore
+            f"\nExecution Statistics for `{self.__name__}`\n  " f"Count   : {self.count}\n"  # type:ignore
         )
         if self.count > 0:  # type:ignore
             stats += f"  Average : {sum(self._run_times) / self.count} seconds\n"  # type:ignore
@@ -595,3 +596,95 @@ def random_string(width: int = 16) -> str:
     rand_bytes = getrandbits(num_chars)  # Generate random bits
     # Convert to hex string, clip '0x' prefix, and zero-fill as needed
     return ("000000" + hex(rand_bytes)[2:])[-width:]
+
+
+def parse_iso(value):
+    # Date validation at speed is hard, dateutil is great but really slow, this is fast
+    # but error-prone. It assumes it is a date or it really nothing like a date.
+    # Making that assumption - and accepting the consequences - we can convert up to
+    # three times faster than dateutil.
+    #
+    # valid formats (not exhaustive):
+    #
+    #   YYYY-MM-DD                 <- date
+    #   YYYY-MM-DD HH:MM           <- date and time, no seconds
+    #   YYYY-MM-DDTHH:MM           <- date and time, T separator
+    #   YYYY-MM-DD HH:MM:SS        <- date and time with seconds
+    #   YYYY-MM-DD HH:MM:SS.mmmm   <- date and time with milliseconds
+    #
+    # If the last character is a Z, we ignore it.
+    # If we can't parse as a date we return None rather than error
+    try:
+        input_type = type(value)
+        if input_type == str and value.isdigit():
+            value = int(value)
+            input_type = int
+
+        if input_type == numpy.datetime64:
+            # this can create dates rather than datetimes, so don't return yet
+            value = value.astype(datetime.datetime)
+            input_type = type(value)
+            if input_type is int:
+                value /= 1000000000
+
+        if input_type in (int, numpy.int64, float, numpy.float64):
+            return datetime.datetime.fromtimestamp(int(value), tz=datetime.timezone.utc).replace(
+                tzinfo=None
+            )
+
+        if input_type == datetime.datetime:
+            return value.replace(microsecond=0)
+        if input_type == datetime.date:
+            return datetime.datetime.combine(value, datetime.time.min)
+
+        # if we're here, we're doing string parsing
+        if input_type == str and 10 <= len(value) <= 33:
+            if value[-1] == "Z":
+                value = value[:-1]
+            if "+" in value:
+                value = value.split("+")[0]
+                if not 10 <= len(value) <= 28:
+                    return None
+            val_len = len(value)
+            if value[4] != "-" or value[7] != "-":
+                return None
+            if val_len == 10:
+                # YYYY-MM-DD
+                return datetime.datetime(
+                    *map(int, [value[:4], value[5:7], value[8:10]])  # type:ignore
+                )
+            if val_len >= 16:
+                if value[10] not in ("T", " ") and value[13] != ":":
+                    return None
+                if val_len >= 19 and value[16] == ":":
+                    # YYYY-MM-DD HH:MM:SS
+                    return datetime.datetime(
+                        *map(  # type:ignore
+                            int,
+                            [
+                                value[:4],  # YYYY
+                                value[5:7],  # MM
+                                value[8:10],  # DD
+                                value[11:13],  # HH
+                                value[14:16],  # MM
+                                value[17:19],  # SS
+                            ],
+                        )
+                    )
+                if val_len == 16:
+                    # YYYY-MM-DD HH:MM
+                    return datetime.datetime(
+                        *map(  # type:ignore
+                            int,
+                            [
+                                value[:4],
+                                value[5:7],
+                                value[8:10],
+                                value[11:13],
+                                value[14:16],
+                            ],
+                        )
+                    )
+        return None
+    except (ValueError, TypeError):
+        return None

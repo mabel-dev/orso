@@ -1,9 +1,10 @@
 lint:
-	python -m pip install --quiet --upgrade pycln isort black yamllint
-	# python -m yamllint .
+	python -m pip install --quiet --upgrade pycln isort ruff yamllint
+#	python -m yamllint .
+	python -m ruff check --fix --exit-zero
 	python -m pycln .
 	python -m isort .
-	python -m black .
+	python -m ruff format orso
 
 update:
 	python -m pip install --quiet --upgrade -r requirements.txt

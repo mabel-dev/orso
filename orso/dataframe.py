@@ -75,7 +75,7 @@ class DataFrame:
             first_dict = next(dicts)
 
             # if we have an explicit schema, use that, otherwise guess from the first entry
-            self._schema = [str(k) for k in first_dict.keys()]
+            self._schema = [str(k) for k in first_dict]
             self._row_factory = Row.create_class(self._schema)
             keys = list(first_dict.keys())
 
@@ -189,7 +189,9 @@ class DataFrame:
     def distinct(self) -> "DataFrame":
         seen = set()
         unique_rows = [
-            x for x in self._rows if hash(x) not in seen and not seen.add(hash(x))  # type:ignore
+            x
+            for x in self._rows
+            if hash(x) not in seen and not seen.add(hash(x))  # type:ignore
         ]
         return DataFrame(rows=unique_rows, schema=self._schema)
 

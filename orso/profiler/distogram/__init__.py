@@ -127,7 +127,6 @@ class Distogram:  # pragma: no cover
 
 # added for opteryx
 def load(bins: list, minimum, maximum):  # pragma: no cover
-
     dgram = Distogram()
     dgram.bins = bins
     dgram.min = minimum
@@ -229,9 +228,11 @@ def _trim_in_place(
 ) -> Distogram:
     current_value, current_frequency = distogram.bins[bin_index]
     current_value = _caster(current_value)
-    distogram.bins[bin_index] = (current_value * current_frequency + new_value * new_count) / (
-        current_frequency + new_count
-    ), current_frequency + new_count
+    distogram.bins[bin_index] = (
+        (current_value * current_frequency + new_value * new_count)
+        / (current_frequency + new_count),
+        current_frequency + new_count,
+    )
     _update_diffs(distogram, bin_index)
     return distogram
 

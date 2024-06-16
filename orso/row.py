@@ -160,7 +160,7 @@ class Row(tuple):
             if isinstance(value, datetime.datetime):
                 return ("__datetime__", value.timestamp())
             if isinstance(value, numpy.ndarray):
-                return list(value)
+                return value.tolist()
             return str(value)
 
         record_bytes = packb(tuple(self), option=OPT_SERIALIZE_NUMPY, default=serialize)

@@ -9,9 +9,7 @@ from orso.logging.levels import LEVELS_TO_STRING
 from orso.logging.log_formatter import LogFormatter
 
 LOG_NAME: str = "DEFAULT"
-LOG_FORMAT: str = (
-    "\001BOLD_CYANm%(name)s\001OFFm | %(levelname)-8s | %(asctime)s | \001PINKm%(funcName)s()\001OFFm | \001YELLOWm%(filename)s\001OFFm:\001PURPLEm%(lineno)s\001OFFm | %(message)s"
-)
+LOG_FORMAT: str = "\001BOLD_CYANm%(name)s\001OFFm | %(levelname)-8s | %(asctime)s | \001PINKm%(funcName)s()\001OFFm | \001YELLOWm%(filename)s\001OFFm:\001PURPLEm%(lineno)s\001OFFm | %(message)s"
 
 
 def set_log_name(log_name: str):

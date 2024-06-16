@@ -27,7 +27,7 @@ Features:
     - Each column type provides a 'materialize' method to expand the compressed data
       into its uncompressed form, facilitating query operations that require a full
       column of data.
-    
+
 Column Types:
     - SparseColumn: Handles sparse data by only storing non-default values.
     - DictionaryColumn: Uses a dictionary to encode a finite set of string or
