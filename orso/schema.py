@@ -131,6 +131,7 @@ class FlatColumn:
     """
 
     name: str
+    default: Optional[Any] = None
     type: OrsoTypes = OrsoTypes._MISSING_TYPE
     description: Optional[str] = None
     disposition: Optional[ColumnDisposition] = None
@@ -197,6 +198,15 @@ class FlatColumn:
         if self.type == OrsoTypes.DECIMAL and self.scale is None:
             self.scale = int(0.75 * self.precision)
 
+        # if we have a default value, parse it to the correct type and fail if we can't
+        if self.default:
+            try:
+                self.default = self.type.parse(self.default)
+            except Exception:
+                raise ValueError(
+                    f"Column '{self.name}' default value not compatible with '{self.type}'."
+                )
+
     def __str__(self):
         return self.identity
 
@@ -245,6 +255,7 @@ class FlatColumn:
         """
         return FlatColumn(
             name=str(self.name),
+            default=self.default,
             description=self.description,
             aliases=self.aliases,
             identity=self.identity,
@@ -632,7 +643,7 @@ class RelationSchema:
 
         for column in self.columns:
             if column.name not in data:
-                errors["Column Missing"].append(column.name)
+                errors["Column in Schema Not Found in Record"].append(column.name)
 
             else:
                 value = data[column.name]

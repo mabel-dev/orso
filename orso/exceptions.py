@@ -54,7 +54,8 @@ class ExcessColumnsInDataError(DataError):
         self.columns = columns
         message = (
             f"Data did not pass validation checks; "
-            f"Additional fields were present in the record - " + ", ".join(columns)
+            f"Additional fields, not defined in the schema, were present in the record - "
+            + ", ".join(columns)
         )
         super().__init__(message)
 

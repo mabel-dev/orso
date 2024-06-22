@@ -16,14 +16,21 @@
 # limitations under the License.
 
 from cpython.bytes cimport PyBytes_AsString, PyBytes_GET_SIZE
+from cpython.object cimport PyObject_Str
 from cython cimport int
 from datetime import datetime
 from ormsgpack import unpackb
 from orso.exceptions import DataError
 from typing import Dict, Any, Tuple
 from libc.stdlib cimport malloc, free
-
+import numpy as np
 cimport cython
+cimport numpy as cnp
+from numpy cimport ndarray
+
+cnp.import_array()
+
+
 
 HEADER_PREFIX = b"\x10\x00"
 MAXIMUM_RECORD_SIZE = 8 * 1024 * 1024
@@ -78,13 +85,6 @@ cpdef tuple extract_dict_columns(dict data, tuple fields):
     return tuple(sorted_data)  # Convert list to tuple
 
 
-
-
-from libc.stdlib cimport malloc, free
-import numpy as np
-cimport cython
-cimport numpy as cnp
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def collect_cython(list rows, cnp.ndarray[cnp.int32_t, ndim=1] columns, int limit=-1, int single=False) -> list:
@@ -106,8 +106,6 @@ def collect_cython(list rows, cnp.ndarray[cnp.int32_t, ndim=1] columns, int limi
 
     return result[0] if single else result
 
-from cpython.object cimport PyObject_Str
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef int calculate_data_width(list column_values):
@@ -123,10 +121,6 @@ cpdef int calculate_data_width(list column_values):
 
     return max_width
 
-
-
-import numpy as np
-from numpy cimport ndarray
 
 def process_table(table, row_factory, int max_chunksize):
     cdef list[] batches = table.to_batches(max_chunksize)
