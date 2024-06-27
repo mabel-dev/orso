@@ -28,11 +28,6 @@ import numpy
 
 from orso.exceptions import MissingDependencyError
 
-try:
-    import pandas
-except ImportError:
-    pandas = None
-
 
 def retry(
     max_tries: int = 3,
@@ -617,6 +612,7 @@ def parse_iso(value):
     #   YYYY-MM-DD HH:MM:SS        <- date and time with seconds
     #   YYYY-MM-DD HH:MM:SS.mmmm   <- date and time with milliseconds
     #
+
     # If the last character is a Z, we ignore it.
     # If we can't parse as a date we return None rather than error
     try:
@@ -637,7 +633,7 @@ def parse_iso(value):
                 tzinfo=None
             )
 
-        if pandas and hasattr(value, "to_pydatetime"):
+        if hasattr(value, "to_pydatetime"):
             return value.to_pydatetime()
 
         if input_type == datetime.datetime:
