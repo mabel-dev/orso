@@ -10,155 +10,44 @@ on:
 
 jobs:
 
-  build-linux-cp38:
+  build-manylinux:
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12']
     runs-on: ubuntu-latest
-    container: quay.io/pypa/manylinux2014_x86_64
-
     steps:
-      - uses: actions/checkout@v3.5.3
-
-      - name: Install Python package dependencies
-        run: /opt/python/cp38-cp38/bin/python -m pip install --upgrade cython wheel numpy
-
-      - name: Build binary wheel
-        run: /opt/python/cp38-cp38/bin/python setup.py bdist_wheel
-
-      - name: Apply auditwheel for manylinux wheel
-        run: auditwheel repair -w dist dist/*
-
-      - name: Remove linux wheel
-        run: rm dist/*-linux_x86_64.whl
-
-      - name: Archive dist artifacts
-        uses: actions/upload-artifact@v1
+      - name: Check out repository
+        uses: actions/checkout@v4.1.7
         with:
-          name: dist-linux-3.8
-          path: dist
+          path: io
 
-  build-linux-cp39:
-    runs-on: ubuntu-latest
-    container: quay.io/pypa/manylinux2014_x86_64
+      - name: Set permissions for build.sh
+        run: chmod +x io/build.sh
 
-    steps:
-      - uses: actions/checkout@v3.5.3
+      - name: Build Wheels
+        run: >
+          docker run --rm
+          -e PLAT=manylinux2014_x86_64
+          -e PACKAGE_NAME=orso
+          -e PYTHON_VERSION=${{ matrix.python-version }}
+          -v `pwd`:/io
+          --workdir /io
+          quay.io/pypa/manylinux2014_x86_64
+          io/build-wheels.sh
 
-      - name: Install rust toolchain
-        uses: actions-rs/toolchain@v1
+      - name: Archive Wheels
+        uses: actions/upload-artifact@v3
         with:
-          toolchain: stable
-          override: true
-
-      - name: Install Python package dependencies
-        run: /opt/python/cp39-cp39/bin/python -m pip install --upgrade cython wheel numpy setuptools_rust
-
-      - name: Build binary wheel
-        run: /opt/python/cp39-cp39/bin/python setup.py bdist_wheel
-
-      - name: Apply auditwheel for manylinux wheel
-        run: auditwheel repair -w dist dist/*
-
-      - name: Remove linux wheel
-        run: rm dist/*-linux_x86_64.whl
-
-      - name: Archive dist artifacts
-        uses: actions/upload-artifact@v1
-        with:
-          name: dist-linux-3.9
-          path: dist
-
-  build-linux-cp310:
-    runs-on: ubuntu-latest
-    container: quay.io/pypa/manylinux2014_x86_64
-
-    steps:
-      - uses: actions/checkout@v3.5.3
-
-      - name: Install rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-
-      - name: Install Python package dependencies
-        run: /opt/python/cp310-cp310/bin/python -m pip install --upgrade cython wheel numpy setuptools_rust
-
-      - name: Build binary wheel
-        run: /opt/python/cp310-cp310/bin/python setup.py bdist_wheel
-
-      - name: Apply auditwheel for manylinux wheel
-        run: auditwheel repair -w dist dist/*
-
-      - name: Remove linux wheel
-        run: rm dist/*-linux_x86_64.whl
-
-      - name: Archive dist artifacts
-        uses: actions/upload-artifact@v1
-        with:
-          name: dist-linux-3.10
-          path: dist
-
-  build-linux-cp311:
-    runs-on: ubuntu-latest
-    container: quay.io/pypa/manylinux2014_x86_64
-
-    steps:
-      - uses: actions/checkout@v3.5.3
-
-      - name: Install rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-
-      - name: Install Python package dependencies
-        run: /opt/python/cp311-cp311/bin/python -m pip install --upgrade cython wheel numpy setuptools_rust
-
-      - name: Build binary wheel
-        run: /opt/python/cp311-cp311/bin/python setup.py bdist_wheel
-
-      - name: Apply auditwheel for manylinux wheel
-        run: auditwheel repair -w dist dist/*
-
-      - name: Remove linux wheel
-        run: rm dist/*-linux_x86_64.whl
-
-      - name: Archive dist artifacts
-        uses: actions/upload-artifact@v1
-        with:
-          name: dist-linux-3.11
-          path: dist
-
-  build-linux-cp312:
-    runs-on: ubuntu-latest
-    container: quay.io/pypa/manylinux2014_x86_64
-
-    steps:
-      - uses: actions/checkout@v3.5.3
-
-      - name: Install Python package dependencies
-        run: /opt/python/cp312-cp312/bin/python -m pip install --upgrade cython wheel numpy
-
-      - name: Build binary wheel
-        run: /opt/python/cp312-cp312/bin/python setup.py bdist_wheel
-
-      - name: Apply auditwheel for manylinux wheel
-        run: auditwheel repair -w dist dist/*
-
-      - name: Remove linux wheel
-        run: rm dist/*-linux_x86_64.whl
-
-      - name: Archive dist artifacts
-        uses: actions/upload-artifact@v1
-        with:
-          name: dist-linux-3.12
-          path: dist
+          name: dist-linux-${{ matrix.python-version }}
+          path: io/dist/*manylinux2014_x86_64.whl
 
   build-macos:
     runs-on: macos-latest
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.9', '3.10', '3.11', '3.12']
 
     steps:
       - uses: actions/checkout@v3.5.3
@@ -200,7 +89,7 @@ jobs:
     strategy:
       max-parallel: 3
       matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.9', '3.10', '3.11', '3.12']
 
     steps:
       - uses: actions/checkout@v3.5.3
@@ -231,11 +120,7 @@ jobs:
 
   upload:
     needs:
-      - build-linux-cp38
-      - build-linux-cp39
-      - build-linux-cp310
-      - build-linux-cp311
-      - build-linux-cp312
+      - build-manylinux
       - build-macos
       - build-windows
     runs-on: ubuntu-latest
@@ -257,47 +142,33 @@ jobs:
       - name: Create source dist
         run: python setup.py sdist
 
-      - name: Stage linux 3.8
-        uses: actions/download-artifact@v1
-        with:
-          name: dist-linux-3.8
-
-      - run: mv -v dist-linux-3.8/* dist/
-
-      - name: Stage linux 3.9
-        uses: actions/download-artifact@v1
+    - name: Stage linux 3.9
+        uses: actions/download-artifact@v3
         with:
           name: dist-linux-3.9
-
+          path: dist-linux-3.9
       - run: mv -v dist-linux-3.9/* dist/
 
       - name: Stage linux 3.10
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: dist-linux-3.10
-
+          path: dist-linux-3.10
       - run: mv -v dist-linux-3.10/* dist/
 
       - name: Stage linux 3.11
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: dist-linux-3.11
-
+          path: dist-linux-3.11
       - run: mv -v dist-linux-3.11/* dist/
 
       - name: Stage linux 3.12
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: dist-linux-3.12
-      
+          path: dist-linux-3.12
       - run: mv -v dist-linux-3.12/* dist/
-
-      - name: Stage macos 3.8
-        uses: actions/download-artifact@v1
-        with:
-          name: dist-macos-3.8
-
-      - run: mv -v dist-macos-3.8/* dist/
 
       - name: Stage macos 3.9
         uses: actions/download-artifact@v1
@@ -326,13 +197,6 @@ jobs:
           name: dist-macos-3.12
       
       - run: mv -v dist-macos-3.12/* dist/
-
-      - name: Stage windows 3.8
-        uses: actions/download-artifact@v1
-        with:
-          name: dist-windows-3.8
-
-      - run: mv -v dist-windows-3.8/* dist/
 
       - name: Stage windows 3.9
         uses: actions/download-artifact@v1
