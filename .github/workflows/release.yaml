@@ -34,7 +34,7 @@ jobs:
           -v `pwd`:/io
           --workdir /io
           quay.io/pypa/manylinux2014_x86_64
-          io/build-wheels.sh
+          io/build.sh
 
       - name: Archive Wheels
         uses: actions/upload-artifact@v3
