@@ -12,7 +12,9 @@
 
 import datetime
 import decimal
+import logging
 import os
+import random
 import threading
 import time
 import uuid
@@ -21,6 +23,8 @@ from random import getrandbits
 from typing import Any
 from typing import Callable
 from typing import List
+from typing import Optional
+from typing import Tuple
 from typing import Type
 from typing import Union
 
@@ -28,15 +32,20 @@ import numpy
 
 from orso.exceptions import MissingDependencyError
 
+logger = logging.getLogger(__name__)
+
 
 def retry(
     max_tries: int = 3,
     backoff_seconds: int = 1,
     exponential_backoff: bool = False,
     max_backoff: int = 4,
+    retry_exceptions: Tuple[Type[Exception]] = (Exception,),
+    jitter: bool = False,
+    callback: Optional[Callable[[Exception, int], None]] = None,
 ) -> Callable:
     """
-    Decorator to add retry logic with optional exponential backoff to a function.
+    Decorator to add retry logic with optional exponential backoff and jitter to a function.
 
     Parameters:
         max_tries: int
@@ -47,6 +56,12 @@ def retry(
             Whether to use exponential backoff for the delay between retries.
         max_backoff: int
             The maximum backoff time (in seconds) when using exponential backoff.
+        retry_exceptions: Tuple[Type[Exception]]
+            Tuple of exception types that should trigger a retry.
+        jitter: bool
+            Whether to add a small random delay to the backoff time.
+        callback: Optional[Callable[[Exception, int], None]]
+            A callback function to be called after each failure. It receives the exception and the attempt number.
 
     Returns:
         Callable: Wrapped function with retry logic.
@@ -58,30 +73,30 @@ def retry(
             tries = 0
             this_delay = backoff_seconds
 
-            # Retry logic
             while tries < max_tries:
                 try:
                     return func(*args, **kwargs)
-                except Exception as e:
+                except retry_exceptions as e:
                     tries += 1
 
-                    # Reached maximum retries, raise the exception
+                    if callback:
+                        callback(e, tries)
+
                     if tries == max_tries:
-                        print(
-                            f"`{func.__name__}` failed with `{type(e).__name__}` error after {tries} attempts. Aborting."
+                        logger.error(
+                            f"`{func.__name__}` failed with `{type(e).__name__}` after {tries} attempts. Aborting."
                         )
                         raise e
 
-                    # Log the exception and retry after waiting
-                    print(
-                        f"`{func.__name__}` failed with `{type(e).__name__}` error, attempt {tries} of {max_tries}. Will retry in {this_delay} seconds."
+                    logger.warning(
+                        f"`{func.__name__}` failed with `{type(e).__name__}` error, attempt {tries} of {max_tries}. Retrying in {this_delay} seconds."
                     )
                     time.sleep(this_delay)
 
-                    # Update delay time for exponential backoff
                     if exponential_backoff:
-                        this_delay *= 2
-                        this_delay = min(this_delay, max_backoff)
+                        this_delay = min(this_delay * 2, max_backoff)
+                    if jitter:
+                        this_delay += random.uniform(0, 0.5)
 
         return wrapper_retry
 

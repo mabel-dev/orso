@@ -68,9 +68,7 @@ def extract_caller():
 class GoogleLogger(object):
     @staticmethod
     def supported():
-        if os.environ.get("K_SERVICE", "") or "" != "":  # nosemgrep
-            return True
-        return False
+        return os.environ.get("K_SERVICE", "") or "" != ""  # nosemgrep
 
     @staticmethod
     def write_event(
