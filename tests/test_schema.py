@@ -261,6 +261,7 @@ def test_minimum_definition():
     with pytest.raises(ExcessColumnsInDataError):
         rs.validate({"apples": "green", "oranges": "orange"})
 
+
 def test_parsers():
     import datetime
     import decimal
@@ -279,7 +280,7 @@ def test_parsers():
     field = OrsoTypes.DATE
     with pytest.raises(Exception):
         parsed = field.parse("apples")
-    
+
     field = OrsoTypes.DECIMAL
     parsed = field.parse("8.7")
     assert isinstance(parsed, decimal.Decimal), type(parsed)
@@ -319,6 +320,7 @@ def test_parsers():
     parsed = field.parse("1718530754")
     assert isinstance(parsed, str), type(parsed)
     assert parsed == "1718530754", parsed
+
 
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests

@@ -6,7 +6,7 @@ sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
 import datetime
 import numpy
-import pandas 
+import pandas
 
 from orso.tools import parse_iso
 

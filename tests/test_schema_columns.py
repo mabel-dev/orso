@@ -90,6 +90,7 @@ def test_columns_with_unknown_parameters():
     FlatColumn(name="athena", type=OrsoTypes.INTEGER, alpha="betty")
     FunctionColumn(name="aries", type=OrsoTypes.DATE, binding=datetime.date.today, sketty="yum")
 
+
 def test_column_with_valid_default():
     col = FlatColumn(name="valid", type=OrsoTypes.INTEGER, default="1")
     assert col.default == 1
@@ -97,9 +98,11 @@ def test_column_with_valid_default():
     col = FlatColumn(name="valid", type=OrsoTypes.INTEGER, default=1)
     assert col.default == 1
 
+
 def test_column_with_invalid_default():
     with pytest.raises(ValueError):
         FlatColumn(name="invalid", type=OrsoTypes.INTEGER, default="green")
+
 
 def test_flat_column_from_arrow():
     field_name = "test_field"
@@ -141,8 +144,6 @@ def test_column_type_mapping():
 def test_missing_column_missing_name():
     with pytest.raises(ColumnDefinitionError):
         FlatColumn()
-
-
 
 
 def test_type_checks():

@@ -16,11 +16,12 @@ def test_retry_success_on_first_try():
     def decorated_func():
         return mock_func()
 
-    with patch('time.sleep', return_value=None) as mock_sleep:
+    with patch("time.sleep", return_value=None) as mock_sleep:
         result = decorated_func()
         assert result == "success"
         mock_func.assert_called_once()
         mock_sleep.assert_not_called()
+
 
 def test_retry_success_after_retries():
     mock_func = Mock(side_effect=[Exception("fail"), Exception("fail"), "success"])
@@ -29,11 +30,12 @@ def test_retry_success_after_retries():
     def decorated_func():
         return mock_func()
 
-    with patch('time.sleep', return_value=None) as mock_sleep:
+    with patch("time.sleep", return_value=None) as mock_sleep:
         result = decorated_func()
         assert result == "success"
         assert mock_func.call_count == 3
         assert mock_sleep.call_count == 2
+
 
 def test_retry_failure_after_max_retries():
     mock_func = Mock(side_effect=Exception("fail"))
@@ -42,12 +44,13 @@ def test_retry_failure_after_max_retries():
     def decorated_func():
         return mock_func()
 
-    with patch('time.sleep', return_value=None) as mock_sleep:
+    with patch("time.sleep", return_value=None) as mock_sleep:
         with pytest.raises(Exception):
             decorated_func()
 
         assert mock_func.call_count == 3
         assert mock_sleep.call_count == 2
+
 
 def test_retry_with_exponential_backoff():
     mock_func = Mock(side_effect=[Exception("fail"), Exception("fail"), "success"])
@@ -56,13 +59,14 @@ def test_retry_with_exponential_backoff():
     def decorated_func():
         return mock_func()
 
-    with patch('time.sleep', return_value=None) as mock_sleep:
+    with patch("time.sleep", return_value=None) as mock_sleep:
         result = decorated_func()
         assert result == "success"
         assert mock_func.call_count == 3
         assert mock_sleep.call_count == 2
         mock_sleep.assert_any_call(1)
         mock_sleep.assert_any_call(2)
+
 
 def test_retry_with_jitter():
     mock_func = Mock(side_effect=[Exception("fail"), Exception("fail"), "success"])
@@ -71,12 +75,16 @@ def test_retry_with_jitter():
     def decorated_func():
         return mock_func()
 
-    with patch('time.sleep', return_value=None) as mock_sleep, patch('random.uniform', return_value=0.5) as mock_random:
+    with (
+        patch("time.sleep", return_value=None) as mock_sleep,
+        patch("random.uniform", return_value=0.5) as mock_random,
+    ):
         result = decorated_func()
         assert result == "success"
         assert mock_func.call_count == 3
         assert mock_sleep.call_count == 2
         mock_random.assert_called()
+
 
 def test_retry_with_specific_exceptions():
     mock_func = Mock(side_effect=[ValueError("fail"), ValueError("fail"), "success"])
@@ -85,11 +93,12 @@ def test_retry_with_specific_exceptions():
     def decorated_func():
         return mock_func()
 
-    with patch('time.sleep', return_value=None) as mock_sleep:
+    with patch("time.sleep", return_value=None) as mock_sleep:
         result = decorated_func()
         assert result == "success"
         assert mock_func.call_count == 3
         assert mock_sleep.call_count == 2
+
 
 def test_retry_with_callback():
     mock_func = Mock(side_effect=[Exception("fail"), "success"])
@@ -99,19 +108,19 @@ def test_retry_with_callback():
     def decorated_func():
         return mock_func()
 
-    with patch('time.sleep', return_value=None) as mock_sleep:
+    with patch("time.sleep", return_value=None) as mock_sleep:
         result = decorated_func()
         assert result == "success"
         assert mock_func.call_count == 2
         assert mock_sleep.call_count == 1
-        
+
         # Ensure callback was called once with correct arguments
         assert callback_func.call_count == 1
         called_exception, called_attempt = callback_func.call_args[0]
         assert isinstance(called_exception, Exception)
         assert called_exception.args == ("fail",)
         assert called_attempt == 1
-        
+
 
 def test_retry_no_retries_needed():
     mock_func = Mock(return_value="success")
@@ -120,11 +129,12 @@ def test_retry_no_retries_needed():
     def decorated_func():
         return mock_func()
 
-    with patch('time.sleep', return_value=None) as mock_sleep:
+    with patch("time.sleep", return_value=None) as mock_sleep:
         result = decorated_func()
         assert result == "success"
         assert mock_func.call_count == 1
         mock_sleep.assert_not_called()
+
 
 def test_retry_with_multiple_exceptions():
     mock_func = Mock(side_effect=[ValueError("fail"), KeyError("fail"), "success"])
@@ -133,14 +143,17 @@ def test_retry_with_multiple_exceptions():
     def decorated_func():
         return mock_func()
 
-    with patch('time.sleep', return_value=None) as mock_sleep:
+    with patch("time.sleep", return_value=None) as mock_sleep:
         result = decorated_func()
         assert result == "success"
         assert mock_func.call_count == 3
         assert mock_sleep.call_count == 2
 
+
 def test_retry_with_partial_success():
-    mock_func = Mock(side_effect=[Exception("fail"), "partial_success", Exception("fail_again"), "success"])
+    mock_func = Mock(
+        side_effect=[Exception("fail"), "partial_success", Exception("fail_again"), "success"]
+    )
 
     @retry(max_tries=4, backoff_seconds=1)
     def decorated_func():
@@ -149,11 +162,12 @@ def test_retry_with_partial_success():
             raise Exception("retrying due to partial success")
         return result
 
-    with patch('time.sleep', return_value=None) as mock_sleep:
+    with patch("time.sleep", return_value=None) as mock_sleep:
         result = decorated_func()
         assert result == "success"
         assert mock_func.call_count == 4
         assert mock_sleep.call_count == 3
+
 
 def test_retry_with_max_backoff():
     mock_func = Mock(side_effect=[Exception("fail"), Exception("fail"), "success"])
@@ -162,7 +176,7 @@ def test_retry_with_max_backoff():
     def decorated_func():
         return mock_func()
 
-    with patch('time.sleep', return_value=None) as mock_sleep:
+    with patch("time.sleep", return_value=None) as mock_sleep:
         result = decorated_func()
         assert result == "success"
         assert mock_func.call_count == 3
