@@ -18,6 +18,7 @@ import random
 import threading
 import time
 import uuid
+from collections import OrderedDict
 from functools import wraps
 from random import getrandbits
 from typing import Any
@@ -438,22 +439,75 @@ def single_item_cache(
 
     @wraps(func)
     def wrapper(*args, **kwargs):
+        nonlocal cache
         current_time = time.time()
 
-        if (cache["last_args"] == args and cache["last_kwargs"] == kwargs) and (
-            current_time - cache["last_time"] <= valid_for_seconds
+        if (
+            cache["last_args"] == args
+            and cache["last_kwargs"] == kwargs
+            and current_time - cache["last_time"] <= valid_for_seconds
         ):
             return cache["last_result"]
 
         result = func(*args, **kwargs)
-        cache.update(
-            {
-                "last_args": args,  # type:ignore
-                "last_kwargs": kwargs,  # type:ignore
-                "last_result": result,
-                "last_time": current_time,  # type:ignore
-            }
+        cache["last_args"] = args
+        cache["last_kwargs"] = kwargs
+        cache["last_result"] = result
+        cache["last_time"] = current_time
+
+        return result
+
+    return wrapper
+
+
+def lru_cache_with_expiry(
+    func: Callable = None, *, max_size: int = 5, valid_for_seconds: float = float("inf")
+) -> Callable:
+    """
+    LRU cache decorator with optional expiration time and a fixed size.
+
+    Parameters:
+        func: Callable, optional
+            The function to be decorated.
+        maxsize: int, optional
+            The maximum size of the cache.
+        valid_for_seconds: float, optional
+            Number of seconds after which the cache expires.
+    """
+    if func is None:
+        return lambda f: lru_cache_with_expiry(
+            f, max_size=max_size, valid_for_seconds=valid_for_seconds
         )
+
+    cache: OrderedDict[Tuple[Any, ...], Tuple[float, Any]] = OrderedDict()
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        nonlocal cache
+        current_time = time.time()
+        key = (args, frozenset(kwargs.items()))
+
+        # Remove expired items
+        expired_keys = [
+            k for k, (timestamp, _) in cache.items() if current_time - timestamp > valid_for_seconds
+        ]
+        for k in expired_keys:
+            del cache[k]
+
+        # Check if result is cached
+        if key in cache:
+            # Move the accessed item to the end to maintain LRU order
+            cache.move_to_end(key)
+            return cache[key][1]
+
+        # Call the function and cache the result
+        result = func(*args, **kwargs)
+        cache[key] = (current_time, result)
+
+        # Maintain the cache size
+        if len(cache) > max_size:
+            cache.popitem(last=False)  # Remove the first (least recently used) item
+
         return result
 
     return wrapper

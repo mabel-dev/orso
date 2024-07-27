@@ -102,11 +102,11 @@ def test_profile_estimators():
     missions = opteryx.query("SELECT * FROM $missions")
     profile: TableProfile = missions.profile
 
-    source = opteryx.query("SELECT COUNT(*) as missing FROM $missions WHERE Launched_at IS NULL")
+    source = opteryx.query("SELECT COUNT(*) as missing FROM $missions WHERE Lauched_at IS NULL")
     values = source.fetchone().as_dict
     assert (
-        profile.column("Launched_at").missing == values["missing"]
-    ), f"{profile.column('Launched_at').missing}, {values['missing']}"
+        profile.column("Lauched_at").missing == values["missing"]
+    ), f"{profile.column('Lauched_at').missing}, {values['missing']}"
 
     source = opteryx.query("SELECT MIN(Price) as minimum FROM $missions")
     values = source.fetchone().as_dict
@@ -127,9 +127,9 @@ def test_profile_estimators():
     assert profile.column("Company").most_frequent_values[0] == values["Company"], values
     assert profile.column("Company").most_frequent_counts[0] == values["frequency"], values
 
-    source = opteryx.query("SELECT COUNT_DISTINCT(Launched_at) AS unique_timestamps FROM $missions")
+    source = opteryx.query("SELECT COUNT_DISTINCT(Lauched_at) AS unique_timestamps FROM $missions")
     values = source.fetchone().as_dict
-    estimated_cardinality = profile.column("Launched_at").estimate_cardinality()
+    estimated_cardinality = profile.column("Lauched_at").estimate_cardinality()
     assert (
         estimated_cardinality * 0.75 < values["unique_timestamps"] < estimated_cardinality * 1.25
     ), f"{profile.column('Launched_at').estimate_cardinality()} != {values['unique_timestamps']}"
