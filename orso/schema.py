@@ -276,15 +276,15 @@ class FlatColumn:
     def arrow_field(self):
         import pyarrow
 
-        TYPE_MAP: dict = {
+        type_map: dict = {
             OrsoTypes.BOOLEAN: pyarrow.bool_(),
             OrsoTypes.BLOB: pyarrow.binary(),
             OrsoTypes.DATE: pyarrow.date64(),
             OrsoTypes.TIMESTAMP: pyarrow.timestamp("us"),
             OrsoTypes.TIME: pyarrow.time32("ms"),
             OrsoTypes.INTERVAL: pyarrow.month_day_nano_interval(),
-            OrsoTypes.STRUCT: pyarrow.struct([]),
-            OrsoTypes.DECIMAL: lambda col: pyarrow.decimal128(col.precision, col.scale),
+            OrsoTypes.STRUCT: pyarrow.binary(),  # convert structs to JSON strings/BSONs
+            OrsoTypes.DECIMAL: pyarrow.decimal128(self.precision or 28, self.scale or 10),
             OrsoTypes.DOUBLE: pyarrow.float64(),
             OrsoTypes.INTEGER: pyarrow.int64(),
             OrsoTypes.ARRAY: pyarrow.list_(pyarrow.string()),
@@ -293,7 +293,7 @@ class FlatColumn:
             OrsoTypes.NULL: pyarrow.null(),
         }
 
-        return pyarrow.field(name=self.name, type=TYPE_MAP.get(self.type, pyarrow.string()))
+        return pyarrow.field(name=self.name, type=type_map.get(self.type, pyarrow.string()))
 
     def to_json(self) -> str:
         def default_serializer(o):
@@ -682,7 +682,13 @@ def convert_arrow_schema_to_orso_schema(arrow_schema):
     )
 
 
-def convert_orso_schema_to_arrow_schema(orso_schema):
+def convert_orso_schema_to_arrow_schema(orso_schema, use_identities: bool = False):
+    from pyarrow import field
     from pyarrow import schema
 
-    return schema([col.arrow_field for col in orso_schema.columns])
+    if not use_identities:
+        return schema([col.arrow_field for col in orso_schema.columns])
+
+    return schema(
+        [field(name=col.identity, type=col.arrow_field.type) for col in orso_schema.columns]
+    )
