@@ -1,7 +1,11 @@
-#cython: infer_types=True
-#cython: embedsignature=True
-#cython: binding=False
-#cython: language_level=3
+# cython: infer_types=True
+# cython: embedsignature=True
+# cython: binding=False
+# cython: language_level=3
+# cython: boundscheck=False
+# cython: wraparound=False
+# cython: nonecheck=False
+# cython: overflowcheck=False
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,6 +31,7 @@ import numpy as np
 cimport cython
 cimport numpy as cnp
 from numpy cimport ndarray
+from libc.stdint cimport int32_t
 
 cnp.import_array()
 
@@ -35,8 +40,7 @@ cnp.import_array()
 HEADER_PREFIX = b"\x10\x00"
 MAXIMUM_RECORD_SIZE = 8 * 1024 * 1024
 
-@cython.boundscheck(False)  # Deactivate bounds checking
-@cython.wraparound(False)   # Deactivate negative indexing
+
 cpdef from_bytes_cython(bytes data):
     cdef const char* data_ptr = PyBytes_AsString(data)
     cdef Py_ssize_t length = PyBytes_GET_SIZE(data)
@@ -72,42 +76,41 @@ cpdef from_bytes_cython(bytes data):
     return tuple(processed_list)
 
 
-
-
-
 cpdef tuple extract_dict_columns(dict data, tuple fields):
     cdef int i
     cdef str field
-    cdef list sorted_data = [None] * len(fields)  # Preallocate list size
-    for i in range(len(fields)):
-        field = fields[i]
-        sorted_data[i] = data[field]
-    return tuple(sorted_data)  # Convert list to tuple
+    cdef list field_data = [None] * len(fields)  # Preallocate list size
+
+    for i, field in enumerate(fields):
+        if field in data:
+            field_data[i] = data[field]
+    return tuple(field_data)  # Convert list to tuple
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def collect_cython(list rows, cnp.ndarray[cnp.int32_t, ndim=1] columns, int limit=-1, int single=False) -> list:
-    cdef int i, j
-    cdef int num_rows = len(rows)
-    cdef int num_cols = columns.shape[0]
+cpdef list collect_cython(list rows, cnp.ndarray[cnp.int32_t, ndim=1] columns, int limit=-1):
+    cdef int32_t i, j, col_idx
+    cdef int32_t num_rows = len(rows)
+    cdef int32_t num_cols = columns.shape[0]
+    cdef list row
 
     if limit >= 0 and limit < num_rows:
         num_rows = limit
 
-    # Initialize result list
-    cdef list result = [[None] * num_rows for _ in range(num_cols)]
+    # Initialize result memory view with pre-allocated numpy arrays for each column
+    #cdef cnp.ndarray[object, ndim=2] result = np.empty((num_cols, num_rows), dtype=object)
+    cdef list result = [list([0] * num_rows) for _ in range(num_cols)]
 
-    # Iterate over rows and columns, collecting data
-    for i in range(num_rows):
-        row = rows[i]
-        for j in range(num_cols):
-            result[j][i] = row[columns[j]]
+    # Populate each column one at a time
+    for j in range(num_cols):
+        col_idx = columns[j]
+        row = result[j]
+        for i in range(num_rows):
+            row[i] = rows[i][col_idx]
+    
+    # Convert each column back to a list and return the list of lists
+    return result #[result[i] for i in range(num_cols)]
 
-    return result[0] if single else result
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cpdef int calculate_data_width(list column_values):
     cdef int width, max_width
     cdef object value

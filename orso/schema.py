@@ -58,6 +58,7 @@ from dataclasses import dataclass
 from dataclasses import field
 from dataclasses import fields
 from decimal import Decimal
+from decimal import getcontext
 from enum import Enum
 from typing import Any
 from typing import Callable
@@ -84,6 +85,7 @@ from orso.types import PYTHON_TO_ORSO_MAP
 from orso.types import OrsoTypes
 
 _MISSING_VALUE: str = str()
+DECIMAL_PRECISION: int = getcontext().prec
 
 
 class ColumnDisposition(Enum):
@@ -184,6 +186,9 @@ class FlatColumn:
                     "Column type NUMERIC will be deprecated in a future version, use DECIMAL, DOUBLE or INTEGER instead. Mapped to DOUBLE, this may not be compatible with all values NUMERIC was compatible with."
                 )
                 self.type = OrsoTypes.DOUBLE
+            elif type_name == "BSON":
+                warn("Column type BSON will be deprecated in a future version, use JSONB instead.")
+                self.type = OrsoTypes.JSONB
             elif type_name == "STRING":
                 raise ValueError(
                     f"Unknown column type '{self.type}' for column '{self.name}'. Did you mean 'VARCHAR'?"
@@ -284,12 +289,14 @@ class FlatColumn:
             OrsoTypes.TIME: pyarrow.time32("ms"),
             OrsoTypes.INTERVAL: pyarrow.month_day_nano_interval(),
             OrsoTypes.STRUCT: pyarrow.binary(),  # convert structs to JSON strings/BSONs
-            OrsoTypes.DECIMAL: pyarrow.decimal128(self.precision or 28, self.scale or 10),
+            OrsoTypes.DECIMAL: pyarrow.decimal128(
+                self.precision or DECIMAL_PRECISION, self.scale or 10
+            ),
             OrsoTypes.DOUBLE: pyarrow.float64(),
             OrsoTypes.INTEGER: pyarrow.int64(),
             OrsoTypes.ARRAY: pyarrow.list_(pyarrow.string()),
             OrsoTypes.VARCHAR: pyarrow.string(),
-            OrsoTypes.BSON: pyarrow.binary(),
+            OrsoTypes.JSONB: pyarrow.binary(),
             OrsoTypes.NULL: pyarrow.null(),
         }
 

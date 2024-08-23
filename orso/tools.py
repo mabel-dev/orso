@@ -223,8 +223,6 @@ def counter(func: Callable) -> Callable:
         Callable: Wrapped function with counter and timer logic.
     """
 
-    import time
-
     def report(self: Callable) -> str:
         """
         Generate and return a summary report of execution statistics.
@@ -282,8 +280,6 @@ def throttle(calls_per_second: float) -> Callable:
     Returns:
         Callable: Wrapped function with rate-limiting logic.
     """
-
-    import time
 
     # Validate the input rate
     if calls_per_second <= 0:
@@ -372,7 +368,7 @@ def monitor(time_limit: int = 10, interval: int = 1) -> Callable:
             stop_flag = False
 
             # Use a thread to monitor the resource usage
-            def monitor():
+            def _monitor():
                 peak_cpu = 0
                 peak_memory = 0
                 cpu_tracker = []
@@ -397,7 +393,7 @@ def monitor(time_limit: int = 10, interval: int = 1) -> Callable:
                 print(f"Peak CPU usage: {peak_cpu:.2f}%")
                 print(f"Peak memory usage: {peak_memory/1024/1024:.2f} MB")
 
-            monitor_thread = threading.Thread(target=monitor)
+            monitor_thread = threading.Thread(target=_monitor)
             monitor_thread.start()
 
             try:

@@ -53,6 +53,11 @@ def test_types_is_large_object():
     assert not OrsoTypes.TIMESTAMP.is_large_object()
     assert OrsoTypes.VARCHAR.is_large_object()
 
+def test_types_python_type():
+    # don't need to test them all to provide the code
+    assert OrsoTypes.ARRAY.python_type == list
+    assert OrsoTypes.BLOB.python_type == bytes
+
 
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests

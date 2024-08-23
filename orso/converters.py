@@ -18,7 +18,6 @@ from orso.exceptions import MissingDependencyError
 from orso.row import Row
 from orso.schema import FlatColumn
 from orso.schema import RelationSchema
-from orso.tools import arrow_type_map
 
 
 def to_arrow(dataset, size=None):

@@ -228,9 +228,12 @@ class DataFrame:
             if not isinstance(c, int):
                 column_indicies[i] = self.column_names.index(c)
 
-        return collect_cython(
-            self._rows, numpy.array(column_indicies, dtype=numpy.int32), limit, single
+        collected = collect_cython(
+            self._rows, numpy.array(column_indicies, dtype=numpy.int32), limit
         )
+        if single:
+            return collected[0]
+        return collected
 
     def __getitem__(self, items):
         return self.collect(columns=items, limit=None)

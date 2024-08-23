@@ -14,6 +14,7 @@ import datetime
 import decimal
 from enum import Enum
 from typing import Any
+from typing import Type
 
 from orso.tools import parse_iso
 
@@ -36,7 +37,7 @@ class OrsoTypes(str, Enum):
     TIME = "TIME"
     VARCHAR = "VARCHAR"
     NULL = "NULL"
-    BSON = "BSON"
+    JSONB = "JSONB"
     _MISSING_TYPE = 0
 
     def is_numeric(self):
@@ -52,13 +53,17 @@ class OrsoTypes(str, Enum):
         return self in (self.VARCHAR, self.BLOB)
 
     def is_complex(self):
-        return self in (self.ARRAY, self.STRUCT, self.BSON, self.INTERVAL)
+        return self in (self.ARRAY, self.STRUCT, self.JSONB, self.INTERVAL)
 
     def __str__(self):
         return self.value
 
     def parse(self, value: Any) -> Any:
         return ORSO_TO_PYTHON_PARSER[self.value](value)
+
+    @property
+    def python_type(self) -> Type:
+        return ORSO_TO_PYTHON_MAP.get(self)
 
 
 ORSO_TO_PYTHON_MAP: dict = {
@@ -74,12 +79,12 @@ ORSO_TO_PYTHON_MAP: dict = {
     OrsoTypes.INTEGER: int,
     OrsoTypes.ARRAY: list,
     OrsoTypes.VARCHAR: str,
-    OrsoTypes.BSON: bytes,
+    OrsoTypes.JSONB: bytes,
     OrsoTypes.NULL: None,
 }
 
 PYTHON_TO_ORSO_MAP: dict = {
-    value: key for key, value in ORSO_TO_PYTHON_MAP.items() if key != OrsoTypes.BSON
+    value: key for key, value in ORSO_TO_PYTHON_MAP.items() if key != OrsoTypes.JSONB
 }
 PYTHON_TO_ORSO_MAP.update({tuple: OrsoTypes.ARRAY, set: OrsoTypes.ARRAY})  # map other python types
 
@@ -96,6 +101,6 @@ ORSO_TO_PYTHON_PARSER: dict = {
     OrsoTypes.INTEGER: int,
     OrsoTypes.ARRAY: list,
     OrsoTypes.VARCHAR: str,
-    OrsoTypes.BSON: bytes,
+    OrsoTypes.JSONB: bytes,
     OrsoTypes.NULL: lambda x: None,
 }
