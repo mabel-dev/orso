@@ -202,11 +202,10 @@ class Row(tuple):
         """
         if isinstance(schema, RelationSchema):
             fields = tuple(c.name for c in schema.columns)
-        elif isinstance(schema, (list, tuple)):
-            fields = tuple(schema)
-        else:
+        elif not isinstance(schema, (list, tuple)):
             raise ValueError("Row requires either a list of field names or a RelationSchema")
 
+        fields = tuple(str(s) for s in schema)
         if tuples_only:
             # if we're only handling tuples, we can delegate to super
             return type("RowFactory", (Row,), {"_fields": fields, "__new__": super().__new__})

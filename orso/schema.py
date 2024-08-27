@@ -522,7 +522,7 @@ class RelationSchema:
         """Returns the number of columns in the schema."""
         return len(self.columns)
 
-    def find_column(self, column_name: str) -> Optional[FlatColumn]:
+    def find_column(self, column_name: str, case_insensitive: bool = False) -> Optional[FlatColumn]:
         """
         Find a column by name or alias.
 
@@ -533,9 +533,14 @@ class RelationSchema:
         Returns:
             Optional[FlatColumn]: The FlatColumn object, if found. None otherwise.
         """
-        for column in self.columns:
-            if column_name in column.all_names:
-                return column
+        if case_insensitive:
+            for column in self.columns:
+                if column_name.lower() in [c.lower() for c in column.all_names]:
+                    return column
+        else:
+            for column in self.columns:
+                if column_name in column.all_names:
+                    return column
         return None
 
     def all_column_names(self) -> List[str]:

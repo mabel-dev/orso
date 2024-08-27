@@ -35,8 +35,6 @@ from libc.stdint cimport int32_t
 
 cnp.import_array()
 
-
-
 HEADER_PREFIX = b"\x10\x00"
 MAXIMUM_RECORD_SIZE = 8 * 1024 * 1024
 
@@ -88,6 +86,9 @@ cpdef tuple extract_dict_columns(dict data, tuple fields):
 
 
 cpdef list collect_cython(list rows, cnp.ndarray[cnp.int32_t, ndim=1] columns, int limit=-1):
+    """
+    Collects columns from a list of tuples (rows).
+    """
     cdef int32_t i, j, col_idx
     cdef int32_t num_rows = len(rows)
     cdef int32_t num_cols = columns.shape[0]
@@ -97,8 +98,7 @@ cpdef list collect_cython(list rows, cnp.ndarray[cnp.int32_t, ndim=1] columns, i
         num_rows = limit
 
     # Initialize result memory view with pre-allocated numpy arrays for each column
-    #cdef cnp.ndarray[object, ndim=2] result = np.empty((num_cols, num_rows), dtype=object)
-    cdef list result = [list([0] * num_rows) for _ in range(num_cols)]
+    cdef list result = [list([None] * num_rows) for _ in range(num_cols)]
 
     # Populate each column one at a time
     for j in range(num_cols):
@@ -108,7 +108,7 @@ cpdef list collect_cython(list rows, cnp.ndarray[cnp.int32_t, ndim=1] columns, i
             row[i] = rows[i][col_idx]
     
     # Convert each column back to a list and return the list of lists
-    return result #[result[i] for i in range(num_cols)]
+    return result
 
 
 cpdef int calculate_data_width(list column_values):

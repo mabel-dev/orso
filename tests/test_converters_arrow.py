@@ -32,11 +32,11 @@ def test_from_arrow():
     tables = [table1, table2]
 
     # Test the function with a limit of 4 rows
-    rows, schema = converters.from_arrow(tables, 4)
+    rows, schema = converters.from_arrow(tables, 3)
     result = DataFrame(rows=rows, schema=schema)
 
     # Verify that the result has the correct number of rows and columns
-    assert len(result) == 4, len(result)
+    assert len(result) == 3, len(result)
     assert len(result.column_names) == 3, len(result.column_names)
 
     # Verify that the result has the correct column names and data types

@@ -244,6 +244,8 @@ class DataFrame:
             offset = len(self._rows) + offset
         if length is None:
             return DataFrame(schema=self._schema, rows=self._rows[offset:])
+        if length == 0:
+            return DataFrame(schema=self._schema, rows=[])
         return DataFrame(schema=self._schema, rows=self._rows[offset : offset + length])
 
     def filter(self, mask) -> "DataFrame":

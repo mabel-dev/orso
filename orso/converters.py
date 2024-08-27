@@ -26,19 +26,15 @@ def to_arrow(dataset, size=None):
     except ImportError as import_error:
         raise MissingDependencyError(import_error.name) from import_error
 
-    if size is None:
-        size = -1
+    if size is not None and size >= 0:
+        dataset = dataset.head(size)
 
-    # Create a list of column arrays from the rows
-    arrays = dataset.collect(list(range(dataset.columncount)), size)
-
-    # Create a PyArrow table from the arrays and schema
-    if arrays:
-        table = pyarrow.Table.from_arrays(arrays, dataset.column_names)
+    if dataset.rowcount == 0:
+        arrays = [list() for _ in range(dataset.columncount)]
     else:
-        table = pyarrow.Table.from_arrays([[]] * len(dataset.column_names), dataset.column_names)
+        arrays = list(zip(*dataset._rows))
 
-    return table
+    return pyarrow.Table.from_arrays(arrays, dataset.column_names)
 
 
 def from_arrow(tables, size=None):

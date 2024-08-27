@@ -207,8 +207,8 @@ def test_to_arrow():
 
 def test_to_arrow_with_size():
     df = create_dataframe()
-    table = df.arrow(size=3)
-    assert table.num_rows == 3, table
+    table = df.arrow(size=4)
+    assert table.num_rows == 4, table
 
     df = create_dataframe()
     table = df.arrow(size=0)
