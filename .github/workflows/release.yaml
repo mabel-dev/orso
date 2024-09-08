@@ -37,7 +37,7 @@ jobs:
           io/build.sh
 
       - name: Archive Wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dist-linux-${{ matrix.python-version }}
           path: io/dist/*manylinux2014_x86_64.whl
@@ -79,7 +79,7 @@ jobs:
         run: python setup.py bdist_wheel
 
       - name: Archive dist artifacts
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: dist-macos-${{ matrix.python-version }}
           path: dist
@@ -113,7 +113,7 @@ jobs:
         run: python setup.py bdist_wheel
 
       - name: Archive dist artifacts
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: dist-windows-${{ matrix.python-version }}
           path: dist
