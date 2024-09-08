@@ -20,6 +20,51 @@ from orso.schema import FlatColumn
 from orso.schema import RelationSchema
 
 
+class _RowsIterator:
+    """
+    Iterator class for processing PyArrow tables lazily.
+
+    Parameters:
+        tables: Iterable of PyArrow tables to process.
+        row_factory: Factory method to create Row instances.
+        batch_size: Number of rows to process at a time.
+        max_size: Maximum number of rows to return.
+    """
+
+    def __init__(
+        self, tables: typing.Iterable, row_factory: typing.Callable, batch_size: int, max_size: int
+    ):
+        self.tables = itertools.chain(tables)
+        self.row_factory = row_factory
+        self.batch_size = batch_size
+        self.max_size = max_size
+        self.rows_processed = 0
+        self.current_table = None
+        self.current_rows = iter([])
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.rows_processed >= self.max_size:
+            raise StopIteration
+
+        try:
+            row = next(self.current_rows)
+            self.rows_processed += 1
+            return row
+        except StopIteration:
+            # Fetch the next table and process it
+            self.current_table = next(self.tables, None)
+            if self.current_table is None:
+                raise StopIteration
+
+            self.current_rows = iter(
+                process_table(self.current_table, self.row_factory, self.batch_size)
+            )
+            return self.__next__()
+
+
 def to_arrow(dataset, size=None):
     try:
         import pyarrow
@@ -65,17 +110,16 @@ def from_arrow(tables, size=None):
         columns=[FlatColumn.from_arrow(field) for field in arrow_schema],
     )
     row_factory = Row.create_class(orso_schema, tuples_only=True)
-    rows: typing.List[Row] = []
 
-    for table in itertools.chain([first_table], tables):
-        rows.extend(process_table(table, row_factory, BATCH_SIZE))
-        if len(rows) > size:
-            break
+    # Create an bespoke lazy iterator instance
+    rows_iterator = _RowsIterator(
+        tables=itertools.chain([first_table], tables),
+        row_factory=row_factory,
+        batch_size=BATCH_SIZE,
+        max_size=size,
+    )
 
-    # Limit the number of rows to 'size'
-    if isinstance(size, int):
-        rows = itertools.islice(rows, size)
-    return rows, orso_schema
+    return rows_iterator, orso_schema
 
 
 def to_pandas(dataset, size=None):

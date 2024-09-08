@@ -12,6 +12,8 @@
 
 import datetime
 import decimal
+from collections import deque
+from itertools import islice
 from typing import Union
 
 from orso.compute.compiled import calculate_data_width
@@ -162,8 +164,10 @@ def ascii_table(
 
     import numpy
 
-    if len(table) == 0:
-        return "No data in table"
+    from orso import DataFrame
+
+    lazy_length = 0
+    is_lazy = not isinstance(table._rows, list)
 
     # get the width of the display
     if isinstance(display_width, bool):
@@ -175,14 +179,26 @@ def ascii_table(
             display_width = shutil.get_terminal_size((80, 20))[0]
     # Extract head data
     if limit > 0 and not top_and_tail:
-        t = table.slice(length=limit)
-    elif limit > 0 and top_and_tail and table.rowcount > ((2 * limit) + 1):
-        t = table.head(size=limit) + table.tail(size=limit)
+        if is_lazy:
+            t = DataFrame(rows=[row for row in islice(table._rows, limit)], schema=table.schema)
+        else:
+            t = table.slice(length=limit)
+    elif limit > 0 and top_and_tail:
+        if not is_lazy and table.rowcount > ((2 * limit) + 1):
+            t = table.head(size=limit) + table.tail(size=limit)
+        else:
+            head = list(islice(table._rows, limit))
+            tail_collector = deque(maxlen=limit)
+            for lazy_length, entry in enumerate(table._rows):
+                tail_collector.append(entry)
+            tail = list(tail_collector)
+            lazy_length += len(head)
+            t = DataFrame(rows=head + tail, schema=table.schema)
     else:
         t = table
 
     # width of index column
-    index_width = len(str(len(table))) + 2
+    index_width = len(str(lazy_length + 1)) + 2 if is_lazy else len(str(len(table))) + 2
 
     def numpy_type_mapper(value):
         if isinstance(value, numpy.ndarray):
@@ -351,20 +367,35 @@ def ascii_table(
                 + " │"
             )
         yield ("╞" + ("═" * index_width) + "╪═" + "═╪═".join("═" * cw for cw in col_width) + "═╡")
-        for i, row in enumerate(t):
-            if top_and_tail and (len(t) + 1) < len(table):
+        if is_lazy:
+            offset = 1
+            for i, row in enumerate(t):
                 if i == limit:
-                    yield "\001PUNCm...\001OFFm"
-                if i >= limit:
-                    i += len(table) - (limit * 2)
-            formatted = [type_formatter(v, w, t) for v, w, t in zip(row, col_width, col_types)]
-            yield (
-                "│\001TYPEm"
-                + str(i + 1).rjust(index_width - 1)
-                + "\001OFFm │ "
-                + " │ ".join(formatted)
-                + " │"
-            )
+                    yield "..."
+                    offset += 1 + (lazy_length - 2 * limit)
+                formatted = [type_formatter(v, w, t) for v, w, t in zip(row, col_width, col_types)]
+                yield (
+                    "│\001TYPEm"
+                    + str(i + offset).rjust(index_width - 1)
+                    + "\001OFFm │ "
+                    + " │ ".join(formatted)
+                    + " │"
+                )
+        else:
+            for i, row in enumerate(t):
+                if top_and_tail and (len(t) + 1) <= limit:
+                    if i == limit:
+                        yield "\001PUNCm...\001OFFm"
+                    if i >= limit:
+                        i += len(table) - (limit * 2)
+                formatted = [type_formatter(v, w, t) for v, w, t in zip(row, col_width, col_types)]
+                yield (
+                    "│\001TYPEm"
+                    + str(i + 1).rjust(index_width - 1)
+                    + "\001OFFm │ "
+                    + " │ ".join(formatted)
+                    + " │"
+                )
         yield ("└" + ("─" * index_width) + "┴─" + "─┴─".join("─" * cw for cw in col_width) + "─┘")
 
     return "\n".join(
