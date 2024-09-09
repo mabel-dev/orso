@@ -213,6 +213,8 @@ class DataFrame:
         """
         from orso.compute.compiled import collect_cython
 
+        self.materialize()
+
         if limit is None or limit < 0:
             limit = -1
 
