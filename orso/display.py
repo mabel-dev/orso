@@ -184,16 +184,18 @@ def ascii_table(
         else:
             t = table.slice(length=limit)
     elif limit > 0 and top_and_tail:
-        if not is_lazy and table.rowcount > ((2 * limit) + 1):
+        if not is_lazy and table.rowcount >= ((2 * limit) + 1):
             t = table.head(size=limit) + table.tail(size=limit)
-        else:
+        elif is_lazy:
             head = list(islice(table._rows, limit))
             tail_collector = deque(maxlen=limit)
             for lazy_length, entry in enumerate(table._rows):
                 tail_collector.append(entry)
             tail = list(tail_collector)
-            lazy_length += len(head)
+            lazy_length += len(head) + 1
             t = DataFrame(rows=head + tail, schema=table.schema)
+        else:
+            t = table
     else:
         t = table
 
@@ -370,9 +372,9 @@ def ascii_table(
         if is_lazy:
             offset = 1
             for i, row in enumerate(t):
-                if i == limit:
+                if i == limit and lazy_length > (2 * limit):
                     yield "..."
-                    offset += 1 + (lazy_length - 2 * limit)
+                    offset += lazy_length - 2 * limit
                 formatted = [type_formatter(v, w, t) for v, w, t in zip(row, col_width, col_types)]
                 yield (
                     "│\001TYPEm"
@@ -383,11 +385,11 @@ def ascii_table(
                 )
         else:
             for i, row in enumerate(t):
-                if top_and_tail and (len(t) + 1) <= limit:
+                if top_and_tail and (table.rowcount > 2 * limit):
                     if i == limit:
                         yield "\001PUNCm...\001OFFm"
                     if i >= limit:
-                        i += len(table) - (limit * 2)
+                        i += t.rowcount - (2 * limit)
                 formatted = [type_formatter(v, w, t) for v, w, t in zip(row, col_width, col_types)]
                 yield (
                     "│\001TYPEm"
