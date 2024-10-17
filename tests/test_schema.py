@@ -59,6 +59,20 @@ def test_validate_with_valid_data():
     assert cities.schema.validate(data) == True
 
 
+def test_struct_to_blob():
+    import pyarrow 
+
+    struct_type = pyarrow.struct([pyarrow.field('subfield', pyarrow.int32())])
+    arrow_col = pyarrow.field(name="column", type=struct_type)
+
+    assert arrow_col.type == struct_type, arrow_col.type
+
+    orso_reformed = FlatColumn.from_arrow(arrow_col)
+    assert orso_reformed.type == OrsoTypes.STRUCT
+
+    orso_struct_as_blob_col = FlatColumn.from_arrow(arrow_col, mappable_as_binary=True)
+    assert orso_struct_as_blob_col.type == OrsoTypes.BLOB, orso_struct_as_blob_col.type
+
 def test_validate_with_missing_column():
     # Test with missing column
     data = {

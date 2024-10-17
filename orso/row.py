@@ -24,6 +24,7 @@
 
 import datetime
 import time
+from functools import cached_property
 from typing import Any
 from typing import Dict
 from typing import List
@@ -70,7 +71,6 @@ def extract_columns(table: List[Dict[str, Any]], columns: List[str]) -> Tuple[Li
 class Row(tuple):
     __slots__ = ()
     _fields: Tuple[str, ...] = None
-    _cached_map: Tuple[Tuple[str, Any]] = None
     _cached_byte_size: int = None
     _key: Tuple[int, int] = None
 
@@ -98,7 +98,7 @@ class Row(tuple):
             return default
         return self[index]
 
-    @property
+    @cached_property
     def as_map(self) -> Tuple[Tuple[str, Any], ...]:
         """
         Returns the Row as a tuple of key-value pair tuples (a 'map').
@@ -106,9 +106,7 @@ class Row(tuple):
         Returns:
             A tuple of key-value pair tuples.
         """
-        if self._cached_map is None:
-            self._cached_map = tuple(zip(self._fields, self))  # type:ignore
-        return self._cached_map
+        return tuple(zip(self._fields, self))
 
     @property
     def as_dict(self) -> Dict[str, Any]:

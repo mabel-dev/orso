@@ -57,7 +57,6 @@ from dataclasses import asdict
 from dataclasses import dataclass
 from dataclasses import field
 from dataclasses import fields
-from decimal import Decimal
 from decimal import getcontext
 from enum import Enum
 from typing import Any
@@ -219,7 +218,7 @@ class FlatColumn:
         raise TypeError("Cannot materialize FlatColumns")
 
     @classmethod
-    def from_arrow(cls, arrow_field) -> "FlatColumn":
+    def from_arrow(cls, arrow_field, mappable_as_binary: bool = False) -> "FlatColumn":
         """
         Converts a PyArrow field to an Orso FlatColumn object.
 
@@ -230,21 +229,25 @@ class FlatColumn:
         Returns:
             FlatColumn: A FlatColumn object containing the converted information.
         """
+        from orso.tools import DecimalFactory
+
         # Fetch the native type mapping from Arrow to Python native types
         native_type = arrow_type_map(arrow_field.type)
         # Initialize variables to hold optional decimal properties
         scale: Optional[int] = None
         precision: Optional[int] = None
         # Check if the type is Decimal and populate scale and precision
-        if isinstance(native_type, Decimal):
+        if isinstance(native_type, DecimalFactory):
             field_type = OrsoTypes.DECIMAL
             scale = native_type.scale  # type:ignore
             precision = native_type.precision  # type:ignore
+        elif mappable_as_binary and native_type == dict:
+            field_type = OrsoTypes.BLOB
         else:
             # Fall back to the generic mapping
             field_type = PYTHON_TO_ORSO_MAP.get(native_type, None)
             if field_type is None:
-                raise ValueError(f"Unsupported type: {native_type}")
+                field_type = OrsoTypes.VARCHAR
 
         return FlatColumn(
             name=str(arrow_field.name),
