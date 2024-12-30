@@ -47,22 +47,29 @@ class _RowsIterator:
 
     def __next__(self):
         if self.rows_processed >= self.max_size:
-            raise StopIteration
+            raise StopIteration()
 
-        try:
-            row = next(self.current_rows)
+        row = next(self.current_rows, None)
+        if row is not None:
             self.rows_processed += 1
             return row
-        except StopIteration:
+        else:
             # Fetch the next table and process it
             self.current_table = next(self.tables, None)
             if self.current_table is None:
-                raise StopIteration
+                raise StopIteration()
 
             self.current_rows = iter(
                 process_table(self.current_table, self.row_factory, self.batch_size)
             )
-            return self.__next__()
+
+            # Check if the new table has rows to process
+            row = next(self.current_rows, None)
+            if row is not None:
+                self.rows_processed += 1
+                return row
+            else:
+                raise StopIteration()
 
 
 def to_arrow(dataset, size=None):
