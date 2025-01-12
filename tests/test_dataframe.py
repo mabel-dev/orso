@@ -52,28 +52,28 @@ def test_dataframe_materialize():
 def test_dataframe_collect():
     dataframe = create_dataframe()
     result = dataframe.collect(["A", "C"])
-    assert result == [[1, 2, 3, 4, 5], [1.1, 2.2, 3.3, 4.4, 5.5]], result
+    assert result.tolist() == [[1, 2, 3, 4, 5], [1.1, 2.2, 3.3, 4.4, 5.5]], result
 
     result = dataframe.collect("A")
-    assert result == [1, 2, 3, 4, 5], result
+    assert result.tolist() == [1, 2, 3, 4, 5], result
 
 
 def test_dataframe_get_item():
     dataframe = create_dataframe()
     result = dataframe["A", "C"]
-    assert result == [[1, 2, 3, 4, 5], [1.1, 2.2, 3.3, 4.4, 5.5]], result
+    assert result.tolist() == [[1, 2, 3, 4, 5], [1.1, 2.2, 3.3, 4.4, 5.5]], result
 
     result = dataframe[0, 2]
-    assert result == [[1, 2, 3, 4, 5], [1.1, 2.2, 3.3, 4.4, 5.5]], result
+    assert result.tolist() == [[1, 2, 3, 4, 5], [1.1, 2.2, 3.3, 4.4, 5.5]], result
 
     result = dataframe["A", 2]
-    assert result == [[1, 2, 3, 4, 5], [1.1, 2.2, 3.3, 4.4, 5.5]], result
+    assert result.tolist() == [[1, 2, 3, 4, 5], [1.1, 2.2, 3.3, 4.4, 5.5]], result
 
     result = dataframe["A"]
-    assert result == [1, 2, 3, 4, 5], result
+    assert result.tolist() == [1, 2, 3, 4, 5], result
 
     result = dataframe[0]
-    assert result == [1, 2, 3, 4, 5], result
+    assert result.tolist() == [1, 2, 3, 4, 5], result
 
 
 def test_dataframe_slice():
@@ -132,7 +132,7 @@ def test_dataframe_filter():
     mask = [row[0] > 2 for row in dataframe]
     filtered_dataframe = dataframe.filter(mask)
     assert len(filtered_dataframe) == 3
-    assert filtered_dataframe.collect("A") == [3, 4, 5], filtered_dataframe.collect(["A"])
+    assert filtered_dataframe.collect("A").tolist() == [3, 4, 5], filtered_dataframe.collect(["A"])
 
 
 def test_take():
@@ -283,7 +283,7 @@ def test_build_and_then_profile():
 
     p = df.profile.to_dataframe()
     assert p.rowcount == df.columncount
-    assert p.collect("count") == [df.rowcount] * df.columncount
+    assert p.collect("count").tolist() == [df.rowcount] * df.columncount
 
 
 def test_describe():
@@ -339,7 +339,7 @@ def test_adding_dicts_in_wrong_order():
     df.append({"column_2": "two", "column_1": 2})
 
     # we should have them in the correct order when we extract them
-    assert df.collect(["column_1", "column_2"]) == [[1, 2], ["one", "two"]], df.collect(
+    assert df.collect(["column_1", "column_2"]).tolist() == [[1, 2], ["one", "two"]], df.collect(
         ["column_1", "column_2"]
     )
 

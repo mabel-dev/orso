@@ -234,9 +234,7 @@ def counter(func: Callable) -> Callable:
         Returns:
             str: The formatted report string.
         """
-        stats = (
-            f"\nExecution Statistics for `{self.__name__}`\n  " f"Count   : {self.count}\n"  # type:ignore
-        )
+        stats = f"\nExecution Statistics for `{self.__name__}`\n  Count   : {self.count}\n"  # type:ignore
         if self.count > 0:  # type:ignore
             stats += f"  Average : {sum(self._run_times) / self.count} seconds\n"  # type:ignore
             stats += f"  Slowest : {min(self._run_times)} seconds\n"  # type:ignore
@@ -391,7 +389,7 @@ def monitor(time_limit: int = 10, interval: int = 1) -> Callable:
                         peak_memory = memory_info
 
                 print(f"Peak CPU usage: {peak_cpu:.2f}%")
-                print(f"Peak memory usage: {peak_memory/1024/1024:.2f} MB")
+                print(f"Peak memory usage: {peak_memory / 1024 / 1024:.2f} MB")
 
             monitor_thread = threading.Thread(target=_monitor)
             monitor_thread.start()
@@ -400,12 +398,12 @@ def monitor(time_limit: int = 10, interval: int = 1) -> Callable:
                 start_time = time.monotonic_ns()
                 result = func(*args, **kwargs)
                 end_time = time.monotonic_ns()
-                print(f"Execution time: {(end_time - start_time)/1e9:.6f} seconds")
+                print(f"Execution time: {(end_time - start_time) / 1e9:.6f} seconds")
                 return result
             except Exception as e:
                 print(f"Error raised: {type(e).__name__}")
                 end_time = time.monotonic_ns()
-                print(f"Execution time: {(end_time - start_time)/1e9:.6f} seconds")
+                print(f"Execution time: {(end_time - start_time) / 1e9:.6f} seconds")
                 raise e
             finally:
                 stop_flag = True

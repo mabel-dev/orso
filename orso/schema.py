@@ -143,6 +143,9 @@ class FlatColumn:
     precision: Optional[int] = None
     scale: Optional[int] = None
     origin: Optional[List[str]] = field(default_factory=list)
+    highest_value: Optional[Any] = None
+    lowest_value: Optional[Any] = None
+    null_count: Optional[int] = None
 
     def __init__(self, **kwargs):
         attributes = {f.name: f for f in fields(self.__class__)}

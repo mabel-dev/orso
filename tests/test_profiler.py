@@ -14,7 +14,7 @@ def test_can_profile():
     profile = df.profile.to_dataframe()
 
     assert profile.shape == (6, 12), profile.shape
-    assert profile.collect("count") == [20] * 6
+    assert profile.collect("count").tolist() == [20] * 6
 
 
 def test_opteryx_profile_planets():
@@ -25,7 +25,7 @@ def test_opteryx_profile_planets():
         planets = opteryx.query("SELECT * FROM $planets")
         profile = planets.profile.to_dataframe()
         assert profile.shape == (20, 12), profile.shape
-        assert profile.collect("count") == [9] * 20
+        assert profile.collect("count").tolist() == [9] * 20
     except ImportError:
         # if Opteryx isn't installed, don't fail
         pass
@@ -39,7 +39,7 @@ def test_opteryx_profile_satellites():
         planets = opteryx.query("SELECT * FROM $satellites")
         profile = planets.profile.to_dataframe()
         assert profile.shape == (8, 12), profile.shape
-        assert profile.collect("count") == [177] * 8
+        assert profile.collect("count").tolist() == [177] * 8
     except ImportError:
         # if Opteryx isn't installed, don't fail
         pass
@@ -53,7 +53,7 @@ def test_opteryx_profile_astronauts():
         planets = opteryx.query("SELECT * FROM $astronauts")
         profile = planets.profile.to_dataframe()
         assert profile.shape == (19, 12), profile.shape
-        assert profile.collect("count") == [357] * 19
+        assert profile.collect("count").tolist() == [357] * 19
     except ImportError:
         # if Opteryx isn't installed, don't fail
         pass
@@ -67,7 +67,7 @@ def test_opteryx_profile_missions():
         missions = opteryx.query("SELECT * FROM $missions")
         profile = missions.profile.to_dataframe()
         assert profile.shape == (8, 12), profile.shape
-        assert profile.collect("count") == [4630] * 8, profile.collect("count")
+        assert profile.collect("count").tolist() == [4630] * 8, profile.collect("count")
     except ImportError:
         # if Opteryx isn't installed, don't fail
         pass
@@ -81,7 +81,7 @@ def test_opteryx_profile_fake():
         planets = opteryx.query("SELECT * FROM FAKE(100, 100) AS FK")
         profile = planets.profile.to_dataframe()
         assert profile.shape == (100, 12), profile.shape
-        assert profile.collect("count") == [100] * 100
+        assert profile.collect("count").tolist() == [100] * 100
     except ImportError:
         # if Opteryx isn't installed, don't fail
         pass

@@ -85,33 +85,32 @@ cpdef tuple extract_dict_columns(dict data, tuple fields):
     return tuple(field_data)  # Convert list to tuple
 
 
-cpdef list collect_cython(list rows, cnp.ndarray[cnp.int32_t, ndim=1] columns, int limit=-1):
+cpdef cnp.ndarray collect_cython(list rows, cnp.ndarray[cnp.int32_t, ndim=1] columns, int limit=-1):
     """
     Collects columns from a list of tuples (rows).
     """
     cdef int32_t i, j, col_idx
     cdef int32_t num_rows = len(rows)
     cdef int32_t num_cols = columns.shape[0]
-    cdef list row
+    cdef cnp.ndarray row
 
     if limit >= 0 and limit < num_rows:
         num_rows = limit
 
     # Initialize result memory view with pre-allocated numpy arrays for each column
-    cdef list result = [list([None] * num_rows) for _ in range(num_cols)]
+    cdef cnp.ndarray result = np.empty((num_cols, num_rows), dtype=object)
 
     # Populate each column one at a time
     for j in range(num_cols):
         col_idx = columns[j]
-        row = result[j]
         for i in range(num_rows):
-            row[i] = rows[i][col_idx]
+            result[j, i] = rows[i][col_idx]
     
     # Convert each column back to a list and return the list of lists
     return result
 
 
-cpdef int calculate_data_width(list column_values):
+cpdef int calculate_data_width(cnp.ndarray column_values):
     cdef int width, max_width
     cdef object value
     
