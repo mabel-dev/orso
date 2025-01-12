@@ -488,7 +488,8 @@ class RelationSchema:
     name: str
     aliases: List[str] = field(default_factory=list)
     columns: List[FlatColumn] = field(default_factory=list)
-    primary_key: str = None
+    primary_key: Optional[str] = None
+    row_count_metric: Optional[int] = None
 
     def __iter__(self):
         """Return an iterator over column names."""
