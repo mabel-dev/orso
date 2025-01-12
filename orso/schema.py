@@ -274,6 +274,9 @@ class FlatColumn:
             nullable=self.nullable,
             scale=self.scale,
             precision=self.precision,
+            lowest_value=self.lowest_value,
+            highest_value=self.highest_value,
+            null_count=self.null_count
         )
 
     @property
