@@ -276,7 +276,7 @@ class FlatColumn:
             precision=self.precision,
             lowest_value=self.lowest_value,
             highest_value=self.highest_value,
-            null_count=self.null_count
+            null_count=self.null_count,
         )
 
     @property
@@ -290,6 +290,7 @@ class FlatColumn:
     def arrow_field(self):
         import pyarrow
 
+        # fmt: off
         type_map: dict = {
             OrsoTypes.BOOLEAN: pyarrow.bool_(),
             OrsoTypes.BLOB: pyarrow.binary(),
@@ -298,9 +299,7 @@ class FlatColumn:
             OrsoTypes.TIME: pyarrow.time32("ms"),
             OrsoTypes.INTERVAL: pyarrow.month_day_nano_interval(),
             OrsoTypes.STRUCT: pyarrow.binary(),  # convert structs to JSON strings/BSONs
-            OrsoTypes.DECIMAL: pyarrow.decimal128(
-                self.precision or DECIMAL_PRECISION, self.scale or 10
-            ),
+            OrsoTypes.DECIMAL: pyarrow.decimal128(self.precision or DECIMAL_PRECISION, self.scale or 10),
             OrsoTypes.DOUBLE: pyarrow.float64(),
             OrsoTypes.INTEGER: pyarrow.int64(),
             OrsoTypes.ARRAY: pyarrow.list_(pyarrow.string()),
@@ -308,6 +307,7 @@ class FlatColumn:
             OrsoTypes.JSONB: pyarrow.binary(),
             OrsoTypes.NULL: pyarrow.null(),
         }
+        # fmt: on
 
         return pyarrow.field(name=self.name, type=type_map.get(self.type, pyarrow.string()))
 
@@ -492,7 +492,15 @@ class RelationSchema:
     aliases: List[str] = field(default_factory=list)
     columns: List[FlatColumn] = field(default_factory=list)
     primary_key: Optional[str] = None
+
     row_count_metric: Optional[int] = None
+    """Statistic of the number of rows in the relation."""
+    row_count_estimate: Optional[int] = None
+    """Estimate of the number of rows in the relation."""
+    data_size_metric: Optional[int] = None
+    """Statistic of the size of the data in the relation."""
+    data_size_estimate: Optional[int] = None
+    """Estimate of the size of the data in the relation."""
 
     def __iter__(self):
         """Return an iterator over column names."""
