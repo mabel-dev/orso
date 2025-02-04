@@ -39,7 +39,7 @@ def find_all_substrings(s: str, sub: str) -> List[int]:
 
 def test_display_ascii_lazy():
 
-    for i in  range(10):
+    for i in range(10):
         df = DataFrame(cities.values).head(i)
         df._rows = (r for r in df._rows)
 

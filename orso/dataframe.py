@@ -125,7 +125,7 @@ class DataFrame:
 
         return to_polars(self, size)
 
-    def nbytes(self):
+    def nbytes(self) -> int:
         """Approximate the number of bytes used by the DataFrame"""
         self.materialize()
         if self._nbytes is None:
@@ -140,10 +140,10 @@ class DataFrame:
         self._nbytes += new_row.nbytes()
         self._cursor = None
 
-    def head(self, size: int = 5):
+    def head(self, size: int = 5) -> "DataFrame":
         return self.slice(0, size)
 
-    def tail(self, size: int = 5):
+    def tail(self, size: int = 5) -> "DataFrame":
         return self.slice(offset=0 - size, length=size)
 
     def query(self, predicate) -> "DataFrame":

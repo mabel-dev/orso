@@ -10,7 +10,7 @@ def test_extract_dict_columns_basic():
     data = {'a': 1, 'b': 2, 'c': 3}
     fields = ('a', 'b', 'c')
     result = extract_dict_columns(data, fields)
-    assert result == (1, 2, 3)
+    assert result == (1, 2, 3), result
 
 def test_extract_dict_columns_missing_fields():
     data = {'a': 1, 'b': 2, 'c': 3}
@@ -160,6 +160,60 @@ def test_extract_dict_columns_with_same_field_order():
     assert result1 == (1, 2, 3, 4)
     assert result2 == (4, 3, 2, 1)
 
+def test_extract_dict_columns_sparse_dict():
+    data = {'a': 1}
+    fields = ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i')
+    result = extract_dict_columns(data, fields)
+    assert result == (1, None, None, None, None, None, None, None, None)
+
+def test_extract_dict_columns_immutability():
+    data = {'a': 1, 'b': 2, 'c': 3}
+    original_data = data.copy()
+    fields = ('a', 'b', 'c')
+    extract_dict_columns(data, fields)
+    assert data == original_data, "Function modified input data!"
+
+def test_extract_dict_columns_stress_test():
+    data = {str(i): i for i in range(10000)}
+    fields = tuple(str(i) for i in range(20000))
+    result = extract_dict_columns(data, fields)
+    assert result[:10000] == tuple(range(10000)) and result[10000:] == (None,) * 10000
+
+def test_extract_dict_columns_duplicate_missing_fields():
+    data = {'a': 1, 'b': 2}
+    fields = ('a', 'x', 'x', 'b')
+    result = extract_dict_columns(data, fields)
+    assert result == (1, None, None, 2)
+
+def test_extract_dict_columns_case_sensitivity():
+    data = {'A': 1, 'b': 2}
+    fields = ('a', 'b')
+    result = extract_dict_columns(data, fields)
+    assert result == (None, 2)
+
+def test_extract_dict_columns_whitespace_keys():
+    data = {' a': 1, 'b ': 2}
+    fields = ('a', 'b ')
+    result = extract_dict_columns(data, fields)
+    assert result == (None, 2)
+
+def test_extract_dict_columns_non_string_keys():
+    data = {None: 1, 42: "forty-two"}
+    fields = (None, 42, "missing")
+    result = extract_dict_columns(data, fields)
+    assert result == (1, "forty-two", None)
+
+def test_extract_dict_columns_deeply_nested_keys():
+    data = {'a': {'b': {'c': 1}}}
+    fields = ('a.b.c', 'a')
+    result = extract_dict_columns(data, fields)
+    assert result == (None, {'b': {'c': 1}})
+
+def test_extract_dict_columns_large_dataset_with_missing():
+    data = {str(i): i for i in range(10**6)}
+    fields = ('1000001', '500000', '999999')
+    result = extract_dict_columns(data, fields)
+    assert result == (None, 500000, 999999)
 
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests
