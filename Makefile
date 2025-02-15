@@ -23,4 +23,6 @@ ci:
 	python -m mypy --ignore-missing-imports --python-version 3.10 --no-strict-optional --check-untyped-defs orso
 
 compile:
+	python -m pip install --upgrade pip uv
+	python -m uv pip install --upgrade numpy 'cython>=3.1.0a1' setuptools
 	python setup.py build_ext --inplace

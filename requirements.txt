@@ -4,4 +4,4 @@ orjson
 ormsgpack
 pandas
 pyarrow
-numpy==1.*
+numpy
