@@ -25,5 +25,5 @@ docstring-code-format = true
 docstring-code-line-length = 100
 
 [tool.ruff.lint]
-select = ["SIM"]
+select = ["SIM", "NPY201"]
 ignore = []
