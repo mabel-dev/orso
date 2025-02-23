@@ -90,7 +90,7 @@ PYTHON_TO_ORSO_MAP.update({tuple: OrsoTypes.ARRAY, set: OrsoTypes.ARRAY})  # map
 
 ORSO_TO_PYTHON_PARSER: dict = {
     OrsoTypes.BOOLEAN: bool,
-    OrsoTypes.BLOB: bytes,
+    OrsoTypes.BLOB: lambda x: x.encode("utf-8") if isinstance(x, str) else bytes(x),
     OrsoTypes.DATE: lambda x: parse_iso(x).date(),
     OrsoTypes.TIMESTAMP: parse_iso,
     OrsoTypes.TIME: lambda x: parse_iso(x).time(),
