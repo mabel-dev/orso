@@ -30,6 +30,7 @@ cimport numpy as cnp
 from numpy cimport ndarray
 from libc.stdint cimport int32_t, int64_t
 from cpython.dict cimport PyDict_GetItem
+from cpython.tuple cimport PyTuple_New, PyTuple_SET_ITEM
 
 cnp.import_array()
 
@@ -174,3 +175,139 @@ def process_table(table, row_factory, int max_chunksize) -> list:
             rows[i] = row_factory(row)
             i += 1
     return rows
+
+
+
+# cython: language_level=3
+# cython: boundscheck=False
+# cython: wraparound=False
+# cython: nonecheck=False
+# cython: cdivision=True
+# cython: initializedcheck=False
+# cython: infer_types=True
+
+import pyarrow
+cimport cython
+from libc.stdint cimport int64_t, uint8_t, int32_t
+from libc.stdint cimport int32_t, int64_t, uint8_t, uint64_t, uintptr_t
+from cpython.tuple cimport PyTuple_New, PyTuple_SET_ITEM
+
+# cython: language_level=3
+# cython: boundscheck=False
+# cython: wraparound=False
+# cython: nonecheck=False
+# cython: cdivision=True
+# cython: initializedcheck=False
+# cython: infer_types=True
+
+import pyarrow
+import struct
+cimport cython
+from libc.stdint cimport int32_t, int64_t, uint8_t
+
+cpdef list _process_table(table, object row_factory, int max_chunksize):
+    """
+    Converts a PyArrow table into a list of tuples efficiently.
+
+    Parameters:
+        table: PyArrow Table
+            The input table to process.
+        row_factory: function
+            A function applied to each row.
+        max_chunksize: int
+            The batch size to process at a time.
+
+    Returns:
+        A list of transformed rows.
+    """
+    cdef list result = []
+    cdef Py_ssize_t num_cols = table.num_columns
+    cdef Py_ssize_t row_idx, col_idx, chunk_offset
+    cdef object chunk, buffers
+    cdef const uint8_t* validity
+    cdef const int32_t* int_offsets
+    cdef const char* data
+    cdef Py_ssize_t row_count, str_start, str_end
+    cdef bytes value
+    cdef object row_tuple
+    cdef uint8_t null_mask
+    cdef Py_ssize_t bit_offset, byte_offset, bit_index
+
+    for batch in table.to_batches(max_chunksize):
+        batch_cols = batch.columns
+        batch_num_rows = batch.num_rows
+
+        # Preallocate row storage
+        batch_result = [None] * batch_num_rows
+
+        for row_idx in range(batch_num_rows):
+            row_tuple = [None] * num_cols
+
+            for col_idx in range(num_cols):
+                chunk = batch_cols[col_idx]
+                buffers = chunk.buffers()
+
+                # Extract validity bitmap
+                validity = <const uint8_t*><uintptr_t>buffers[0].address if buffers[0] else NULL
+
+                # Compute null mask offsets
+                if validity:
+                    byte_offset = row_idx // 8
+                    bit_index = row_idx % 8
+                    null_mask = validity[byte_offset] & (1 << bit_index)
+                else:
+                    null_mask = 1  # If no validity buffer, assume all valid
+
+                if null_mask == 0:
+                    # NULL value case
+                    continue
+
+                # Process based on type
+                if pyarrow.types.is_string(chunk.type) or pyarrow.types.is_binary(chunk.type):
+                    int_offsets = <const int32_t*><uintptr_t>buffers[1].address
+                    data = <const char*><uintptr_t>buffers[2].address if len(buffers) > 2 else NULL
+
+                    str_start = int_offsets[row_idx]
+                    str_end = int_offsets[row_idx + 1]
+                    
+                    if str_start < str_end and data:
+                        value = data[str_start:str_end]
+                        row_tuple[col_idx] = value.decode()
+                    else:
+                        PyTuple_SET_ITEM(row_tuple, col_idx, "")
+
+                elif pyarrow.types.is_integer(chunk.type):
+                    # Get raw pointer to numeric data
+                    raw_data = <const uint8_t*><uintptr_t>buffers[1].address
+                    item_size = chunk.type.bit_width // 8
+                    
+                    if item_size == 8:  # int64
+                        row_tuple[col_idx] = struct.unpack_from("<q", raw_data, row_idx * 8)[0]
+                    elif item_size == 4:  # int32
+                        row_tuple[col_idx] = struct.unpack_from("<i", raw_data, row_idx * 4)[0]
+                    elif item_size == 2:  # int16
+                        row_tuple[col_idx] = struct.unpack_from("<h", raw_data, row_idx * 2)[0]
+                    elif item_size == 1:  # int8
+                        row_tuple[col_idx] = struct.unpack_from("<b", raw_data, row_idx * 1)[0]
+
+
+
+                elif pyarrow.types.is_floating(chunk.type):
+                    row_tuple[col_idx] = chunk[row_idx].as_py()
+
+                elif pyarrow.types.is_boolean(chunk.type):
+                    # Booleans are bit-packed
+                    bool_data = <const uint8_t*><uintptr_t>buffers[1].address if buffers[1] else NULL
+                    bool_value = (bool_data[byte_offset] & (1 << bit_index)) != 0
+                    row_tuple[col_idx] = bool(bool_value)
+
+#                else:
+#                    # Fallback for unsupported types
+#                    PyTuple_SET_ITEM(row_tuple, col_idx, chunk[row_idx].as_py())
+
+#            batch_result[row_idx] = row_factory(row_tuple)
+            print(row_tuple)
+
+#        result.extend(batch_result)
+
+    return result

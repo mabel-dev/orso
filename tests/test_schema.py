@@ -335,7 +335,49 @@ def test_parsers():
     assert isinstance(parsed, str), type(parsed)
     assert parsed == "1718530754", parsed
 
-
+def test_type_name_parsing():
+    _type = FlatColumn(name="col", type="INTEGER")
+    assert _type.type == OrsoTypes.INTEGER, _type.type
+    _type = FlatColumn(name="col", type="VARCHAR")
+    assert _type.type == OrsoTypes.VARCHAR, _type.type
+    assert _type.length is None
+    _type = FlatColumn(name="col", type="BLOB")
+    assert _type.type == OrsoTypes.BLOB, _type.type
+    assert _type.length is None
+    _type = FlatColumn(name="col", type="DOUBLE")
+    assert _type.type == OrsoTypes.DOUBLE, _type.type
+    _type = FlatColumn(name="col", type="DECIMAL")
+    assert _type.type == OrsoTypes.DECIMAL, _type.type
+    _type = FlatColumn(name="col", type="BOOLEAN")
+    assert _type.type == OrsoTypes.BOOLEAN, _type.type
+    _type = FlatColumn(name="col", type="TIMESTAMP")
+    assert _type.type == OrsoTypes.TIMESTAMP, _type.type
+    _type = FlatColumn(name="col", type="ARRAY")
+    assert _type.type == OrsoTypes.ARRAY, _type.type
+    assert _type.subtype == OrsoTypes.VARCHAR, _type.subtype
+    _type = FlatColumn(name="col", type="ARRAY<INTEGER>")
+    assert _type.type == OrsoTypes.ARRAY, _type.type
+    assert _type.subtype == OrsoTypes.INTEGER, _type.subtype
+    _type = FlatColumn(name="col", type="ARRAY<VARCHAR>")
+    assert _type.type == OrsoTypes.ARRAY, _type.type
+    assert _type.subtype == OrsoTypes.VARCHAR, _type.subtype
+    with pytest.raises(ValueError):
+        _type = FlatColumn(name="col", type="ARRAY<A")
+    with pytest.raises(ValueError):
+        _type = FlatColumn(name="col", type="ARRAY<BIT>")
+    with pytest.raises(ValueError):
+        _type = FlatColumn(name="col", type="ARRAY<ARRAY>")
+    _type = FlatColumn(name="col", type="DECIMAL(10,2)")
+    assert _type.type == OrsoTypes.DECIMAL, _type.type
+    assert _type.precision == 10, _type.precision
+    assert _type.scale == 2, _type.scale
+    _type = FlatColumn(name="col", type="VARCHAR[12]")
+    assert _type.type == OrsoTypes.VARCHAR, _type.type
+    assert _type.length == 12, _type.length
+    _type = FlatColumn(name="col", type="BLOB[12]")
+    assert _type.type == OrsoTypes.BLOB, _type.type
+    assert _type.length == 12, _type.length
+ 
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests
 

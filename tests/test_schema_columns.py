@@ -135,7 +135,7 @@ def test_column_type_mapping():
     assert fc.type == OrsoTypes.DOUBLE, fc.type
 
     fc = FlatColumn(name="athled", type=0)
-    assert fc.type == 0
+    assert fc.type == 0, fc.type
 
     with pytest.raises(ValueError):
         FlatColumn(name="able", type="LEFT")
