@@ -89,7 +89,9 @@ class OrsoTypes(str, Enum):
         self._scale: int = None
         self._element_type: "OrsoTypes" = None
         self._length: int = None
-        return super().__init__(*args, **kwargs)
+
+        str.__init__(self)
+        Enum.__init__(self)
 
     def is_numeric(self):
         """is the typle number-based"""
