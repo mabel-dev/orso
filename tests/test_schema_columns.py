@@ -356,6 +356,7 @@ def test_to_flatcolumn_preserve_attributes():
     flat_column = FlatColumn(
         name="id",
         type=OrsoTypes.INTEGER,
+        element_type=OrsoTypes.INTEGER,
         description="An ID column",
         aliases=["ID"],
         nullable=False,

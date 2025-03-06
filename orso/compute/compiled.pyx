@@ -103,36 +103,55 @@ cpdef cnp.ndarray collect_cython(list rows, int32_t[:] columns, int limit=-1):
     """
     Collects columns from a list of tuples (rows).
     """
-    cdef int64_t i, j, col_idx
+    cdef int64_t i, j
     cdef int64_t num_rows = len(rows)
     cdef int64_t num_cols = columns.shape[0]
-    cdef int64_t row_width = len(rows[0]) if num_rows > 0 else 0
-
+    cdef int32_t col_idx
+    cdef object row
+    cdef tuple tuple_row
+    
+    # Early exit if no rows or columns
+    if num_rows == 0 or num_cols == 0:
+        return np.empty((num_cols, num_rows), dtype=object)
+    
+    cdef int64_t row_width = len(rows[0])
+    
     # Check if limit is set and within bounds
     if limit >= 0 and limit < num_rows:
         num_rows = limit
-
-    # Check if there are any rows or columns and exit early
-    if num_rows == 0 or num_cols == 0:
-        return np.empty((num_cols, num_rows), dtype=object)
-
-    # Check if columns are within bounds
+    
+    # Check if columns are within bounds (only need to check once)
     for j in range(num_cols):
         col_idx = columns[j]
-        if col_idx < 0 or col_idx > row_width:
-            raise IndexError(f"Column index out of bounds (0 < {col_idx} < {row_width})")
-
-    # Initialize result memory view with pre-allocated numpy arrays for each column
-    cdef object[:, :] result = np.empty((num_cols, num_rows), dtype=object)
-
-    # Populate each column one at a time
-    for j in range(num_cols):
-        col_idx = columns[j]
+        if col_idx < 0 or col_idx >= row_width:
+            raise IndexError(f"Column index out of bounds (0 <= {col_idx} < {row_width})")
+    
+    # Create result array directly
+    cdef cnp.ndarray[object, ndim=2] result = np.empty((num_cols, num_rows), dtype=object)
+    
+    # Specialized fast paths for common column counts
+    if num_cols == 1:
+        # Single column case (very common)
+        col_idx = columns[0]
         for i in range(num_rows):
-            result[j, i] = rows[i][col_idx]
-
-    # Convert each column back to a list and return the list of lists
-    return np.asarray(result)
+            tuple_row = <tuple>rows[i]
+            result[0, i] = tuple_row[col_idx]
+    elif num_cols == 2:
+        # Two column case (also common)
+        col_idx0 = columns[0]
+        col_idx1 = columns[1]
+        for i in range(num_rows):
+            tuple_row = <tuple>rows[i]
+            result[0, i] = tuple_row[col_idx0]
+            result[1, i] = tuple_row[col_idx1]
+    else:
+        # General case for any number of columns
+        for i in range(num_rows):
+            tuple_row = <tuple>rows[i]
+            for j in range(num_cols):
+                result[j, i] = tuple_row[columns[j]]
+    
+    return result
 
 
 cpdef int calculate_data_width(cnp.ndarray column_values):
@@ -188,23 +207,11 @@ def process_table(table, row_factory, int max_chunksize) -> list:
 
 import pyarrow
 cimport cython
+import struct
+
 from libc.stdint cimport int64_t, uint8_t, int32_t
 from libc.stdint cimport int32_t, int64_t, uint8_t, uint64_t, uintptr_t
 from cpython.tuple cimport PyTuple_New, PyTuple_SET_ITEM
-
-# cython: language_level=3
-# cython: boundscheck=False
-# cython: wraparound=False
-# cython: nonecheck=False
-# cython: cdivision=True
-# cython: initializedcheck=False
-# cython: infer_types=True
-
-import pyarrow
-import struct
-cimport cython
-from libc.stdint cimport int32_t, int64_t, uint8_t
-
 cpdef list _process_table(table, object row_factory, int max_chunksize):
     """
     Converts a PyArrow table into a list of tuples efficiently.
@@ -222,16 +229,17 @@ cpdef list _process_table(table, object row_factory, int max_chunksize):
     """
     cdef list result = []
     cdef Py_ssize_t num_cols = table.num_columns
-    cdef Py_ssize_t row_idx, col_idx, chunk_offset
+    cdef Py_ssize_t row_idx, col_idx
     cdef object chunk, buffers
     cdef const uint8_t* validity
     cdef const int32_t* int_offsets
     cdef const char* data
-    cdef Py_ssize_t row_count, str_start, str_end
+    cdef Py_ssize_t str_start, str_end
     cdef bytes value
-    cdef object row_tuple
+    cdef tuple row_tuple
     cdef uint8_t null_mask
-    cdef Py_ssize_t bit_offset, byte_offset, bit_index
+    cdef Py_ssize_t byte_offset, bit_index
+    cdef const uint8_t* raw_data
 
     for batch in table.to_batches(max_chunksize):
         batch_cols = batch.columns
@@ -241,7 +249,8 @@ cpdef list _process_table(table, object row_factory, int max_chunksize):
         batch_result = [None] * batch_num_rows
 
         for row_idx in range(batch_num_rows):
-            row_tuple = [None] * num_cols
+            # Create Python list for row data first
+            row_data = [None] * num_cols
 
             for col_idx in range(num_cols):
                 chunk = batch_cols[col_idx]
@@ -254,7 +263,7 @@ cpdef list _process_table(table, object row_factory, int max_chunksize):
                 if validity:
                     byte_offset = row_idx // 8
                     bit_index = row_idx % 8
-                    null_mask = validity[byte_offset] & (1 << bit_index)
+                    null_mask = (validity[byte_offset] >> bit_index) & 1
                 else:
                     null_mask = 1  # If no validity buffer, assume all valid
 
@@ -272,42 +281,71 @@ cpdef list _process_table(table, object row_factory, int max_chunksize):
                     
                     if str_start < str_end and data:
                         value = data[str_start:str_end]
-                        row_tuple[col_idx] = value.decode()
+                        row_data[col_idx] = value.decode('utf-8', errors='replace')
                     else:
-                        PyTuple_SET_ITEM(row_tuple, col_idx, "")
+                        row_data[col_idx] = ""
 
+                # Integer handling section - replace with this safer version
                 elif pyarrow.types.is_integer(chunk.type):
-                    # Get raw pointer to numeric data
-                    raw_data = <const uint8_t*><uintptr_t>buffers[1].address
-                    item_size = chunk.type.bit_width // 8
-                    
-                    if item_size == 8:  # int64
-                        row_tuple[col_idx] = struct.unpack_from("<q", raw_data, row_idx * 8)[0]
-                    elif item_size == 4:  # int32
-                        row_tuple[col_idx] = struct.unpack_from("<i", raw_data, row_idx * 4)[0]
-                    elif item_size == 2:  # int16
-                        row_tuple[col_idx] = struct.unpack_from("<h", raw_data, row_idx * 2)[0]
-                    elif item_size == 1:  # int8
-                        row_tuple[col_idx] = struct.unpack_from("<b", raw_data, row_idx * 1)[0]
-
-
-
+                    # Get raw pointer to numeric data and safely handle buffer sizes
+                    if buffers[1]:
+                        raw_data = <const uint8_t*><uintptr_t>buffers[1].address
+                        item_size = chunk.type.bit_width // 8
+                        buffer_size = buffers[1].size
+                        
+                        # Calculate offset and make sure we have enough bytes
+                        offset = row_idx * item_size
+                        if offset + item_size <= buffer_size:
+                            if item_size == 8:  # int64
+                                row_data[col_idx] = struct.unpack_from("<q", raw_data, offset)[0]
+                            elif item_size == 4:  # int32
+                                row_data[col_idx] = struct.unpack_from("<i", raw_data, offset)[0]
+                            elif item_size == 2:  # int16
+                                row_data[col_idx] = struct.unpack_from("<h", raw_data, offset)[0]
+                            elif item_size == 1:  # int8
+                                row_data[col_idx] = struct.unpack_from("<b", raw_data, offset)[0]
+                        else:
+                            # Not enough bytes in buffer
+                            row_data[col_idx] = None
+                    else:
+                        row_data[col_idx] = None
                 elif pyarrow.types.is_floating(chunk.type):
-                    row_tuple[col_idx] = chunk[row_idx].as_py()
-
+                    if buffers[1]:
+                        raw_data = <const uint8_t*><uintptr_t>buffers[1].address
+                        item_size = chunk.type.bit_width // 8
+                        buffer_size = buffers[1].size
+                        
+                        # Calculate offset and make sure we have enough bytes
+                        offset = row_idx * item_size
+                        if offset + item_size <= buffer_size:
+                            if item_size == 8:  # float64
+                                row_data[col_idx] = struct.unpack_from("<d", raw_data, offset)[0]
+                            elif item_size == 4:  # float32
+                                row_data[col_idx] = struct.unpack_from("<f", raw_data, offset)[0]
+                        else:
+                            row_data[col_idx] = None
+                    else:
+                        row_data[col_idx] = None
                 elif pyarrow.types.is_boolean(chunk.type):
                     # Booleans are bit-packed
                     bool_data = <const uint8_t*><uintptr_t>buffers[1].address if buffers[1] else NULL
-                    bool_value = (bool_data[byte_offset] & (1 << bit_index)) != 0
-                    row_tuple[col_idx] = bool(bool_value)
+                    if bool_data:
+                        bool_value = (bool_data[byte_offset] >> bit_index) & 1
+                        row_data[col_idx] = bool(bool_value)
+                    else:
+                        row_data[col_idx] = False
 
-#                else:
-#                    # Fallback for unsupported types
-#                    PyTuple_SET_ITEM(row_tuple, col_idx, chunk[row_idx].as_py())
+                else:
+                    # Fallback for unsupported types
+                    try:
+                        row_data[col_idx] = chunk[row_idx].as_py()
+                    except:
+                        row_data[col_idx] = None
 
-#            batch_result[row_idx] = row_factory(row_tuple)
-            print(row_tuple)
+            # Convert list to tuple and apply row factory
+            row_tuple = tuple(row_data)
+            batch_result[row_idx] = row_factory(row_tuple)
 
-#        result.extend(batch_result)
+        result.extend(batch_result)
 
     return result

@@ -12,11 +12,55 @@
 
 import datetime
 import decimal
+import re
 from enum import Enum
 from typing import Any
+from typing import Tuple
 from typing import Type
+from typing import Union
+from warnings import warn
 
 from orso.tools import parse_iso
+
+
+def _parse_type(type_str: str) -> Union[str, Tuple[str, Tuple[int, ...]]]:
+    """
+    Parses a SQL type string into its base type and optional parameters.
+
+    Parameters:
+        type_str (str): The type definition string (e.g., 'DECIMAL(10,2)', 'VARCHAR[255]', 'ARRAY<VARCHAR>').
+
+    Returns:
+        Union[str, Tuple[str, Tuple[int, ...]]]:
+            - Just the base type (e.g., "INTEGER", "TEXT").
+            - A tuple with the base type and a tuple of integer parameters if applicable (e.g., ("DECIMAL", (10, 2))).
+    """
+
+    # Match ARRAY<TYPE>
+    array_match = re.match(r"ARRAY<([\w\s\[\]\(\)]+)>", type_str)
+    if array_match:
+        return "ARRAY", (array_match.group(1),)
+
+    # Match DECIMAL(p,s)
+    decimal_match = re.match(r"DECIMAL\((\d+),\s*(\d+)\)", type_str)
+    if decimal_match:
+        precision, scale = map(int, decimal_match.groups())
+        return "DECIMAL", (precision, scale)
+
+    # Match VARCHAR[n]
+    varchar_match = re.match(r"VARCHAR\[(\d+)\]", type_str)
+    if varchar_match:
+        length = int(varchar_match.group(1))
+        return "VARCHAR", (length,)
+
+    # Match BLOB[n]
+    blob_match = re.match(r"BLOB\[(\d+)\]", type_str)
+    if blob_match:
+        size = int(blob_match.group(1))
+        return "BLOB", (size,)
+
+    # If no parameters, return base type as a string
+    return type_str.upper()
 
 
 class OrsoTypes(str, Enum):
@@ -39,6 +83,15 @@ class OrsoTypes(str, Enum):
     NULL = "NULL"
     JSONB = "JSONB"
     _MISSING_TYPE = 0
+
+    def __init__(self, *args, **kwargs):
+        self._precision: int = None
+        self._scale: int = None
+        self._element_type: "OrsoTypes" = None
+        self._length: int = None
+
+        str.__init__(self)
+        Enum.__init__(self)
 
     def is_numeric(self):
         """is the typle number-based"""
@@ -64,6 +117,68 @@ class OrsoTypes(str, Enum):
     @property
     def python_type(self) -> Type:
         return ORSO_TO_PYTHON_MAP.get(self)
+
+    @staticmethod
+    def from_name(name: str) -> tuple:
+        _length = None
+        _precision = None
+        _scale = None
+        _element_type = None
+
+        type_name = str(name).upper()
+        parsed_types = _parse_type(type_name)
+        if isinstance(parsed_types, str):
+            if parsed_types == "ARRAY":
+                warn("Column type ARRAY without element_type, defaulting to VARCHAR.")
+                _type = OrsoTypes.ARRAY
+                _element_type = OrsoTypes.VARCHAR
+            elif parsed_types in OrsoTypes.__members__:
+                _type = OrsoTypes[parsed_types]
+            elif parsed_types == "LIST":
+                warn("Column type LIST will be deprecated in a future version, use ARRAY instead.")
+                _type = OrsoTypes.ARRAY
+            elif parsed_types == "NUMERIC":
+                warn(
+                    "Column type NUMERIC will be deprecated in a future version, use DECIMAL, DOUBLE or INTEGER instead. Mapped to DOUBLE, this may not be compatible with all values NUMERIC was compatible with."
+                )
+                _type = OrsoTypes.DOUBLE
+            elif parsed_types == "BSON":
+                warn("Column type BSON will be deprecated in a future version, use JSONB instead.")
+                _type = OrsoTypes.JSONB
+            elif parsed_types == "STRING":
+                raise ValueError(f"Unknown type '{_type}'. Did you mean 'VARCHAR'?")
+            elif (
+                type_name == "0"
+                or type_name == 0
+                or type_name == "VARIANT"
+                or type_name == "MISSING"
+            ):
+                _type = 0
+            else:
+                raise ValueError(f"Unknown column type '{name}''.")
+        elif parsed_types[0] == "ARRAY":
+            _type = OrsoTypes.ARRAY
+            _element_type = parsed_types[1][0]
+            if _element_type.startswith(("ARRAY", "LIST", "NUMERIC", "BSON", "STRING", "DECIMAL")):
+                raise ValueError(f"Invalid element type '{_element_type}' for ARRAY type.")
+            if _element_type in OrsoTypes.__members__:
+                _type = OrsoTypes.ARRAY
+                _element_type = OrsoTypes[_element_type]
+            else:
+                raise ValueError(f"Unknown column type '{_element_type}'.")
+        elif parsed_types[0] == "DECIMAL":
+            _type = OrsoTypes.DECIMAL
+            _precision, _scale = parsed_types[1]
+        elif parsed_types[0] == "VARCHAR":
+            _type = OrsoTypes.VARCHAR
+            _length = parsed_types[1][0]
+        elif parsed_types[0] == "BLOB":
+            _type = OrsoTypes.BLOB
+            _length = parsed_types[1][0]
+        else:
+            raise ValueError(f"Unknown column type '{_type}'.")
+
+        return (_type, _length, _precision, _scale, _element_type)
 
 
 ORSO_TO_PYTHON_MAP: dict = {

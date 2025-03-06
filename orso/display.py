@@ -337,6 +337,14 @@ def ascii_table(
         from orso.types import OrsoTypes
 
         if isinstance(t.schema, RelationSchema):
+            col_types = []
+            for column in t.schema.columns:
+                if column.type == OrsoTypes.ARRAY and column.element_type is not None:
+                    col_types.append(f"ARRAY<{column.element_type}>")
+                elif column.type == OrsoTypes.DECIMAL and column.precision is not None:
+                    col_types.append(f"DECIMAL({column.precision},{column.scale})")
+                else:
+                    col_types.append(column.type)
             col_types = [column.type for column in t.schema.columns]
         else:
             col_types = [OrsoTypes._MISSING_TYPE] * len(t.schema)

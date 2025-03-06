@@ -340,10 +340,10 @@ def test_type_name_parsing():
     assert _type.type == OrsoTypes.INTEGER, _type.type
     _type = FlatColumn(name="col", type="VARCHAR")
     assert _type.type == OrsoTypes.VARCHAR, _type.type
-    assert _type.length is None
+    assert _type.length is None, _type.length
     _type = FlatColumn(name="col", type="BLOB")
     assert _type.type == OrsoTypes.BLOB, _type.type
-    assert _type.length is None
+    assert _type.length is None, _type.length
     _type = FlatColumn(name="col", type="DOUBLE")
     assert _type.type == OrsoTypes.DOUBLE, _type.type
     _type = FlatColumn(name="col", type="DECIMAL")
@@ -354,13 +354,13 @@ def test_type_name_parsing():
     assert _type.type == OrsoTypes.TIMESTAMP, _type.type
     _type = FlatColumn(name="col", type="ARRAY")
     assert _type.type == OrsoTypes.ARRAY, _type.type
-    assert _type.subtype == OrsoTypes.VARCHAR, _type.subtype
+    assert _type.element_type == OrsoTypes.VARCHAR, _type.element_type
     _type = FlatColumn(name="col", type="ARRAY<INTEGER>")
     assert _type.type == OrsoTypes.ARRAY, _type.type
-    assert _type.subtype == OrsoTypes.INTEGER, _type.subtype
+    assert _type.element_type == OrsoTypes.INTEGER, _type.element_type
     _type = FlatColumn(name="col", type="ARRAY<VARCHAR>")
     assert _type.type == OrsoTypes.ARRAY, _type.type
-    assert _type.subtype == OrsoTypes.VARCHAR, _type.subtype
+    assert _type.element_type == OrsoTypes.VARCHAR, _type.element_type
     with pytest.raises(ValueError):
         _type = FlatColumn(name="col", type="ARRAY<A")
     with pytest.raises(ValueError):
@@ -378,6 +378,37 @@ def test_type_name_parsing():
     assert _type.type == OrsoTypes.BLOB, _type.type
     assert _type.length == 12, _type.length
  
+
+def test_type_name_parser():
+    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("INTEGER")
+    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.INTEGER, None, None, None, None)
+    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("VARCHAR")
+    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.VARCHAR, None, None, None, None)
+    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("BLOB")
+    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.BLOB, None, None, None, None)
+    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("DOUBLE")
+    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.DOUBLE, None, None, None, None)
+    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("DECIMAL")
+    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.DECIMAL, None, None, None, None)
+    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("BOOLEAN")
+    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.BOOLEAN, None, None, None, None)
+    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("TIMESTAMP")
+    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.TIMESTAMP, None, None, None, None)
+    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("ARRAY")
+    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.ARRAY, None, None, None, OrsoTypes.VARCHAR)
+    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("ARRAY<INTEGER>")
+    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.ARRAY, None, None, None, OrsoTypes.INTEGER)
+    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("ARRAY<VARCHAR>")
+    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.ARRAY, None, None, None, OrsoTypes.VARCHAR)
+    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("DECIMAL(10,2)")
+    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.DECIMAL, None, 10, 2, None), (_type, _length, _scale, _precision, _element_type)
+    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("VARCHAR[12]")
+    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.VARCHAR, 12, None, None, None)
+    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("BLOB[12]")
+    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.BLOB, 12, None, None, None)
+    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("ARRAY<TIMESTAMP>")
+    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.ARRAY, None, None, None, OrsoTypes.TIMESTAMP)
+
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests
 
