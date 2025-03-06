@@ -12,7 +12,6 @@ from typing import Union
 
 import numpy
 
-from orso.cityhash import CityHash32
 from orso.profiler import distogram
 from orso.schema import FlatColumn
 from orso.types import OrsoTypes
@@ -79,18 +78,19 @@ def find_mfvs(data, top_n=MOST_FREQUENT_VALUE_SIZE):
 
 
 def get_kvm_hashes(data, size: int):  # slowest function
+    from xxhash import xxh32
     min_hashes = []
 
     data = list(set(data))
 
     # Build a list with the hash values of the first 'size' elements or all elements if fewer.
-    min_hashes = [-CityHash32(str(element)) for element in data[:size]]
+    min_hashes = [-xxh32(str(element)).intdigest() for element in data[:size]]
 
     # Transform the list into a heap in-place.
     heapq.heapify(min_hashes)
 
     for element in data[size:]:
-        hash_value = CityHash32(str(element))
+        hash_value = xxh32(str(element)).intdigest()
 
         # If the current hash is smaller than the largest in the heap
         if hash_value < -min_hashes[0]:
