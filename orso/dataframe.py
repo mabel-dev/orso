@@ -425,7 +425,7 @@ class DataFrame:
 
         _hash = 0
         for i, row in enumerate(self._rows):
-            row_hash = xxh64(str(row).encode())
+            row_hash = xxh64(str(row).encode()).intdigest()
             _hash = i ^ _hash ^ row_hash
         return _hash
 

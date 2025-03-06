@@ -79,6 +79,7 @@ def find_mfvs(data, top_n=MOST_FREQUENT_VALUE_SIZE):
 
 def get_kvm_hashes(data, size: int):  # slowest function
     from xxhash import xxh32
+
     min_hashes = []
 
     data = list(set(data))

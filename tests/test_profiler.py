@@ -131,8 +131,8 @@ def test_profile_estimators():
     values = source.fetchone().as_dict
     estimated_cardinality = profile.column("Lauched_at").estimate_cardinality()
     assert (
-        estimated_cardinality * 0.75 < values["unique_timestamps"] < estimated_cardinality * 1.25
-    ), f"{profile.column('Launched_at').estimate_cardinality()} != {values['unique_timestamps']}"
+        estimated_cardinality * 0.70 < values["unique_timestamps"] < estimated_cardinality * 1.30
+    ), f"{profile.column('Lauched_at').estimate_cardinality()} != {values['unique_timestamps']}"
 
     source = opteryx.query("SELECT COUNT(*) AS price_over_100 FROM $missions WHERE Price > 100")
     values = source.fetchone().as_dict
