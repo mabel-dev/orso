@@ -421,11 +421,11 @@ class DataFrame:
         return self._schema
 
     def __hash__(self):
-        from cityhash import CityHash64
+        from opteryx.third_party.cyan4973.xxhash import hash_bytes
 
         _hash = 0
         for i, row in enumerate(self._rows):
-            row_hash = CityHash64(str(row).encode())
+            row_hash = hash_bytes(str(row).encode())
             _hash = i ^ _hash ^ row_hash
         return _hash
 
