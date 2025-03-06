@@ -84,12 +84,12 @@ class OrsoTypes(str, Enum):
     JSONB = "JSONB"
     _MISSING_TYPE = 0
 
-    def __init__(self, value: str):
+    def __init__(self, *args, **kwargs):
         self._precision: int = None
         self._scale: int = None
         self._element_type: "OrsoTypes" = None
         self._length: int = None
-        return super().__init__(value)
+        return super().__init__(*args, **kwargs)
 
     def is_numeric(self):
         """is the typle number-based"""
