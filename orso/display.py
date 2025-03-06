@@ -344,8 +344,7 @@ def ascii_table(
                 elif column.type == OrsoTypes.DECIMAL and column.precision is not None:
                     col_types.append(f"DECIMAL({column.precision},{column.scale})")
                 else:
-                    col_types.append(column.type)
-            col_types = [column.type for column in t.schema.columns]
+                    col_types.append(str(column.type))
         else:
             col_types = [OrsoTypes._MISSING_TYPE] * len(t.schema)
         col_type_width = list(map(len, col_types)) if show_types else [0] * len(col_types)

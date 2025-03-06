@@ -1,7 +1,7 @@
-cityhash
 data-expectations>=1.6.0
 orjson
 ormsgpack
+opteryx>=0.19.0
 pandas
 pyarrow
 numpy
