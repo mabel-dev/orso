@@ -51,7 +51,6 @@ Example:
 
 """
 
-import re
 from collections import defaultdict
 from dataclasses import _MISSING_TYPE
 from dataclasses import asdict
@@ -69,7 +68,6 @@ from typing import Optional
 from typing import Tuple
 from typing import Type
 from typing import Union
-from warnings import warn
 
 import numpy
 import orjson
@@ -124,46 +122,6 @@ class SchemaExpectation(Expectation):
         )
 
 
-def _parse_type(type_str: str) -> Union[str, Tuple[str, Tuple[int, ...]]]:
-    """
-    Parses a SQL type string into its base type and optional parameters.
-
-    Parameters:
-        type_str (str): The type definition string (e.g., 'DECIMAL(10,2)', 'VARCHAR[255]', 'ARRAY<VARCHAR>').
-
-    Returns:
-        Union[str, Tuple[str, Tuple[int, ...]]]:
-            - Just the base type (e.g., "INTEGER", "TEXT").
-            - A tuple with the base type and a tuple of integer parameters if applicable (e.g., ("DECIMAL", (10, 2))).
-    """
-
-    # Match ARRAY<TYPE>
-    array_match = re.match(r"ARRAY<([\w\s]+)>", type_str)
-    if array_match:
-        return "ARRAY", (array_match.group(1),)
-
-    # Match DECIMAL(p,s)
-    decimal_match = re.match(r"DECIMAL\((\d+),\s*(\d+)\)", type_str)
-    if decimal_match:
-        precision, scale = map(int, decimal_match.groups())
-        return "DECIMAL", (precision, scale)
-
-    # Match VARCHAR[n]
-    varchar_match = re.match(r"VARCHAR\[(\d+)\]", type_str)
-    if varchar_match:
-        length = int(varchar_match.group(1))
-        return "VARCHAR", (length,)
-
-    # Match BLOB[n]
-    blob_match = re.match(r"BLOB\[(\d+)\]", type_str)
-    if blob_match:
-        size = int(blob_match.group(1))
-        return "BLOB", (size,)
-
-    # If no parameters, return base type as a string
-    return type_str.upper()
-
-
 @dataclass(init=False)
 class FlatColumn:
     """
@@ -175,7 +133,7 @@ class FlatColumn:
     name: str
     default: Optional[Any] = None
     type: OrsoTypes = OrsoTypes._MISSING_TYPE
-    subtype: Optional[OrsoTypes] = None
+    element_type: Optional[OrsoTypes] = None
     description: Optional[str] = None
     disposition: Optional[ColumnDisposition] = None
     aliases: Optional[List[str]] = field(default_factory=list)  # type: ignore
@@ -220,66 +178,16 @@ class FlatColumn:
 
         # map literals to OrsoTypes
         if self.type.__class__ is not OrsoTypes:
-            type_name = str(self.type).upper()
-            parsed_types = _parse_type(type_name)
-            if isinstance(parsed_types, str):
-                if parsed_types == "ARRAY":
-                    warn("Column type ARRAY without subtype, defaulting to VARCHAR.")
-                    self.type = OrsoTypes.ARRAY
-                    self.subtype = OrsoTypes.VARCHAR
-                elif parsed_types in OrsoTypes.__members__:
-                    self.type = OrsoTypes[parsed_types]
-                elif parsed_types == "LIST":
-                    warn(
-                        "Column type LIST will be deprecated in a future version, use ARRAY instead."
-                    )
-                    self.type = OrsoTypes.ARRAY
-                elif parsed_types == "NUMERIC":
-                    warn(
-                        "Column type NUMERIC will be deprecated in a future version, use DECIMAL, DOUBLE or INTEGER instead. Mapped to DOUBLE, this may not be compatible with all values NUMERIC was compatible with."
-                    )
-                    self.type = OrsoTypes.DOUBLE
-                elif parsed_types == "BSON":
-                    warn(
-                        "Column type BSON will be deprecated in a future version, use JSONB instead."
-                    )
-                    self.type = OrsoTypes.JSONB
-                elif parsed_types == "STRING":
-                    raise ValueError(
-                        f"Unknown column type '{self.type}' for column '{self.name}'. Did you mean 'VARCHAR'?"
-                    )
-                elif type_name == "0":
-                    self.type = 0
-                else:
-                    raise ValueError(f"Unknown column type '{self.type}' for column '{self.name}'.")
-            elif parsed_types[0] == "ARRAY":
-                subtype = parsed_types[1][0]
-                if subtype in ("ARRAY", "LIST", "NUMERIC", "BSON", "STRING"):
-                    raise ValueError(f"Invalid subtype '{subtype}' for ARRAY type.")
-                if subtype in OrsoTypes.__members__:
-                    self.type = OrsoTypes.ARRAY
-                    self.subtype = OrsoTypes[subtype]
-                else:
-                    raise ValueError(f"Unknown column type '{subtype}' for column '{self.name}'.")
-            elif parsed_types[0] == "DECIMAL":
-                self.type = OrsoTypes.DECIMAL
-                self.precision, self.scale = parsed_types[1]
-            elif parsed_types[0] == "VARCHAR":
-                self.type = OrsoTypes.VARCHAR
-                self.length = parsed_types[1][0]
-            elif parsed_types[0] == "BLOB":
-                self.type = OrsoTypes.BLOB
-                self.length = parsed_types[1][0]
-            else:
-                raise ValueError(f"Unknown column type '{self.type}' for column '{self.name}'.")
-        # validate decimal properties
-
-        if self.type == OrsoTypes.DECIMAL and self.precision is None:
-            from decimal import getcontext
-
-            self.precision = getcontext().prec
-        if self.type == OrsoTypes.DECIMAL and self.scale is None:
-            self.scale = int(0.75 * self.precision)
+            self.type, _length, _precision, _scale, _element_type = OrsoTypes.from_name(self.type)
+            if isinstance(self.type, OrsoTypes):
+                if self.element_type is None:
+                    self.element_type = _element_type
+                if self.precision is None:
+                    self.precision = _precision
+                if self.scale is None:
+                    self.scale = _scale
+                if self.length is None:
+                    self.length = _length
 
         # if we have a default value, parse it to the correct type and fail if we can't
         if self.default:
@@ -289,6 +197,14 @@ class FlatColumn:
                 raise ValueError(
                     f"Column '{self.name}' default value not compatible with '{self.type}'."
                 )
+
+        # validate decimal properties
+        if self.type == OrsoTypes.DECIMAL and self.precision is None:
+            from decimal import getcontext
+
+            self.precision = getcontext().prec
+        if self.type == OrsoTypes.DECIMAL and self.scale is None:
+            self.scale = int(0.75 * self.precision)
 
     def __str__(self):
         return self.identity
@@ -347,7 +263,7 @@ class FlatColumn:
             aliases=self.aliases,
             identity=self.identity,
             type=self.type,
-            subtype=self.subtype,
+            element_type=self.element_type,
             nullable=self.nullable,
             scale=self.scale,
             precision=self.precision,

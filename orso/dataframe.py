@@ -377,6 +377,8 @@ class DataFrame:
                     data_precision = column_data.precision
                     data_scale = column_data.scale
                     data_type = f"DECIMAL({data_precision},{data_scale})"
+                if column_type.value == "ARRAY" and column_data.element_type is not None:
+                    data_type = f"ARRAY<{column_data.element_type.value}>"
                 nullable = column_data.nullable
             result.append(
                 (
