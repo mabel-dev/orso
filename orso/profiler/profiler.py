@@ -12,7 +12,7 @@ from typing import Union
 
 import numpy
 
-from cityhash import CityHash32
+from orso.cityhash import CityHash32
 from orso.profiler import distogram
 from orso.schema import FlatColumn
 from orso.types import OrsoTypes
