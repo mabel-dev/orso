@@ -228,6 +228,7 @@ class FlatColumn:
 
         # Fetch the native type mapping from Arrow to Python native types
         native_type = arrow_type_map(arrow_field.type)
+        element_type = None
         # Initialize variables to hold optional decimal properties
         scale: Optional[int] = None
         precision: Optional[int] = None
@@ -238,6 +239,9 @@ class FlatColumn:
             precision = native_type.precision  # type:ignore
         elif mappable_as_binary and native_type == dict:
             field_type = OrsoTypes.BLOB
+        elif native_type == list:
+            field_type = OrsoTypes.ARRAY
+            element_type = PYTHON_TO_ORSO_MAP.get(arrow_type_map(arrow_field.type.value_type))
         else:
             # Fall back to the generic mapping
             field_type = PYTHON_TO_ORSO_MAP.get(native_type, None)
@@ -247,6 +251,7 @@ class FlatColumn:
         return FlatColumn(
             name=str(arrow_field.name),
             type=field_type,
+            element_type=element_type,
             nullable=arrow_field.nullable,
             scale=scale,
             precision=precision,
@@ -301,6 +306,12 @@ class FlatColumn:
             OrsoTypes.NULL: pyarrow.null(),
         }
         # fmt: on
+
+        if self.type == OrsoTypes.ARRAY:
+            return pyarrow.field(
+                name=self.name,
+                type=pyarrow.list_(type_map.get(self.element_type, pyarrow.string())),
+            )
 
         return pyarrow.field(name=self.name, type=type_map.get(self.type, pyarrow.string()))
 
