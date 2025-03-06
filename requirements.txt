@@ -1,7 +1,7 @@
 data-expectations>=1.6.0
 orjson
 ormsgpack
-opteryx>=0.20.0
 pandas
 pyarrow
 numpy
+xxhash
