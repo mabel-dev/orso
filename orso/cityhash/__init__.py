@@ -3,7 +3,7 @@ def CityHash32(data: bytes) -> int:
 
     if not isinstance(data, bytes):
         data = str(data).encode()
-    return xxh32(data)
+    return xxh32(data).intdigest()
 
 
 def CityHash64(data: bytes) -> int:
@@ -11,4 +11,4 @@ def CityHash64(data: bytes) -> int:
 
     if not isinstance(data, bytes):
         data = str(data).encode()
-    return xxh64(data)
+    return xxh64(data).intdigest()
