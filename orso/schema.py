@@ -68,6 +68,7 @@ from typing import Optional
 from typing import Tuple
 from typing import Type
 from typing import Union
+from warnings import warn
 
 import numpy
 import orjson
@@ -179,6 +180,8 @@ class FlatColumn:
         # map literals to OrsoTypes
         if self.type.__class__ is not OrsoTypes:
             self.type, _length, _precision, _scale, _element_type = OrsoTypes.from_name(self.type)
+            if self.type == OrsoTypes._MISSING_TYPE:
+                warn(f"Column '{self.name}' type not recognized.")
             if isinstance(self.type, OrsoTypes):
                 if self.element_type is None:
                     self.element_type = _element_type

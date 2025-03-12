@@ -125,6 +125,9 @@ class OrsoTypes(str, Enum):
         _scale = None
         _element_type = None
 
+        if name is None:
+            return (OrsoTypes._MISSING_TYPE, _length, _precision, _scale, _element_type)
+
         type_name = str(name).upper()
         parsed_types = _parse_type(type_name)
         if isinstance(parsed_types, str):
