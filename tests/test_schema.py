@@ -409,6 +409,44 @@ def test_type_name_parser():
     (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("ARRAY<TIMESTAMP>")
     assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.ARRAY, None, None, None, OrsoTypes.TIMESTAMP)
 
+def test_type_combinations():
+
+    from orso.types import find_compatible_type
+
+    assert find_compatible_type([OrsoTypes.INTEGER, OrsoTypes.INTEGER]) == OrsoTypes.INTEGER
+    assert find_compatible_type([OrsoTypes.INTEGER, OrsoTypes.DOUBLE]) == OrsoTypes.DOUBLE
+    assert find_compatible_type([OrsoTypes.DOUBLE, OrsoTypes.INTEGER]) == OrsoTypes.DOUBLE
+    assert find_compatible_type([OrsoTypes.DOUBLE, OrsoTypes.DOUBLE]) == OrsoTypes.DOUBLE
+    assert find_compatible_type([OrsoTypes.INTEGER, OrsoTypes.DECIMAL]) == OrsoTypes.DECIMAL
+    assert find_compatible_type([OrsoTypes.DECIMAL, OrsoTypes.INTEGER]) == OrsoTypes.DECIMAL
+    assert find_compatible_type([OrsoTypes.DECIMAL, OrsoTypes.DECIMAL]) == OrsoTypes.DECIMAL
+    assert find_compatible_type([OrsoTypes.DECIMAL, OrsoTypes.DOUBLE]) == OrsoTypes.DECIMAL
+    assert find_compatible_type([OrsoTypes.DOUBLE, OrsoTypes.DECIMAL]) == OrsoTypes.DECIMAL
+    assert find_compatible_type([OrsoTypes.DOUBLE, OrsoTypes.DOUBLE]) == OrsoTypes.DOUBLE
+    assert find_compatible_type([OrsoTypes.INTEGER, OrsoTypes.TIMESTAMP]) == OrsoTypes.VARCHAR
+    assert find_compatible_type([OrsoTypes.TIMESTAMP, OrsoTypes.INTEGER]) == OrsoTypes.VARCHAR
+    assert find_compatible_type([OrsoTypes.TIMESTAMP, OrsoTypes.TIMESTAMP]) == OrsoTypes.TIMESTAMP
+    assert find_compatible_type([OrsoTypes.INTEGER, OrsoTypes.VARCHAR]) == OrsoTypes.VARCHAR
+    assert find_compatible_type([OrsoTypes.VARCHAR, OrsoTypes.INTEGER]) == OrsoTypes.VARCHAR
+    assert find_compatible_type([OrsoTypes.VARCHAR, OrsoTypes.VARCHAR]) == OrsoTypes.VARCHAR
+    assert find_compatible_type([OrsoTypes.INTEGER, OrsoTypes.BLOB]) == OrsoTypes.BLOB
+    assert find_compatible_type([OrsoTypes.BLOB, OrsoTypes.INTEGER]) == OrsoTypes.BLOB
+    assert find_compatible_type([OrsoTypes.BLOB, OrsoTypes.BLOB]) == OrsoTypes.BLOB
+    assert find_compatible_type([OrsoTypes.INTEGER, OrsoTypes.BOOLEAN]) == OrsoTypes.INTEGER
+    assert find_compatible_type([OrsoTypes.BOOLEAN, OrsoTypes.INTEGER]) == OrsoTypes.INTEGER
+    assert find_compatible_type([OrsoTypes.BOOLEAN, OrsoTypes.BOOLEAN]) == OrsoTypes.BOOLEAN
+    assert find_compatible_type([OrsoTypes.INTEGER, OrsoTypes.DATE]) == OrsoTypes.VARCHAR
+    assert find_compatible_type([OrsoTypes.DATE, OrsoTypes.INTEGER]) == OrsoTypes.VARCHAR
+    assert find_compatible_type([OrsoTypes.DATE, OrsoTypes.DATE]) == OrsoTypes.DATE
+    assert find_compatible_type([OrsoTypes.INTEGER, OrsoTypes.ARRAY]) == OrsoTypes.VARCHAR
+    assert find_compatible_type([OrsoTypes.ARRAY, OrsoTypes.INTEGER]) == OrsoTypes.VARCHAR
+    assert find_compatible_type([OrsoTypes.ARRAY, OrsoTypes.ARRAY]) == OrsoTypes.ARRAY
+    assert find_compatible_type([OrsoTypes.INTEGER, OrsoTypes.STRUCT]) == OrsoTypes.VARCHAR
+    assert find_compatible_type([OrsoTypes.STRUCT, OrsoTypes.INTEGER]) == OrsoTypes.VARCHAR
+    assert find_compatible_type([OrsoTypes.STRUCT, OrsoTypes.STRUCT]) == OrsoTypes.STRUCT
+    assert find_compatible_type([OrsoTypes.INTEGER, OrsoTypes.JSONB]) == OrsoTypes.VARCHAR
+
+
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests
 

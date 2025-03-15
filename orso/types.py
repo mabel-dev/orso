@@ -15,6 +15,7 @@ import decimal
 import re
 from enum import Enum
 from typing import Any
+from typing import Iterable
 from typing import Tuple
 from typing import Type
 from typing import Union
@@ -95,7 +96,7 @@ class OrsoTypes(str, Enum):
 
     def is_numeric(self):
         """is the typle number-based"""
-        return self in (self.INTEGER, self.DOUBLE, self.DECIMAL)
+        return self in (self.INTEGER, self.DOUBLE, self.DECIMAL, self.BOOLEAN)
 
     def is_temporal(self):
         """is the type time-based"""
@@ -222,3 +223,59 @@ ORSO_TO_PYTHON_PARSER: dict = {
     OrsoTypes.JSONB: bytes,
     OrsoTypes.NULL: lambda x: None,
 }
+
+
+def find_compatible_type(types: Iterable[OrsoTypes]) -> OrsoTypes:
+    """
+    Find the most compatible type that can represent all input types.
+
+    Parameters:
+        types (list): List of OrsoTypes to find a compatible type for
+
+    Returns:
+        OrsoTypes: The most compatible type that can represent all input types
+
+    Examples:
+        >>> OrsoTypes.find_compatible_type([OrsoTypes.INTEGER, OrsoTypes.DOUBLE])
+        OrsoTypes.DOUBLE
+        >>> OrsoTypes.find_compatible_type([OrsoTypes.BLOB, OrsoTypes.VARCHAR])
+        OrsoTypes.VARCHAR
+    """
+    if not types:
+        return OrsoTypes.NULL
+
+    # Handle single type case
+    if len(set(types)) == 1:
+        return types[0]
+
+    # Define type promotion hierarchy
+    type_hierarchy = {
+        # Numeric promotion
+        OrsoTypes.BOOLEAN: 1,
+        OrsoTypes.INTEGER: 2,
+        OrsoTypes.DOUBLE: 3,
+        OrsoTypes.DECIMAL: 4,
+        # Temporal promotion
+        OrsoTypes.DATE: 1,
+        OrsoTypes.TIMESTAMP: 2,
+        # String/binary promotion
+        OrsoTypes.BLOB: 1,
+        OrsoTypes.VARCHAR: 2,
+    }
+
+    # First check if all types are in the same category
+    if all(t.is_numeric() for t in types):
+        return max(types, key=lambda t: type_hierarchy.get(t, 0))
+    if all(t.is_temporal() for t in types):
+        return max(types, key=lambda t: type_hierarchy.get(t, 0))
+    if all(t.is_large_object() for t in types):
+        return max(types, key=lambda t: type_hierarchy.get(t, 0))
+    if all(
+        t in (OrsoTypes.BLOB, OrsoTypes.STRUCT, OrsoTypes.JSONB, OrsoTypes.VARCHAR) for t in types
+    ):
+        return OrsoTypes.BLOB
+
+    # For heterogeneous types, default to the most flexible type
+    if any(t == OrsoTypes.BLOB for t in types):
+        return OrsoTypes.BLOB
+    return OrsoTypes.VARCHAR
