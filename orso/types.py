@@ -225,7 +225,7 @@ ORSO_TO_PYTHON_PARSER: dict = {
 }
 
 
-def find_compatible_type(types: Iterable[OrsoTypes]) -> OrsoTypes:
+def find_compatible_type(types: Iterable[OrsoTypes], default=OrsoTypes.VARCHAR) -> OrsoTypes:
     """
     Find the most compatible type that can represent all input types.
 
@@ -278,4 +278,4 @@ def find_compatible_type(types: Iterable[OrsoTypes]) -> OrsoTypes:
     # For heterogeneous types, default to the most flexible type
     if any(t == OrsoTypes.BLOB for t in types):
         return OrsoTypes.BLOB
-    return OrsoTypes.VARCHAR
+    return default
