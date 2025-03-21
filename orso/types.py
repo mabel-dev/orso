@@ -119,6 +119,27 @@ class OrsoTypes(str, Enum):
     def python_type(self) -> Type:
         return ORSO_TO_PYTHON_MAP.get(self)
 
+    @property
+    def numpy_dtype(self):
+        import numpy
+
+        MAP = {
+            OrsoTypes.ARRAY: numpy.dtype("O"),
+            OrsoTypes.BLOB: numpy.dtype("S"),
+            OrsoTypes.BOOLEAN: numpy.dtype("?"),
+            OrsoTypes.DATE: numpy.dtype("datetime64[D]"),  # [2.5e16 BC, 2.5e16 AD]
+            OrsoTypes.DECIMAL: numpy.dtype("O"),
+            OrsoTypes.DOUBLE: numpy.dtype("float64"),
+            OrsoTypes.INTEGER: numpy.dtype("int64"),
+            OrsoTypes.INTERVAL: numpy.dtype("m"),
+            OrsoTypes.STRUCT: numpy.dtype("O"),
+            OrsoTypes.TIMESTAMP: numpy.dtype("datetime64[us]"),  # [290301 BC, 294241 AD]
+            OrsoTypes.TIME: numpy.dtype("O"),
+            OrsoTypes.VARCHAR: numpy.dtype("U"),
+            OrsoTypes.NULL: numpy.dtype("O"),
+        }
+        return MAP.get(self)
+
     @staticmethod
     def from_name(name: str) -> tuple:
         _length = None
