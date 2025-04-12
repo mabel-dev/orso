@@ -10,7 +10,7 @@ def test_types_is_numeric():
     # is numeric
     assert not OrsoTypes.ARRAY.is_numeric()
     assert not OrsoTypes.BLOB.is_numeric()
-    assert not OrsoTypes.BOOLEAN.is_numeric()
+    assert OrsoTypes.BOOLEAN.is_numeric()
     assert not OrsoTypes.DATE.is_numeric()
     assert OrsoTypes.DECIMAL.is_numeric()
     assert OrsoTypes.DOUBLE.is_numeric()
