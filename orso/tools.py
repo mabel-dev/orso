@@ -534,17 +534,20 @@ class DecimalFactory(decimal.Decimal):
         """
         context = decimal.Context(
             prec=self.precision,
-            rounding=decimal.ROUND_HALF_EVEN  # Adding proper rounding mode
+            rounding=decimal.ROUND_HALF_EVEN,  # Adding proper rounding mode
         )
-        
+
+        if isinstance(value, str) and value.isdigit():
+            value += "." + "0" * min(self.scale, 3)
+
         # Convert input to Decimal
         decimal_value = context.create_decimal(value)
-        
+
         # Define the quantization factor safely
         # Limit scale to avoid InvalidOperation errors
         safe_scale = min(self.scale, 28)  # Python's decimal has max ~28 digits precision
         factor = decimal.Decimal("10") ** -safe_scale
-        
+
         # Perform quantization with proper error handling
         try:
             quantized_value = decimal_value.quantize(factor, context=context)
