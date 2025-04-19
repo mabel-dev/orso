@@ -697,6 +697,11 @@ def parse_iso(value):
     # If we can't parse as a date we return None rather than error
     try:
         input_type = type(value)
+
+        if isinstance(value, bytes):
+            value = value.decode("utf-8")
+            input_type = str
+
         if input_type == str and value.isdigit():
             value = int(value)
             input_type = int

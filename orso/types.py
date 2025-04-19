@@ -21,6 +21,8 @@ from typing import Type
 from typing import Union
 from warnings import warn
 
+import orjson
+
 from orso.tools import parse_iso
 
 
@@ -112,8 +114,10 @@ class OrsoTypes(str, Enum):
     def __str__(self):
         return self.value
 
-    def parse(self, value: Any) -> Any:
-        return ORSO_TO_PYTHON_PARSER[self.value](value)
+    def parse(self, value: Any, **kwargs) -> Any:
+        if value is None:
+            return None
+        return ORSO_TO_PYTHON_PARSER[self.value](value, **kwargs)
 
     @property
     def python_type(self) -> Type:
@@ -194,6 +198,14 @@ class OrsoTypes(str, Enum):
         elif parsed_types[0] == "DECIMAL":
             _type = OrsoTypes.DECIMAL
             _precision, _scale = parsed_types[1]
+            if _precision < 0 or _precision > 38:
+                raise ValueError(f"Invalid precision '{_precision}' for DECIMAL type.")
+            if _scale < 0 or _scale > 38:
+                raise ValueError(f"Invalid scale '{_scale}' for DECIMAL type.")
+            if _precision < _scale:
+                raise ValueError(
+                    "Precision must be equal to or greater than scale for DECIMAL type."
+                )
         elif parsed_types[0] == "VARCHAR":
             _type = OrsoTypes.VARCHAR
             _length = parsed_types[1][0]
@@ -204,6 +216,50 @@ class OrsoTypes(str, Enum):
             raise ValueError(f"Unknown column type '{_type}'.")
 
         return (_type, _length, _precision, _scale, _element_type)
+
+
+BOOLEAN_STRINGS = (
+    "TRUE",
+    "ON",
+    "YES",
+    "1",
+    "1.0",
+    "T",
+    "Y",
+    b"TRUE",
+    b"ON",
+    b"YES",
+    b"1",
+    b"1.0",
+    b"T",
+    b"Y",
+)
+
+
+def parse_decimal(value, *, precision=None, scale=None, **kwargs):
+    from orso.tools import DecimalFactory
+
+    if value is None:
+        return None
+
+    scale = 21 if scale is None else int(scale)
+    precision = 38 if precision is None else int(precision)
+    value = (
+        value.as_py()
+        if hasattr(value, "as_py")
+        else (
+            value.item()
+            if hasattr(value, "item") and not isinstance(value, (list, dict, tuple))
+            else value
+        )
+    )
+    if isinstance(value, (int, float)):
+        value = str(value)
+    elif isinstance(value, bytes):
+        value = value.decode("utf-8")
+    value = value.strip()
+    factory = DecimalFactory.new_factory(precision, scale)
+    return factory(value)
 
 
 ORSO_TO_PYTHON_MAP: dict = {
@@ -228,21 +284,92 @@ PYTHON_TO_ORSO_MAP: dict = {
 }
 PYTHON_TO_ORSO_MAP.update({tuple: OrsoTypes.ARRAY, set: OrsoTypes.ARRAY})  # map other python types
 
+
+def parse_boolean(x, **kwargs):
+    return (x if isinstance(x, (bytes, str)) else str(x)).upper() in BOOLEAN_STRINGS
+
+
+def parse_bytes(x, **kwargs):
+    length = kwargs.get("length")
+    if isinstance(x, (dict, list, tuple, set)):
+        value = orjson.dumps(x)
+    else:
+        value = str(x).encode("utf-8") if not isinstance(x, bytes) else x
+    if length:
+        value = value[:length]
+    return value
+
+
+def parse_date(x, **kwargs):
+    result = parse_iso(x)
+    if result is None:
+        raise ValueError(f"Invalid date.")
+    return result.date()
+
+
+def parse_time(x, **kwargs):
+    result = parse_iso(x)
+    if result is None:
+        raise ValueError(f"Invalid date.")
+    return result.time()
+
+
+def parse_varchar(x, **kwargs):
+    length = kwargs.get("length")
+    varchar = x.decode("utf-8") if isinstance(x, bytes) else str(x)
+    if length:
+        varchar = varchar[:length]
+    return varchar
+
+
+def parse_array(x, **kwargs):
+    element_type = kwargs.get("element_type")
+    if not isinstance(x, (list, tuple, set)):
+        x = orjson.loads(x)
+    if element_type is None:
+        return x
+    parser = element_type.parse
+    return [parser(v) for v in x]
+
+
+def parse_double(x, **kwargs):
+    return float(x)
+
+
+def parse_integer(x, **kwargs):
+    return int(x)
+
+
+def parse_null(x, **kwargs):
+    return None
+
+
+def parse_timestamp(x, **kwargs):
+    result = parse_iso(x)
+    if result is None:
+        raise ValueError(f"Invalid timestamp.")
+    return result
+
+
+def parse_interval(x, **kwargs):
+    return datetime.timedelta(x)
+
+
 ORSO_TO_PYTHON_PARSER: dict = {
-    OrsoTypes.BOOLEAN: bool,
-    OrsoTypes.BLOB: lambda x: x.encode("utf-8") if isinstance(x, str) else bytes(x),
-    OrsoTypes.DATE: lambda x: parse_iso(x).date(),
-    OrsoTypes.TIMESTAMP: parse_iso,
-    OrsoTypes.TIME: lambda x: parse_iso(x).time(),
-    OrsoTypes.INTERVAL: datetime.timedelta,
-    OrsoTypes.STRUCT: dict,
-    OrsoTypes.DECIMAL: decimal.Decimal,
-    OrsoTypes.DOUBLE: float,
-    OrsoTypes.INTEGER: int,
-    OrsoTypes.ARRAY: list,
-    OrsoTypes.VARCHAR: str,
-    OrsoTypes.JSONB: bytes,
-    OrsoTypes.NULL: lambda x: None,
+    OrsoTypes.BOOLEAN: parse_boolean,
+    OrsoTypes.BLOB: parse_bytes,
+    OrsoTypes.DATE: parse_date,
+    OrsoTypes.TIMESTAMP: parse_timestamp,
+    OrsoTypes.TIME: parse_time,
+    OrsoTypes.INTERVAL: parse_interval,
+    OrsoTypes.STRUCT: parse_bytes,
+    OrsoTypes.DECIMAL: parse_decimal,
+    OrsoTypes.DOUBLE: parse_double,
+    OrsoTypes.INTEGER: parse_integer,
+    OrsoTypes.ARRAY: parse_array,
+    OrsoTypes.VARCHAR: parse_varchar,
+    OrsoTypes.JSONB: parse_bytes,
+    OrsoTypes.NULL: parse_null,
 }
 
 
