@@ -223,33 +223,35 @@ def ascii_table(
 
         return str(value)
 
-    def type_formatter(value, width, type_):
+    def type_formatter(value, width=None, type_=None):
+        def position(value, width):
+            if width is None:
+                return str(value)
+            return str(value).ljust(width)[:width]
+
         if isinstance(value, (numpy.generic, numpy.ndarray)):
             value = numpy_type_mapper(value)
 
         if value is None or (isinstance(value, float) and isnan(value)):
-            return "\001NULLm" + "null".rjust(width)[:width] + "\001OFFm"
+            return "\001NULLm" + position("null", width) + "\001OFFm"
         if isinstance(value, bool):
             # bool is a superclass of int, do before the int test
-            return "\001CONSTm" + str(value).rjust(width)[:width] + "\001OFFm"
+            return "\001CONSTm" + position(value, width) + "\001OFFm"
         if isinstance(value, int):
-            return "\001INTEGERm" + str(value).rjust(width)[:width] + "\001OFFm"
+            return "\001INTEGERm" + position(value, width) + "\001OFFm"
         if isinstance(value, (float, decimal.Decimal)):
-            return "\001FLOATm" + str(value).rjust(width)[:width] + "\001OFFm"
+            return "\001FLOATm" + position(value, width) + "\001OFFm"
         if isinstance(value, str):
-            return "\001VARCHARm" + trunc_printable(str(value).ljust(width), width) + "\001OFFm"
+            return "\001VARCHARm" + trunc_printable(position(value, width), width) + "\001OFFm"
         if isinstance(value, datetime.datetime):
             value = f"{value.strftime('%Y-%m-%d')} \001TIMEm{value.strftime('%H:%M:%S')}"
-            return "\001DATEm" + trunc_printable(value.rjust(width), width) + "\001OFFm"
+            return "\001DATEm" + trunc_printable(position(value, width), width) + "\001OFFm"
         if isinstance(value, datetime.date):
             value = f"{value.strftime('%Y-%m-%d')}"
-            return "\001DATEm" + trunc_printable(value.rjust(width), width) + "\001OFFm"
+            return "\001DATEm" + trunc_printable(position(value, width), width) + "\001OFFm"
         if isinstance(value, (bytes, bytearray)):
-            return (
-                "\001BLOBm"
-                + trunc_printable(value.decode("utf-8").ljust(width), width)
-                + "\001OFFm"
-            )
+            value = value.decode("utf-8", errors="replace")
+            return "\001BLOBm" + trunc_printable(position(value, width), width) + "\001OFFm"
         if isinstance(value, dict):
             value = (
                 "\001PUNCm{"
@@ -291,18 +293,20 @@ def ascii_table(
         if isinstance(value, (list, tuple)):
             value = (
                 "\001PUNCm['\001VALUEm"
-                + "\001PUNCm', '\001VALUEm".join(map(str, value))
+                + "\001PUNCm', '\001VALUEm".join(map(type_formatter, value))
                 + "\001PUNCm']\001OFFm"
             )
             return trunc_printable(value, width)
-        return str(value).ljust(width)[:width]
+        if width:
+            return str(value).ljust(width)[:width]
+        return str(value)
 
     def character_width(symbol):
         import unicodedata
 
         return 2 if unicodedata.east_asian_width(symbol) in ("F", "N", "W") else 1
 
-    def trunc_printable(value, width, full_line: bool = True):
+    def trunc_printable(value, width=None, full_line: bool = True):
         offset = 0
         emit = ""
         ignoring = False
@@ -321,10 +325,10 @@ def ascii_table(
                 offset += character_width(char)
             if ignoring and char == "m":
                 ignoring = False
-            if not ignoring and offset >= width:
+            if width is not None and not ignoring and offset >= width:
                 return emit + "\001OFFm"
         line = emit + "\001OFFm"
-        if full_line:
+        if full_line and width is not None:
             return line + " " * (width - offset)
         return line
 
