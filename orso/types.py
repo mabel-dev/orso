@@ -112,13 +112,13 @@ class OrsoTypes(str, Enum):
         return self in (self.ARRAY, self.STRUCT, self.JSONB, self.INTERVAL)
 
     def __str__(self):
-        if self.value == "ARRAY" and self._element_type is not None:
+        if self.value == self.ARRAY and self._element_type is not None:
             return f"ARRAY<{self._element_type}>"
-        if self.value == "DECIMAL" and self._precision is not None and self._scale is not None:
+        if self.value == self.DECIMAL and self._precision is not None and self._scale is not None:
             return f"DECIMAL({self._precision}, {self._scale})"
-        if self.value == "VARCHAR" and self._length is not None:
+        if self.value == self.VARCHAR and self._length is not None:
             return f"VARCHAR[{self._length}]"
-        if self.value == "BLOB" and self._length is not None:
+        if self.value == self.BLOB and self._length is not None:
             return f"BLOB[{self._length}]"
         return self.value
 

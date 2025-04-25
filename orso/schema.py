@@ -251,6 +251,10 @@ class FlatColumn:
             if field_type is None:
                 field_type = OrsoTypes.VARCHAR
 
+        field_type._element_type = element_type
+        field_type._scale = scale
+        field_type._precision = precision
+
         return FlatColumn(
             name=str(arrow_field.name),
             type=field_type,
