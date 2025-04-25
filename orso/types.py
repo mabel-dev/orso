@@ -112,9 +112,6 @@ class OrsoTypes(str, Enum):
         return self in (self.ARRAY, self.STRUCT, self.JSONB, self.INTERVAL)
 
     def __str__(self):
-        return self.value
-
-    def __repr__(self):
         if self.value == "ARRAY" and self._element_type is not None:
             return f"ARRAY<{self._element_type}>"
         if self.value == "DECIMAL" and self._precision is not None and self._scale is not None:
