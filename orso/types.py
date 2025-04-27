@@ -323,11 +323,10 @@ def parse_time(x, **kwargs):
 
 
 def parse_varchar(x, **kwargs):
-    length = kwargs.get("length")
-    varchar = x.decode("utf-8") if isinstance(x, bytes) else str(x)
-    if length:
-        varchar = varchar[:length]
-    return varchar
+    byte_version = parse_bytes(x, **kwargs)
+    if isinstance(byte_version, bytes):
+        return byte_version.decode("utf-8")
+    return str(byte_version)
 
 
 def parse_array(x, **kwargs):
