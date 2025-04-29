@@ -266,7 +266,9 @@ def parse_decimal(value, *, precision=None, scale=None, **kwargs):
             else value
         )
     )
-    if isinstance(value, (int, float)):
+    if isinstance(value, float):
+        value = format(value, ".99g")
+    elif isinstance(value, int):
         value = str(value)
     elif isinstance(value, bytes):
         value = value.decode("utf-8")
