@@ -123,6 +123,11 @@ class OrsoTypes(str, Enum):
         return self.value
 
     def parse(self, value: Any, **kwargs) -> Any:
+        kwargs["length"] = kwargs.get("length", self._length)
+        kwargs["precision"] = kwargs.get("precision", self._precision)
+        kwargs["scale"] = kwargs.get("scale", self._scale)
+        kwargs["element_type"] = kwargs.get("element_type", self._element_type)
+
         if value is None:
             return None
         return ORSO_TO_PYTHON_PARSER[self.value](value, **kwargs)
@@ -311,14 +316,14 @@ def parse_bytes(x, **kwargs):
 def parse_date(x, **kwargs):
     result = parse_iso(x)
     if result is None:
-        raise ValueError(f"Invalid date.")
+        raise ValueError("Invalid date.")
     return result.date()
 
 
 def parse_time(x, **kwargs):
     result = parse_iso(x)
     if result is None:
-        raise ValueError(f"Invalid date.")
+        raise ValueError("Invalid date.")
     return result.time()
 
 

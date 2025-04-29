@@ -100,9 +100,9 @@ def from_arrow(tables, size=None):
     if isinstance(tables, (list, tuple)):
         tables = iter(tables)
 
-    BATCH_SIZE: int = 10_000
+    batch_size: int = 10_000
     if size:
-        BATCH_SIZE = min(size, BATCH_SIZE)
+        batch_size = min(size, batch_size)
     else:
         size = float("inf")
 
@@ -122,7 +122,7 @@ def from_arrow(tables, size=None):
     rows_iterator = _RowsIterator(
         tables=itertools.chain([first_table], tables),
         row_factory=row_factory,
-        batch_size=BATCH_SIZE,
+        batch_size=batch_size,
         max_size=size,
     )
 
