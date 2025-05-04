@@ -538,7 +538,7 @@ class DecimalFactory(decimal.Decimal):
         )
 
         if isinstance(value, str) and value.isdigit():
-            value += "." + "0" * min(self.scale, 3)
+            value += "." + "0" * max(self.scale, 3)
 
         # Convert input to Decimal
         decimal_value = context.create_decimal(value)
