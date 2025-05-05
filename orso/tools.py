@@ -518,34 +518,36 @@ class DecimalFactory(decimal.Decimal):
     It allows for custom precision and scale settings.
     """
 
-    scale = 0  # Number of decimal places
-    precision = 0  # Total number of significant digits
-
-    def __call__(self, value: Union[float, int, str]):
+    def __call__(self, value: Union[float, int, str]) -> decimal.Decimal:
         """
-        Overridden call method to handle decimal conversions using custom scale and precision.
+        Create a Decimal from value using the configured precision and scale.
 
         Parameters:
             value: Union[float, int, str]
-                The value to be converted to a custom decimal.
+                The value to be converted to a decimal.
 
         Returns:
-            decimal.Decimal: Customized decimal object.
+            decimal.Decimal: The quantized decimal.
         """
         context = decimal.Context(
             prec=self.precision,
-            rounding=decimal.ROUND_HALF_EVEN,  # Adding proper rounding mode
+            rounding=decimal.ROUND_HALF_EVEN,
         )
 
-        if isinstance(value, str) and value.isdigit():
-            value += "." + "0" * max(self.scale, 3)
+        if isinstance(value, float):
+            value = format(value, ".99g")
+        elif isinstance(value, int):
+            value = str(value)
+        elif isinstance(value, bytes):
+            value = value.decode("utf-8")
+        value = value.strip()
 
-        # Convert input to Decimal
+        if isinstance(value, str) and value.isdigit():
+            value += "." + "0"  # minimal fractional part to allow quantize
+
         decimal_value = context.create_decimal(value)
 
-        # Define the quantization factor safely
-        # Limit scale to avoid InvalidOperation errors
-        safe_scale = min(self.scale, 28)  # Python's decimal has max ~28 digits precision
+        safe_scale = min(self.scale, 28)
         factor = decimal.Decimal("10") ** -safe_scale
 
         # Perform quantization with proper error handling
@@ -566,23 +568,24 @@ class DecimalFactory(decimal.Decimal):
         return f"Decimal({self.scale},{self.precision})"
 
     @classmethod
-    def new_factory(cls, precision: int, scale: int):
+    def new_factory(
+        cls, precision: Optional[int] = None, scale: Optional[int] = None
+    ) -> "DecimalFactory":
         """
-        Class method to create a new instance of DecimalFactory with custom precision and scale.
+        Create a new instance of DecimalFactory with attached precision and scale.
 
         Parameters:
             precision: int
-                The total number of significant digits for the decimal.
             scale: int
-                The number of digits after the decimal point.
 
         Returns:
-            DecimalFactory: A new DecimalFactory object with custom precision and scale.
+            DecimalFactory instance with .__call__ behavior
         """
-        factory = DecimalFactory.__new__(cls)  # Create a new instance
-        factory.scale = scale  # Set the scale
-        factory.precision = precision  # Set the precision
-        return factory
+        # Create an inert Decimal (value doesn't matter, won't be used)
+        instance = decimal.Decimal.__new__(cls, "0")
+        object.__setattr__(instance, "scale", scale)
+        object.__setattr__(instance, "precision", precision)
+        return instance
 
 
 def arrow_type_map(parquet_type) -> Union[Type, None]:
