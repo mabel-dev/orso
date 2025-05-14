@@ -156,7 +156,7 @@ class LogFormatter(logging.Formatter):
             clean_record = self.clean_record(dirty_record)
             parts.append(" " + json.dumps(clean_record))
 
-        except ValueError:
+        except (ValueError, AttributeError):
             json_part = re.sub(r"`([^`]*)`", r"`\001YELLOWm\1\001OFFm`", f"{json_part}")
             json_part = re.sub(r"'([^']*)'", r"'\001YELLOWm\1\001OFFm'", f"{json_part}")
             json_part = re.sub(r'"([^"]*)"', r"'\001YELLOWm\1\001OFFm'", f"{json_part}")
