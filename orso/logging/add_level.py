@@ -73,7 +73,7 @@ def add_logging_level(level_name, level_num, method_name=None):
                 logging_seen_warnings[hashed] = 0
                 atexit.register(report_suppressions, message)
 
-            self._log(level_num, message, args, **kwargs)
+            self._log(level_num, message, args, stacklevel=2, **kwargs)
 
     def log_to_root(message, *args, **kwargs):
         logging.log(level_num, message, *args, **kwargs)
