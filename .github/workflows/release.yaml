@@ -239,13 +239,6 @@ jobs:
           name: dist-windows-3.12
           path: dist-windows-3.12
       - run: mv -v dist-windows-3.12/* dist/
-
-      - name: Stage windows 3.13
-        uses: actions/download-artifact@v4.1.7
-        with:
-          name: dist-windows-3.13
-          path: dist-windows-3.13
-      - run: mv -v dist-windows-3.13/* dist/
   
       - name: Publish distribution 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
