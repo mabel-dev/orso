@@ -31,6 +31,7 @@ from numpy cimport ndarray
 from libc.stdint cimport int32_t, int64_t
 from cpython.dict cimport PyDict_GetItem
 from cpython.tuple cimport PyTuple_New, PyTuple_SET_ITEM
+from cpython.object cimport PyObject
 
 cnp.import_array()
 
@@ -86,17 +87,14 @@ cpdef tuple extract_dict_columns(dict data, tuple fields):
         Missing fields will have None.
     """
     cdef int64_t i, num_fields = len(fields)
-    cdef void* value_ptr
+    cdef PyObject* value_ptr
     cdef list field_data = [None] * num_fields
 
     for i in range(num_fields):
         value_ptr = PyDict_GetItem(data, fields[i])
-        if value_ptr != NULL:
-            field_data[i] = <object>value_ptr
-        else:
-            field_data[i] = None
+        field_data[i] = <object>value_ptr if value_ptr is not NULL else None
 
-    return tuple(field_data)  # Convert list to tuple
+    return tuple(field_data)
 
 
 cpdef cnp.ndarray collect_cython(list rows, int32_t[:] columns, int limit=-1):
@@ -194,158 +192,3 @@ def process_table(table, row_factory, int max_chunksize) -> list:
             rows[i] = row_factory(row)
             i += 1
     return rows
-
-
-
-# cython: language_level=3
-# cython: boundscheck=False
-# cython: wraparound=False
-# cython: nonecheck=False
-# cython: cdivision=True
-# cython: initializedcheck=False
-# cython: infer_types=True
-
-import pyarrow
-cimport cython
-import struct
-
-from libc.stdint cimport int64_t, uint8_t, int32_t
-from libc.stdint cimport int32_t, int64_t, uint8_t, uint64_t, uintptr_t
-from cpython.tuple cimport PyTuple_New, PyTuple_SET_ITEM
-cpdef list _process_table(table, object row_factory, int max_chunksize):
-    """
-    Converts a PyArrow table into a list of tuples efficiently.
-
-    Parameters:
-        table: PyArrow Table
-            The input table to process.
-        row_factory: function
-            A function applied to each row.
-        max_chunksize: int
-            The batch size to process at a time.
-
-    Returns:
-        A list of transformed rows.
-    """
-    cdef list result = []
-    cdef Py_ssize_t num_cols = table.num_columns
-    cdef Py_ssize_t row_idx, col_idx
-    cdef object chunk, buffers
-    cdef const uint8_t* validity
-    cdef const int32_t* int_offsets
-    cdef const char* data
-    cdef Py_ssize_t str_start, str_end
-    cdef bytes value
-    cdef tuple row_tuple
-    cdef uint8_t null_mask
-    cdef Py_ssize_t byte_offset, bit_index
-    cdef const uint8_t* raw_data
-
-    for batch in table.to_batches(max_chunksize):
-        batch_cols = batch.columns
-        batch_num_rows = batch.num_rows
-
-        # Preallocate row storage
-        batch_result = [None] * batch_num_rows
-
-        for row_idx in range(batch_num_rows):
-            # Create Python list for row data first
-            row_data = [None] * num_cols
-
-            for col_idx in range(num_cols):
-                chunk = batch_cols[col_idx]
-                buffers = chunk.buffers()
-
-                # Extract validity bitmap
-                validity = <const uint8_t*><uintptr_t>buffers[0].address if buffers[0] else NULL
-
-                # Compute null mask offsets
-                if validity:
-                    byte_offset = row_idx // 8
-                    bit_index = row_idx % 8
-                    null_mask = (validity[byte_offset] >> bit_index) & 1
-                else:
-                    null_mask = 1  # If no validity buffer, assume all valid
-
-                if null_mask == 0:
-                    # NULL value case
-                    continue
-
-                # Process based on type
-                if pyarrow.types.is_string(chunk.type) or pyarrow.types.is_binary(chunk.type):
-                    int_offsets = <const int32_t*><uintptr_t>buffers[1].address
-                    data = <const char*><uintptr_t>buffers[2].address if len(buffers) > 2 else NULL
-
-                    str_start = int_offsets[row_idx]
-                    str_end = int_offsets[row_idx + 1]
-                    
-                    if str_start < str_end and data:
-                        value = data[str_start:str_end]
-                        row_data[col_idx] = value.decode('utf-8', errors='replace')
-                    else:
-                        row_data[col_idx] = ""
-
-                # Integer handling section - replace with this safer version
-                elif pyarrow.types.is_integer(chunk.type):
-                    # Get raw pointer to numeric data and safely handle buffer sizes
-                    if buffers[1]:
-                        raw_data = <const uint8_t*><uintptr_t>buffers[1].address
-                        item_size = chunk.type.bit_width // 8
-                        buffer_size = buffers[1].size
-                        
-                        # Calculate offset and make sure we have enough bytes
-                        offset = row_idx * item_size
-                        if offset + item_size <= buffer_size:
-                            if item_size == 8:  # int64
-                                row_data[col_idx] = struct.unpack_from("<q", raw_data, offset)[0]
-                            elif item_size == 4:  # int32
-                                row_data[col_idx] = struct.unpack_from("<i", raw_data, offset)[0]
-                            elif item_size == 2:  # int16
-                                row_data[col_idx] = struct.unpack_from("<h", raw_data, offset)[0]
-                            elif item_size == 1:  # int8
-                                row_data[col_idx] = struct.unpack_from("<b", raw_data, offset)[0]
-                        else:
-                            # Not enough bytes in buffer
-                            row_data[col_idx] = None
-                    else:
-                        row_data[col_idx] = None
-                elif pyarrow.types.is_floating(chunk.type):
-                    if buffers[1]:
-                        raw_data = <const uint8_t*><uintptr_t>buffers[1].address
-                        item_size = chunk.type.bit_width // 8
-                        buffer_size = buffers[1].size
-                        
-                        # Calculate offset and make sure we have enough bytes
-                        offset = row_idx * item_size
-                        if offset + item_size <= buffer_size:
-                            if item_size == 8:  # float64
-                                row_data[col_idx] = struct.unpack_from("<d", raw_data, offset)[0]
-                            elif item_size == 4:  # float32
-                                row_data[col_idx] = struct.unpack_from("<f", raw_data, offset)[0]
-                        else:
-                            row_data[col_idx] = None
-                    else:
-                        row_data[col_idx] = None
-                elif pyarrow.types.is_boolean(chunk.type):
-                    # Booleans are bit-packed
-                    bool_data = <const uint8_t*><uintptr_t>buffers[1].address if buffers[1] else NULL
-                    if bool_data:
-                        bool_value = (bool_data[byte_offset] >> bit_index) & 1
-                        row_data[col_idx] = bool(bool_value)
-                    else:
-                        row_data[col_idx] = False
-
-                else:
-                    # Fallback for unsupported types
-                    try:
-                        row_data[col_idx] = chunk[row_idx].as_py()
-                    except:
-                        row_data[col_idx] = None
-
-            # Convert list to tuple and apply row factory
-            row_tuple = tuple(row_data)
-            batch_result[row_idx] = row_factory(row_tuple)
-
-        result.extend(batch_result)
-
-    return result
