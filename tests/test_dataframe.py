@@ -270,22 +270,6 @@ def test_appending():
         )
 
 
-def test_profile():
-    df = create_dataframe()
-    profile = df.profile.to_dataframe()
-    assert isinstance(profile, DataFrame)
-
-
-def test_build_and_then_profile():
-    df = orso.DataFrame(schema=cities.schema)
-    for city in cities.values:
-        df.append(city)
-
-    p = df.profile.to_dataframe()
-    assert p.rowcount == df.columncount
-    assert p.collect("count").tolist() == [df.rowcount] * df.columncount
-
-
 def test_describe():
     df = create_dataframe()
     desc = df.description

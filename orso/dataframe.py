@@ -334,12 +334,6 @@ class DataFrame:
             yield DataFrame(rows=self._rows[i : i + batch_size], schema=self._schema)
 
     @property
-    def profile(self) -> "TableProfile":
-        from orso.profiler import TableProfile
-
-        return TableProfile.from_dataframe(self)
-
-    @property
     def description(
         self,
     ) -> List[
