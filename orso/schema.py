@@ -265,24 +265,24 @@ class FlatColumn:
         )
 
     def to_flatcolumn(self) -> "FlatColumn":
-        """
-        Convert any column type to a FlatColumn (e.g. after a FunctionColumn has been evaluated)
-        """
-        return FlatColumn(
-            name=str(self.name),
-            default=self.default,
-            description=self.description,
-            aliases=self.aliases,
-            identity=self.identity,
-            type=self.type,
-            element_type=self.element_type,
-            nullable=self.nullable,
-            scale=self.scale,
-            precision=self.precision,
-            lowest_value=self.lowest_value,
-            highest_value=self.highest_value,
-            null_count=self.null_count,
-        )
+        col = object.__new__(FlatColumn)
+
+        col.name = str(self.name)
+        col.default = self.default
+        col.description = self.description
+        col.aliases = self.aliases
+        col.identity = self.identity
+        col.type = self.type
+        col.element_type = self.element_type
+        col.nullable = self.nullable
+        col.scale = self.scale
+        col.precision = self.precision
+        col.lowest_value = self.lowest_value
+        col.highest_value = self.highest_value
+        col.null_count = self.null_count
+        col.origin = self.origin
+
+        return col
 
     @property
     def all_names(self):
