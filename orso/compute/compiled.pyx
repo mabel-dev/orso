@@ -20,6 +20,7 @@
 # limitations under the License.
 
 from cpython.bytes cimport PyBytes_AsString, PyBytes_GET_SIZE
+from cpython.unicode cimport PyUnicode_GET_LENGTH
 from cpython.object cimport PyObject_Str
 from cython cimport int
 from datetime import datetime
@@ -86,13 +87,13 @@ cpdef tuple extract_dict_columns(dict data, tuple fields):
         A tuple containing values from the dictionary for the requested fields.
         Missing fields will have None.
     """
-    cdef int64_t i, num_fields = len(fields)
+    cdef Py_ssize_t i, num_fields = len(fields)
     cdef PyObject* value_ptr
     cdef list field_data = [None] * num_fields
 
     for i in range(num_fields):
         value_ptr = PyDict_GetItem(data, fields[i])
-        field_data[i] = <object>value_ptr if value_ptr is not NULL else None
+        (<list>field_data)[i] = <object>value_ptr if value_ptr is not NULL else None
 
     return tuple(field_data)
 
@@ -101,18 +102,18 @@ cpdef cnp.ndarray collect_cython(list rows, int32_t[:] columns, int limit=-1):
     """
     Collects columns from a list of tuples (rows).
     """
-    cdef int64_t i, j
-    cdef int64_t num_rows = len(rows)
-    cdef int64_t num_cols = columns.shape[0]
+    cdef Py_ssize_t i, j
+    cdef Py_ssize_t num_rows = len(rows)
+    cdef Py_ssize_t num_cols = columns.shape[0]
     cdef int32_t col_idx
     cdef object row
     cdef tuple tuple_row
     
     # Early exit if no rows or columns
     if num_rows == 0 or num_cols == 0:
-        return np.empty((num_cols, num_rows), dtype=object)
+        return np.empty((num_cols, 0), dtype=object)
     
-    cdef int64_t row_width = len(rows[0])
+    cdef Py_ssize_t row_width = len(<tuple>rows[0])
     
     # Check if limit is set and within bounds
     if limit >= 0 and limit < num_rows:
@@ -125,7 +126,8 @@ cpdef cnp.ndarray collect_cython(list rows, int32_t[:] columns, int limit=-1):
             raise IndexError(f"Column index out of bounds (0 <= {col_idx} < {row_width})")
     
     # Create result array directly
-    cdef cnp.ndarray[object, ndim=2] result = np.empty((num_cols, num_rows), dtype=object)
+    cdef cnp.ndarray result_arr = np.empty((num_cols, num_rows), dtype=object)
+    cdef object[:, :] result = result_arr
     
     # Specialized fast paths for common column counts
     if num_cols == 1:
@@ -134,6 +136,7 @@ cpdef cnp.ndarray collect_cython(list rows, int32_t[:] columns, int limit=-1):
         for i in range(num_rows):
             tuple_row = <tuple>rows[i]
             result[0, i] = tuple_row[col_idx]
+        return result_arr
     elif num_cols == 2:
         # Two column case (also common)
         col_idx0 = columns[0]
@@ -142,24 +145,29 @@ cpdef cnp.ndarray collect_cython(list rows, int32_t[:] columns, int limit=-1):
             tuple_row = <tuple>rows[i]
             result[0, i] = tuple_row[col_idx0]
             result[1, i] = tuple_row[col_idx1]
-    else:
-        # General case for any number of columns
-        for i in range(num_rows):
-            tuple_row = <tuple>rows[i]
-            for j in range(num_cols):
-                result[j, i] = tuple_row[columns[j]]
-    
-    return result
+        return result_arr
+
+    # General case for any number of columns
+    for i in range(num_rows):
+        tuple_row = <tuple>rows[i]
+        for j in range(num_cols):
+            result[j, i] = tuple_row[columns[j]]
+    return result_arr
 
 
 cpdef int calculate_data_width(cnp.ndarray column_values):
-    cdef int width, max_width
-    cdef object value
+    """
+    Estimate the maximum display width of a column based on string conversion.
+    """
+    cdef Py_ssize_t i, n = column_values.shape[0]
+    cdef int width, max_width = 4
+    cdef object value, string_value
 
-    max_width = 4  # Default width
-    for value in column_values:
+    for i in range(n):
+        value = column_values[i]
         if value is not None:
-            width = PyBytes_GET_SIZE(PyObject_Str(value))
+            string_value = PyObject_Str(value)  # returns a unicode object
+            width = PyUnicode_GET_LENGTH(string_value)
             if width > max_width:
                 max_width = width
 

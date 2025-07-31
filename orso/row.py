@@ -68,8 +68,15 @@ def extract_columns(table: List[Dict[str, Any]], columns: List[str]) -> Tuple[Li
     return tuple(result)
 
 
+def make_as_dict(fields):
+    def _as_dict(self):
+        return {field: self[i] for i, field in enumerate(fields)}
+
+    return property(_as_dict)
+
+
 class Row(tuple):
-    __slots__ = ()
+    __slots__ = ()  # must be empty because we're inheriting from tuple
     _fields: Tuple[str, ...] = None
     _cached_byte_size: int = None
     _key: Tuple[int, int] = None
@@ -93,10 +100,10 @@ class Row(tuple):
         return instance
 
     def get(self, item, default=None):
-        index = self._fields.index(item)
-        if index == -1:
+        try:
+            return self[self._fields.index(item)]
+        except ValueError:
             return default
-        return self[index]
 
     @cached_property
     def as_map(self) -> Tuple[Tuple[str, Any], ...]:
@@ -107,16 +114,6 @@ class Row(tuple):
             A tuple of key-value pair tuples.
         """
         return tuple(zip(self._fields, self))
-
-    @property
-    def as_dict(self) -> Dict[str, Any]:
-        """
-        Returns the Row as a dictionary.
-
-        Returns:
-            A dictionary representation of the Row.
-        """
-        return dict(self.as_map)
 
     @property
     def values(self) -> Tuple[Any, ...]:
@@ -202,9 +199,14 @@ class Row(tuple):
             fields = tuple(c.name for c in schema.columns)
         elif not isinstance(schema, (list, tuple)):
             raise ValueError("Row requires either a list of field names or a RelationSchema")
+        else:
+            fields = tuple(str(s) for s in schema)
 
-        fields = tuple(str(s) for s in schema)
         if tuples_only:
-            # if we're only handling tuples, we can delegate to super
-            return type("RowFactory", (Row,), {"_fields": fields, "__new__": super().__new__})
-        return type("RowFactory", (Row,), {"_fields": fields})
+            # if we're only handling tuples, we can delegate to super, which is faster
+            return type(
+                "RowFactory",
+                (Row,),
+                {"_fields": fields, "__new__": super().__new__, "as_dict": make_as_dict(fields)},
+            )
+        return type("RowFactory", (Row,), {"_fields": fields, "as_dict": make_as_dict(fields)})
