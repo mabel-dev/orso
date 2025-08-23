@@ -24,5 +24,5 @@ ci:
 
 compile:
 	python -m pip install --upgrade pip uv
-	python -m uv pip install --upgrade numpy 'cython==3.1.0a1' setuptools
+	python -m uv pip install --upgrade numpy cython setuptools
 	python setup.py build_ext --inplace

@@ -637,6 +637,7 @@ def arrow_type_map(parquet_type) -> Union[Type, None]:
         lib.Type_MAP: dict,
         lib.Type_BINARY: bytes,
         lib.Type_LARGE_BINARY: bytes,
+        lib.Type_STRING_VIEW: str,
     }
 
     if parquet_type.id in type_map:
