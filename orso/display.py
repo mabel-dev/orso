@@ -32,7 +32,7 @@ COLORS = {
     "\001HEADm": "\033[1m",
     "\001VARCHARm": "\033[38;2;255;171;82m",  # orange
     "\001CONSTm": "\033[38;2;139;233;253m\033[3m",  # cyan, italic
-    "\001NULLm": "\033[38;2;98;114;164m\033[3m",  # grey, italic
+    "\001NULLm": "\033[38;2;64;75;108m\033[3m",  # grey, italic
     "\001TYPEm": "\033[38;2;98;114;164m",  # grey,
     "\001VALUEm": "\033[38;2;139;233;253m",  # cyan
     "\001FLOATm": "\033[38;2;255;121;198m",  # pink
@@ -224,10 +224,12 @@ def ascii_table(
         return str(value)
 
     def type_formatter(value, width=None, type_=None):
-        def position(value, width):
+        def position(value, width, left=True):
             if width is None:
                 return str(value)
-            return str(value).ljust(width)[:width]
+            if left:
+                return str(value).ljust(width)[:width]
+            return str(value).rjust(width)[:width]
 
         if isinstance(value, (numpy.generic, numpy.ndarray)):
             value = numpy_type_mapper(value)
@@ -238,9 +240,9 @@ def ascii_table(
             # bool is a superclass of int, do before the int test
             return "\001CONSTm" + position(value, width) + "\001OFFm"
         if isinstance(value, int):
-            return "\001INTEGERm" + position(value, width) + "\001OFFm"
+            return "\001INTEGERm" + position(value, width, False) + "\001OFFm"
         if isinstance(value, (float, decimal.Decimal)):
-            return "\001FLOATm" + position(value, width) + "\001OFFm"
+            return "\001FLOATm" + position(value, width, False) + "\001OFFm"
         if isinstance(value, str):
             return "\001VARCHARm" + trunc_printable(position(value, width), width) + "\001OFFm"
         if isinstance(value, datetime.datetime):
@@ -307,7 +309,13 @@ def ascii_table(
     def character_width(symbol):
         import unicodedata
 
-        return 2 if unicodedata.east_asian_width(symbol) in ("F", "N", "W") else 1
+        # F: Fullwidth
+        # W: Wide
+        # A: Ambiguous (may be 1 or 2 depending on context)
+        # N: Neutral
+        # Na: Narrow
+        # H: Halfwidth
+        return 2 if unicodedata.east_asian_width(symbol) in ("F", "W") else 1
 
     def trunc_printable(value, width=None, full_line: bool = True):
         offset = 0
