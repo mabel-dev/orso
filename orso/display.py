@@ -347,6 +347,7 @@ def ascii_table(
 
         # Use optimized Cython function to calculate widths for all columns at once
         from orso.compute.compiled import calculate_column_widths
+
         data_width = calculate_column_widths(t._rows)
         from orso.schema import RelationSchema
         from orso.types import OrsoTypes

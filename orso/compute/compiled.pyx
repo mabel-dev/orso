@@ -214,9 +214,6 @@ cpdef list calculate_column_widths(list rows):
     return widths
 
 
-from cpython.list cimport PyList_New, PyList_SET_ITEM
-
-
 cpdef list extract_columns_to_lists(list rows):
     """
     Fast column extraction for Arrow table conversion.
@@ -238,19 +235,28 @@ cpdef list extract_columns_to_lists(list rows):
     cdef tuple first_row = <tuple>rows[0]
     cdef Py_ssize_t num_cols = len(first_row)
     
-    # Pre-allocate lists for each column
-    cdef list columns = [None] * num_cols
+    # Pre-allocate result list
+    cdef list columns = []
     cdef list col_data
     cdef tuple row
+    cdef object value
     
+    # Create lists for each column
     for j in range(num_cols):
-        col_data = [None] * num_rows
-        for i in range(num_rows):
-            row = <tuple>rows[i]
-            col_data[i] = row[j]
-        columns[j] = col_data
+        col_data = []
+        columns.append(col_data)
+    
+    # Fill the column lists
+    for i in range(num_rows):
+        row = <tuple>rows[i]
+        for j in range(num_cols):
+            value = row[j]
+            (<list>columns[j]).append(value)
     
     return columns
+
+
+
 
 
 def process_table(table, row_factory, int max_chunksize) -> list:
