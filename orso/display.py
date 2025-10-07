@@ -356,7 +356,8 @@ def ascii_table(
             for column in t.schema.columns:
                 col_types.append(str(column.type))
         else:
-            col_types = [OrsoTypes._MISSING_TYPE] * len(t.schema)
+            # When schema is just a list of column names, show '?' for unknown types
+            col_types = ["?"] * len(t.schema)
         col_type_width = list(map(len, col_types)) if show_types else [0] * len(col_types)
         col_width = [
             min(max(cw, ctw, dw), max_column_width)

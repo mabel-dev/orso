@@ -1,0 +1,37 @@
+======================================================================
+BEFORE: Type row showed '0' for unknown types
+======================================================================
+┌───┬─────────┬──────┬───────────────┬───────┐
+│   │   name  │ age  │      city     │ score │
+│   │    0    │  0   │       0       │   0   │
+╞═══╪═════════╪══════╪═══════════════╪═══════╡
+│ 1 │ Alice   │   30 │ New York      │  95.5 │
+│ 2 │ Bob     │   25 │ San Francisco │  87.3 │
+│ 3 │ Charlie │   35 │ Chicago       │  92.1 │
+└───┴─────────┴──────┴───────────────┴───────┘
+
+======================================================================
+AFTER: Type row shows '?' for unknown types
+======================================================================
+┌───┬─────────┬──────┬───────────────┬───────┐
+│   │   name  │ age  │      city     │ score │
+│   │    ?    │  ?   │       ?       │   ?   │
+╞═══╪═════════╪══════╪═══════════════╪═══════╡
+│ 1 │ Alice   │   30 │ New York      │  95.5 │
+│ 2 │ Bob     │   25 │ San Francisco │  87.3 │
+│ 3 │ Charlie │   35 │ Chicago       │  92.1 │
+└───┴─────────┴──────┴───────────────┴───────┘
+
+======================================================================
+Explanation:
+======================================================================
+
+When a DataFrame is created from dictionaries (without an explicit schema),
+the type information is not available. Previously, the display function
+showed '0' in the type row, which looked like an error or placeholder.
+
+Now it shows '?' to clearly indicate that the type is unknown/unspecified.
+
+This only affects DataFrames without RelationSchema. DataFrames with proper
+schema still show the actual types (VARCHAR, INTEGER, etc.).
+
