@@ -84,7 +84,9 @@ def to_arrow(dataset, size=None):
     if dataset.rowcount == 0:
         arrays = [list() for _ in range(dataset.columncount)]
     else:
-        arrays = list(zip(*dataset._rows))
+        # Use Cython for faster column extraction
+        from orso.compute.compiled import extract_columns_to_lists
+        arrays = extract_columns_to_lists(dataset._rows)
 
     return pyarrow.Table.from_arrays(arrays, dataset.column_names)
 

@@ -137,7 +137,8 @@ class DataFrame:
             self._schema.validate(entry)
         new_row = self._row_factory(entry)
         self._rows.append(new_row)
-        self._nbytes += new_row.nbytes()
+        # Invalidate nbytes cache instead of calculating on every append
+        self._nbytes = None
         self._cursor = None
 
     def head(self, size: int = 5) -> "DataFrame":

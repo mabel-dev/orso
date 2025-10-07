@@ -176,6 +176,43 @@ cpdef int calculate_data_width(cnp.ndarray column_values):
 
 from cpython.list cimport PyList_New, PyList_SET_ITEM
 
+
+cpdef list extract_columns_to_lists(list rows):
+    """
+    Fast column extraction for Arrow table conversion.
+    Converts row-oriented data to column-oriented lists.
+    
+    Parameters:
+        rows: list of tuples
+            Row-oriented data
+    
+    Returns:
+        list of lists: Column-oriented data
+    """
+    cdef Py_ssize_t i, j
+    cdef Py_ssize_t num_rows = len(rows)
+    
+    if num_rows == 0:
+        return []
+    
+    cdef tuple first_row = <tuple>rows[0]
+    cdef Py_ssize_t num_cols = len(first_row)
+    
+    # Pre-allocate lists for each column
+    cdef list columns = [None] * num_cols
+    cdef list col_data
+    cdef tuple row
+    
+    for j in range(num_cols):
+        col_data = [None] * num_rows
+        for i in range(num_rows):
+            row = <tuple>rows[i]
+            col_data[i] = row[j]
+        columns[j] = col_data
+    
+    return columns
+
+
 def process_table(table, row_factory, int max_chunksize) -> list:
     """
     Processes a PyArrow table and applies a row factory function to each row.
