@@ -9,3 +9,5 @@ orso.egg-info/**
 .coverage
 **.c
 **.cpp
+ascii-display-fix.txt
+display-fix.txt
