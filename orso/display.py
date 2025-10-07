@@ -16,8 +16,6 @@ from collections import deque
 from itertools import islice
 from typing import Union
 
-from orso.compute.compiled import calculate_data_width
-
 # Background		#282a36	40 42 54	231° 15% 18%
 # Current Line		#44475a	68 71 90	232° 14% 31%
 # Foreground		#f8f8f2	248 248 242	60° 30% 96%
@@ -347,7 +345,9 @@ def ascii_table(
         # Calculate width
         col_width = list(map(len, t.column_names))
 
-        data_width = [calculate_data_width(t.collect(i)) for i in range(t.columncount)]
+        # Use optimized Cython function to calculate widths for all columns at once
+        from orso.compute.compiled import calculate_column_widths
+        data_width = calculate_column_widths(t._rows)
         from orso.schema import RelationSchema
         from orso.types import OrsoTypes
 

@@ -174,6 +174,46 @@ cpdef int calculate_data_width(cnp.ndarray column_values):
     return max_width
 
 
+cpdef list calculate_column_widths(list rows):
+    """
+    Calculate display widths for all columns at once.
+    More efficient than calling calculate_data_width for each column separately.
+    
+    Parameters:
+        rows: list of tuples
+            Row data
+    
+    Returns:
+        list of int: Maximum display width for each column
+    """
+    cdef Py_ssize_t i, j
+    cdef Py_ssize_t num_rows = len(rows)
+    
+    if num_rows == 0:
+        return []
+    
+    cdef tuple first_row = <tuple>rows[0]
+    cdef Py_ssize_t num_cols = len(first_row)
+    
+    # Initialize widths to minimum of 4
+    cdef list widths = [4] * num_cols
+    cdef int width
+    cdef tuple row
+    cdef object value, string_value
+    
+    for i in range(num_rows):
+        row = <tuple>rows[i]
+        for j in range(num_cols):
+            value = row[j]
+            if value is not None:
+                string_value = PyObject_Str(value)
+                width = PyUnicode_GET_LENGTH(string_value)
+                if width > widths[j]:
+                    widths[j] = width
+    
+    return widths
+
+
 from cpython.list cimport PyList_New, PyList_SET_ITEM
 
 
