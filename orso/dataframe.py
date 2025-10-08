@@ -133,7 +133,6 @@ class DataFrame:
         return self._nbytes
 
     def append(self, entry):
-        # Ensure we're materialized before appending
         if isinstance(self._schema, RelationSchema):
             self._schema.validate(entry)
         new_row = self._row_factory(entry)
