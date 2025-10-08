@@ -6,11 +6,9 @@ import os
 import sys
 import time
 
-from orso.dataframe import DataFrame
-
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-
+from orso.dataframe import DataFrame
 def test_materialize_performance():
     """Test that repeated materialize calls are fast with the optimization"""
     
