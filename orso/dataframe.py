@@ -184,7 +184,7 @@ class DataFrame:
         """
         Convert a Lazy DataFrame to an Eager DataFrame
         """
-        # Use list() to convert iterator to list
+        # Convert self._rows to a list, using an empty list if self._rows is None or falsy
         self._rows = list(self._rows or [])
 
     def distinct(self) -> "DataFrame":
