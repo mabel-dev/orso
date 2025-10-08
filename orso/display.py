@@ -317,17 +317,17 @@ def ascii_table(
 
     def trunc_printable(value, width=None, full_line: bool = True):
         offset = 0
-        emit = ""
+        emit = []  # Use list for O(n) string building
         ignoring = False
 
         for char in value:
             if char == "\n":
-                emit += "\001CRLFm↵\001VARCHARm"
+                emit.append("\001CRLFm↵\001VARCHARm")
                 offset += 1
                 continue
             if char == "\r":
                 continue
-            emit += char
+            emit.append(char)
             if char in ("\033", "\001"):
                 ignoring = True
             if not ignoring:
@@ -335,8 +335,10 @@ def ascii_table(
             if ignoring and char == "m":
                 ignoring = False
             if width is not None and not ignoring and offset >= width:
-                return emit + "\001OFFm"
-        line = emit + "\001OFFm"
+                emit.append("\001OFFm")
+                return ''.join(emit)
+        emit.append("\001OFFm")
+        line = ''.join(emit)
         if full_line and width is not None:
             return line + " " * (width - offset)
         return line
