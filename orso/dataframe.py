@@ -465,10 +465,10 @@ class DataFrame:
         else:
             from .display import ascii_table
 
-            return (
-                ascii_table(self, limit=size, top_and_tail=True)
-                + f"\n[ {self.rowcount} rows x {self.columncount} columns ]"
+            table_output, displayed_row_count = ascii_table(
+                self, limit=size, top_and_tail=True, return_row_count=True
             )
+            return table_output + f"\n[ {displayed_row_count} rows x {self.columncount} columns ]"
 
     def __add__(self, the_other):
         if self._schema != the_other._schema:

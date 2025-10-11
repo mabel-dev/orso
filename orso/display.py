@@ -139,6 +139,7 @@ def ascii_table(
     colorize: bool = True,
     top_and_tail: bool = True,
     show_types: bool = False,
+    return_row_count: bool = False,
 ):  # pragma: no cover
     """
     Render the dictset as a ASCII table.
@@ -294,6 +295,42 @@ def ascii_table(
             value = f"\001INTERVALm{' '.join(parts)}\001OFFm"
             return trunc_printable(value, width)
         if isinstance(value, (list, tuple)):
+            # Check if this is an interval represented as [days, microseconds]
+            if (
+                type_
+                and "INTERVAL" in str(type_)
+                and len(value) == 2
+                and all(isinstance(v, (int, str)) for v in value)
+            ):
+                try:
+                    days = int(str(value[0]))  # Handle both int and string values
+                    microseconds = int(str(value[1]))
+
+                    # Convert microseconds to total seconds
+                    total_seconds = microseconds / 1_000_000
+                    hours, remainder = divmod(total_seconds, 3600)
+                    minutes, seconds = divmod(remainder, 60)
+
+                    parts = []
+                    if days:
+                        parts.append(f"{days}d")
+                    if hours:
+                        parts.append(f"{int(hours)}h")
+                    if minutes:
+                        parts.append(f"{int(minutes)}m")
+                    if seconds:
+                        parts.append(f"{seconds:.2f}s")
+
+                    if not parts:
+                        parts.append("0s")
+
+                    formatted_interval = f"\001INTERVALm{' '.join(parts)}\001OFFm"
+                    return trunc_printable(formatted_interval, width)
+                except (ValueError, TypeError):
+                    # Fall back to regular list formatting if conversion fails
+                    pass
+
+            # Regular list/tuple formatting
             value = (
                 "\001PUNCm['\001VALUEm"
                 + "\001PUNCm', '\001VALUEm".join(map(type_formatter, value))
@@ -336,9 +373,9 @@ def ascii_table(
                 ignoring = False
             if width is not None and not ignoring and offset >= width:
                 emit.append("\001OFFm")
-                return ''.join(emit)
+                return "".join(emit)
         emit.append("\001OFFm")
-        line = ''.join(emit)
+        line = "".join(emit)
         if full_line and width is not None:
             return line + " " * (width - offset)
         return line
@@ -367,6 +404,8 @@ def ascii_table(
             for cw, ctw, dw in zip(col_width, col_type_width, data_width)
         ]
 
+        displayed_rows = 0
+
         # Print data
         yield ("┌" + ("─" * index_width) + "┬─" + "─┬─".join("─" * cw for cw in col_width) + "─┐")
         yield (
@@ -393,6 +432,7 @@ def ascii_table(
         if is_lazy:
             offset = 1
             for i, row in enumerate(t):
+                displayed_rows += 1
                 if i == limit and lazy_length > (2 * limit):
                     yield "..."
                     offset += lazy_length - 2 * limit
@@ -406,6 +446,7 @@ def ascii_table(
                 )
         else:
             for i, row in enumerate(t):
+                displayed_rows += 1
                 if top_and_tail and (table.rowcount > 2 * limit):
                     if i == limit:
                         yield "\001PUNCm...\001OFFm"
@@ -421,9 +462,21 @@ def ascii_table(
                 )
         yield ("└" + ("─" * index_width) + "┴─" + "─┴─".join("─" * cw for cw in col_width) + "─┘")
 
-    return "\n".join(
+        # Store the count for later use
+        nonlocal actual_displayed_rows
+        if is_lazy:
+            actual_displayed_rows = lazy_length if lazy_length > 0 else displayed_rows
+        else:
+            actual_displayed_rows = displayed_rows
+
+    actual_displayed_rows = 0
+    table_string = "\n".join(
         colorizer(trunc_printable(line, display_width, False), colorize) for line in _inner()
     )
+
+    if return_row_count:
+        return table_string, actual_displayed_rows
+    return table_string
 
 
 def markdown(
