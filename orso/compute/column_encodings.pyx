@@ -342,7 +342,7 @@ def rle_encode(cnp.ndarray data):
     Automatically dispatches to the appropriate typed implementation based on dtype.
     
     Parameters:
-        data: numpy array of supported dtype (int8, int16, int32, int64)
+        data: numpy array of supported dtype (int8, int16, int32, int64, float32, float64)
     
     Returns:
         tuple: (values, lengths)
@@ -355,6 +355,10 @@ def rle_encode(cnp.ndarray data):
         return rle_encode_int32(data)
     elif data.dtype == np.int64:
         return rle_encode_int64(data)
+    elif data.dtype == np.float32:
+        return rle_encode_float32(data)
+    elif data.dtype == np.float64:
+        return rle_encode_float64(data)
     else:
         raise TypeError(f"Unsupported dtype for RLE encoding: {data.dtype}")
 
@@ -378,6 +382,10 @@ def rle_decode(cnp.ndarray values, cnp.ndarray lengths):
         return rle_decode_int32(values, lengths)
     elif values.dtype == np.int64:
         return rle_decode_int64(values, lengths)
+    elif values.dtype == np.float32:
+        return rle_decode_float32(values, lengths)
+    elif values.dtype == np.float64:
+        return rle_decode_float64(values, lengths)
     else:
         raise TypeError(f"Unsupported dtype for RLE decoding: {values.dtype}")
 
@@ -387,7 +395,7 @@ def dict_encode(cnp.ndarray data):
     Automatically dispatches to the appropriate typed implementation based on dtype.
     
     Parameters:
-        data: numpy array of supported dtype (int32, int64)
+        data: numpy array of supported dtype (int32, int64, object)
     
     Returns:
         tuple: (dictionary, indices)
@@ -396,6 +404,8 @@ def dict_encode(cnp.ndarray data):
         return dict_encode_int32(data)
     elif data.dtype == np.int64:
         return dict_encode_int64(data)
+    elif data.dtype == object:
+        return dict_encode_object(data)
     else:
         raise TypeError(f"Unsupported dtype for dictionary encoding: {data.dtype}")
 
@@ -415,5 +425,161 @@ def dict_decode(cnp.ndarray dictionary, cnp.ndarray indices):
         return dict_decode_int32(dictionary, indices)
     elif dictionary.dtype == np.int64:
         return dict_decode_int64(dictionary, indices)
+    elif dictionary.dtype == object:
+        return dict_decode_object(dictionary, indices)
     else:
         raise TypeError(f"Unsupported dtype for dictionary decoding: {dictionary.dtype}")
+
+
+# Float RLE encoding
+def rle_encode_float32(cnp.ndarray[float, ndim=1] data):
+    """Encode 32-bit floats using RLE."""
+    cdef Py_ssize_t i, size = data.shape[0]
+    cdef list values = []
+    cdef list lengths = []
+    cdef float current_value, prev_value
+    cdef uint32_t current_length
+    
+    if size == 0:
+        return (np.array([], dtype=np.float32), np.array([], dtype=np.uint32))
+    
+    prev_value = data[0]
+    current_length = 1
+    
+    for i in range(1, size):
+        current_value = data[i]
+        if current_value == prev_value:
+            current_length += 1
+        else:
+            values.append(prev_value)
+            lengths.append(current_length)
+            prev_value = current_value
+            current_length = 1
+    
+    values.append(prev_value)
+    lengths.append(current_length)
+    
+    return (np.array(values, dtype=np.float32), np.array(lengths, dtype=np.uint32))
+
+
+def rle_decode_float32(cnp.ndarray[float, ndim=1] values, cnp.ndarray[uint32_t, ndim=1] lengths):
+    """Decode RLE encoded 32-bit floats."""
+    cdef Py_ssize_t i, j, num_runs = values.shape[0]
+    cdef uint32_t total_size = 0
+    
+    for i in range(num_runs):
+        total_size += lengths[i]
+    
+    cdef cnp.ndarray[float, ndim=1] result = np.empty(total_size, dtype=np.float32)
+    cdef Py_ssize_t pos = 0
+    
+    for i in range(num_runs):
+        for j in range(lengths[i]):
+            result[pos] = values[i]
+            pos += 1
+    
+    return result
+
+
+def rle_encode_float64(cnp.ndarray[double, ndim=1] data):
+    """Encode 64-bit floats using RLE."""
+    cdef Py_ssize_t i, size = data.shape[0]
+    cdef list values = []
+    cdef list lengths = []
+    cdef double current_value, prev_value
+    cdef uint32_t current_length
+    
+    if size == 0:
+        return (np.array([], dtype=np.float64), np.array([], dtype=np.uint32))
+    
+    prev_value = data[0]
+    current_length = 1
+    
+    for i in range(1, size):
+        current_value = data[i]
+        if current_value == prev_value:
+            current_length += 1
+        else:
+            values.append(prev_value)
+            lengths.append(current_length)
+            prev_value = current_value
+            current_length = 1
+    
+    values.append(prev_value)
+    lengths.append(current_length)
+    
+    return (np.array(values, dtype=np.float64), np.array(lengths, dtype=np.uint32))
+
+
+def rle_decode_float64(cnp.ndarray[double, ndim=1] values, cnp.ndarray[uint32_t, ndim=1] lengths):
+    """Decode RLE encoded 64-bit floats."""
+    cdef Py_ssize_t i, j, num_runs = values.shape[0]
+    cdef uint32_t total_size = 0
+    
+    for i in range(num_runs):
+        total_size += lengths[i]
+    
+    cdef cnp.ndarray[double, ndim=1] result = np.empty(total_size, dtype=np.float64)
+    cdef Py_ssize_t pos = 0
+    
+    for i in range(num_runs):
+        for j in range(lengths[i]):
+            result[pos] = values[i]
+            pos += 1
+    
+    return result
+
+
+# Object/string dictionary encoding (for variable-width data)
+def dict_encode_object(cnp.ndarray[object, ndim=1] data):
+    """
+    Encode object arrays (e.g., strings) using dictionary encoding.
+    
+    Parameters:
+        data: numpy array of objects (e.g., strings)
+    
+    Returns:
+        tuple: (dictionary, indices)
+    """
+    cdef Py_ssize_t i, size = data.shape[0]
+    cdef dict value_to_index = {}
+    cdef list dictionary = []
+    cdef list indices = []
+    cdef object value
+    cdef uint32_t idx
+    
+    for i in range(size):
+        value = data[i]
+        if value not in value_to_index:
+            idx = len(dictionary)
+            value_to_index[value] = idx
+            dictionary.append(value)
+            indices.append(idx)
+        else:
+            indices.append(value_to_index[value])
+    
+    return (np.array(dictionary, dtype=object), np.array(indices, dtype=np.uint32))
+
+
+def dict_decode_object(cnp.ndarray[object, ndim=1] dictionary, cnp.ndarray[uint32_t, ndim=1] indices):
+    """
+    Decode dictionary encoded object arrays.
+    
+    Parameters:
+        dictionary: numpy array of unique objects
+        indices: numpy array of indices into dictionary
+    
+    Returns:
+        numpy array of decoded values
+    """
+    cdef Py_ssize_t i, size = indices.shape[0]
+    cdef cnp.ndarray[object, ndim=1] result = np.empty(size, dtype=object)
+    cdef uint32_t idx
+    
+    for i in range(size):
+        idx = indices[i]
+        if idx >= dictionary.shape[0]:
+            raise IndexError(f"Dictionary index {idx} out of range")
+        result[i] = dictionary[idx]
+    
+    return result

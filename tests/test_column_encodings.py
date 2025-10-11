@@ -12,9 +12,12 @@ from orso.compute.column_encodings import (
     rle_encode_int16, rle_decode_int16,
     rle_encode_int32, rle_decode_int32,
     rle_encode_int64, rle_decode_int64,
+    rle_encode_float32, rle_decode_float32,
+    rle_encode_float64, rle_decode_float64,
     dict_encode, dict_decode,
     dict_encode_int32, dict_decode_int32,
     dict_encode_int64, dict_decode_int64,
+    dict_encode_object, dict_decode_object,
 )
 
 
@@ -112,7 +115,7 @@ class TestRLEEncoding:
         np.testing.assert_array_equal(decoded, data)
     
     def test_rle_unsupported_dtype(self):
-        data = np.array([1.0, 2.0, 3.0], dtype=np.float64)
+        data = np.array([1+2j, 2+3j, 3+4j], dtype=np.complex128)
         
         with pytest.raises(TypeError, match="Unsupported dtype"):
             rle_encode(data)
@@ -190,7 +193,7 @@ class TestDictionaryEncoding:
         np.testing.assert_array_equal(decoded, data)
     
     def test_dict_unsupported_dtype(self):
-        data = np.array([1.0, 2.0, 3.0], dtype=np.float64)
+        data = np.array([1+2j, 2+3j, 3+4j], dtype=np.complex128)
         
         with pytest.raises(TypeError, match="Unsupported dtype"):
             dict_encode(data)
@@ -252,4 +255,83 @@ class TestRealWorldScenarios:
         assert len(indices) == 900
         
         decoded = dict_decode_int32(dictionary, indices)
+        np.testing.assert_array_equal(decoded, data)
+
+
+class TestFloatTypes:
+    """Test float encoding support"""
+    
+    def test_rle_float32(self):
+        data = np.array([1.5, 1.5, 2.5, 2.5, 2.5], dtype=np.float32)
+        values, lengths = rle_encode_float32(data)
+        
+        assert list(values) == [1.5, 2.5]
+        assert list(lengths) == [2, 3]
+        
+        decoded = rle_decode_float32(values, lengths)
+        np.testing.assert_array_equal(decoded, data)
+    
+    def test_rle_float64(self):
+        data = np.array([3.14, 3.14, 2.71, 2.71], dtype=np.float64)
+        values, lengths = rle_encode_float64(data)
+        
+        assert len(values) == 2
+        assert list(lengths) == [2, 2]
+        
+        decoded = rle_decode_float64(values, lengths)
+        np.testing.assert_array_equal(decoded, data)
+    
+    def test_rle_generic_float32(self):
+        data = np.array([1.1, 1.1, 2.2], dtype=np.float32)
+        values, lengths = rle_encode(data)
+        
+        decoded = rle_decode(values, lengths)
+        np.testing.assert_array_equal(decoded, data)
+    
+    def test_rle_generic_float64(self):
+        data = np.array([10.5, 10.5, 20.5, 30.5], dtype=np.float64)
+        values, lengths = rle_encode(data)
+        
+        decoded = rle_decode(values, lengths)
+        np.testing.assert_array_equal(decoded, data)
+
+
+class TestObjectTypes:
+    """Test object/string encoding support (variable-width)"""
+    
+    def test_dict_encode_strings(self):
+        data = np.array(["apple", "banana", "apple", "cherry", "banana"], dtype=object)
+        dictionary, indices = dict_encode_object(data)
+        
+        # Check unique values in dictionary
+        unique_vals = sorted(dictionary)
+        assert unique_vals == ["apple", "banana", "cherry"]
+        
+        # Decode and verify
+        decoded = dict_decode_object(dictionary, indices)
+        np.testing.assert_array_equal(decoded, data)
+    
+    def test_dict_encode_empty_strings(self):
+        data = np.array([], dtype=object)
+        dictionary, indices = dict_encode_object(data)
+        
+        assert len(dictionary) == 0
+        assert len(indices) == 0
+        
+        decoded = dict_decode_object(dictionary, indices)
+        np.testing.assert_array_equal(decoded, data)
+    
+    def test_dict_generic_strings(self):
+        data = np.array(["31", "28", "31", "30", "31", "30", "31", "31", "30", "31", "30", "31"], dtype=object)
+        dictionary, indices = dict_encode(data)
+        
+        # Decode and verify
+        decoded = dict_decode(dictionary, indices)
+        np.testing.assert_array_equal(decoded, data)
+    
+    def test_dict_strings_with_none(self):
+        data = np.array(["a", None, "b", "a", None], dtype=object)
+        dictionary, indices = dict_encode_object(data)
+        
+        decoded = dict_decode_object(dictionary, indices)
         np.testing.assert_array_equal(decoded, data)

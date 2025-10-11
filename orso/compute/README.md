@@ -13,6 +13,8 @@ RLE is optimized for sequences of repeated values. It stores each unique run of 
 - 16-bit integers (`int16`)
 - 32-bit integers (`int32`)
 - 64-bit integers (`int64`)
+- 32-bit floats (`float32`)
+- 64-bit floats (`float64`)
 
 **Example:**
 ```python
@@ -37,6 +39,7 @@ Dictionary encoding is optimized for columns with a small number of unique value
 **Supported Physical Types:**
 - 32-bit integers (`int32`)
 - 64-bit integers (`int64`)
+- Variable-width data (`object` - strings, etc.)
 
 **Example:**
 ```python
@@ -54,6 +57,22 @@ decoded = dict_decode(dictionary, indices)
 # decoded: [1, 3, 2, 2, 3, 1]
 ```
 
+**String/Variable-width Example:**
+```python
+import numpy as np
+from orso.compute import dict_encode, dict_decode
+
+# Encode string data
+data = np.array(["apple", "banana", "apple", "cherry", "banana"], dtype=object)
+dictionary, indices = dict_encode(data)
+# dictionary: unique strings
+# indices: indices into dictionary
+
+# Decode back to original
+decoded = dict_decode(dictionary, indices)
+# decoded: ["apple", "banana", "apple", "cherry", "banana"]
+```
+
 ## API Reference
 
 ### RLE Functions
@@ -68,6 +87,10 @@ decoded = dict_decode(dictionary, indices)
 - `rle_decode_int32(values, lengths)` - RLE decoder for 32-bit integers
 - `rle_encode_int64(data)` - RLE encoder for 64-bit integers
 - `rle_decode_int64(values, lengths)` - RLE decoder for 64-bit integers
+- `rle_encode_float32(data)` - RLE encoder for 32-bit floats
+- `rle_decode_float32(values, lengths)` - RLE decoder for 32-bit floats
+- `rle_encode_float64(data)` - RLE encoder for 64-bit floats
+- `rle_decode_float64(values, lengths)` - RLE decoder for 64-bit floats
 
 ### Dictionary Functions
 
@@ -77,6 +100,8 @@ decoded = dict_decode(dictionary, indices)
 - `dict_decode_int32(dictionary, indices)` - Dictionary decoder for 32-bit integers
 - `dict_encode_int64(data)` - Dictionary encoder for 64-bit integers
 - `dict_decode_int64(dictionary, indices)` - Dictionary decoder for 64-bit integers
+- `dict_encode_object(data)` - Dictionary encoder for variable-width data (strings)
+- `dict_decode_object(dictionary, indices)` - Dictionary decoder for variable-width data
 
 ## Physical Types
 
@@ -84,10 +109,10 @@ The implementation supports the following physical types as required:
 
 1. **8-bit** - `int8` (via RLE)
 2. **16-bit** - `int16` (via RLE)
-3. **32-bit** - `int32` (via RLE and Dictionary)
-4. **64-bit** - `int64` (via RLE and Dictionary)
+3. **32-bit** - `int32` (via RLE and Dictionary), `float32` (via RLE)
+4. **64-bit** - `int64` (via RLE and Dictionary), `float64` (via RLE)
 5. **Fixed-width arrays** - Supported through numpy array types
-6. **Variable-width** - Can be implemented on top of the existing encodings
+6. **Variable-width** - `object` type (via Dictionary for strings, etc.)
 
 ## Performance
 
