@@ -16,8 +16,6 @@ from collections import deque
 from itertools import islice
 from typing import Union
 
-from orso.compute.compiled import calculate_data_width
-
 # Background		#282a36	40 42 54	231° 15% 18%
 # Current Line		#44475a	68 71 90	232° 14% 31%
 # Foreground		#f8f8f2	248 248 242	60° 30% 96%
@@ -141,6 +139,7 @@ def ascii_table(
     colorize: bool = True,
     top_and_tail: bool = True,
     show_types: bool = False,
+    return_row_count: bool = False,
 ):  # pragma: no cover
     """
     Render the dictset as a ASCII table.
@@ -296,6 +295,42 @@ def ascii_table(
             value = f"\001INTERVALm{' '.join(parts)}\001OFFm"
             return trunc_printable(value, width)
         if isinstance(value, (list, tuple)):
+            # Check if this is an interval represented as [days, microseconds]
+            if (
+                type_
+                and "INTERVAL" in str(type_)
+                and len(value) == 2
+                and all(isinstance(v, (int, str)) for v in value)
+            ):
+                try:
+                    days = int(str(value[0]))  # Handle both int and string values
+                    microseconds = int(str(value[1]))
+
+                    # Convert microseconds to total seconds
+                    total_seconds = microseconds / 1_000_000
+                    hours, remainder = divmod(total_seconds, 3600)
+                    minutes, seconds = divmod(remainder, 60)
+
+                    parts = []
+                    if days:
+                        parts.append(f"{days}d")
+                    if hours:
+                        parts.append(f"{int(hours)}h")
+                    if minutes:
+                        parts.append(f"{int(minutes)}m")
+                    if seconds:
+                        parts.append(f"{seconds:.2f}s")
+
+                    if not parts:
+                        parts.append("0s")
+
+                    formatted_interval = f"\001INTERVALm{' '.join(parts)}\001OFFm"
+                    return trunc_printable(formatted_interval, width)
+                except (ValueError, TypeError):
+                    # Fall back to regular list formatting if conversion fails
+                    pass
+
+            # Regular list/tuple formatting
             value = (
                 "\001PUNCm['\001VALUEm"
                 + "\001PUNCm', '\001VALUEm".join(map(type_formatter, value))
@@ -319,17 +354,17 @@ def ascii_table(
 
     def trunc_printable(value, width=None, full_line: bool = True):
         offset = 0
-        emit = ""
+        emit = []  # Use list for O(n) string building
         ignoring = False
 
         for char in value:
             if char == "\n":
-                emit += "\001CRLFm↵\001VARCHARm"
+                emit.append("\001CRLFm↵\001VARCHARm")
                 offset += 1
                 continue
             if char == "\r":
                 continue
-            emit += char
+            emit.append(char)
             if char in ("\033", "\001"):
                 ignoring = True
             if not ignoring:
@@ -337,8 +372,10 @@ def ascii_table(
             if ignoring and char == "m":
                 ignoring = False
             if width is not None and not ignoring and offset >= width:
-                return emit + "\001OFFm"
-        line = emit + "\001OFFm"
+                emit.append("\001OFFm")
+                return "".join(emit)
+        emit.append("\001OFFm")
+        line = "".join(emit)
         if full_line and width is not None:
             return line + " " * (width - offset)
         return line
@@ -347,7 +384,10 @@ def ascii_table(
         # Calculate width
         col_width = list(map(len, t.column_names))
 
-        data_width = [calculate_data_width(t.collect(i)) for i in range(t.columncount)]
+        # Use optimized Cython function to calculate widths for all columns at once
+        from orso.compute.compiled import calculate_column_widths
+
+        data_width = calculate_column_widths(t._rows)
         from orso.schema import RelationSchema
         from orso.types import OrsoTypes
 
@@ -356,12 +396,15 @@ def ascii_table(
             for column in t.schema.columns:
                 col_types.append(str(column.type))
         else:
-            col_types = [OrsoTypes._MISSING_TYPE] * len(t.schema)
+            # When schema is just a list of column names, show '?' for unknown types
+            col_types = ["?"] * len(t.schema)
         col_type_width = list(map(len, col_types)) if show_types else [0] * len(col_types)
         col_width = [
             min(max(cw, ctw, dw), max_column_width)
             for cw, ctw, dw in zip(col_width, col_type_width, data_width)
         ]
+
+        displayed_rows = 0
 
         # Print data
         yield ("┌" + ("─" * index_width) + "┬─" + "─┬─".join("─" * cw for cw in col_width) + "─┐")
@@ -389,6 +432,7 @@ def ascii_table(
         if is_lazy:
             offset = 1
             for i, row in enumerate(t):
+                displayed_rows += 1
                 if i == limit and lazy_length > (2 * limit):
                     yield "..."
                     offset += lazy_length - 2 * limit
@@ -402,6 +446,7 @@ def ascii_table(
                 )
         else:
             for i, row in enumerate(t):
+                displayed_rows += 1
                 if top_and_tail and (table.rowcount > 2 * limit):
                     if i == limit:
                         yield "\001PUNCm...\001OFFm"
@@ -417,9 +462,21 @@ def ascii_table(
                 )
         yield ("└" + ("─" * index_width) + "┴─" + "─┴─".join("─" * cw for cw in col_width) + "─┘")
 
-    return "\n".join(
+        # Store the count for later use
+        nonlocal actual_displayed_rows
+        if is_lazy:
+            actual_displayed_rows = lazy_length if lazy_length > 0 else displayed_rows
+        else:
+            actual_displayed_rows = displayed_rows
+
+    actual_displayed_rows = 0
+    table_string = "\n".join(
         colorizer(trunc_printable(line, display_width, False), colorize) for line in _inner()
     )
+
+    if return_row_count:
+        return table_string, actual_displayed_rows
+    return table_string
 
 
 def markdown(

@@ -8,3 +8,6 @@ pyarrow
 opteryx
 
 aiohttp
+
+# optional compression support for pyarrow
+zstandard

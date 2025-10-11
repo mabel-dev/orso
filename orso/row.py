@@ -100,10 +100,18 @@ class Row(tuple):
         return instance
 
     def get(self, item, default=None):
+        # Use _field_map for O(1) lookup instead of O(n) list.index
         try:
-            return self[self._fields.index(item)]
-        except ValueError:
+            idx = self._field_map.get(item)
+            if idx is not None:
+                return self[idx]
             return default
+        except AttributeError:
+            # Fallback for compatibility (shouldn't happen with create_class)
+            try:
+                return self[self._fields.index(item)]
+            except ValueError:
+                return default
 
     @cached_property
     def as_map(self) -> Tuple[Tuple[str, Any], ...]:
@@ -202,11 +210,27 @@ class Row(tuple):
         else:
             fields = tuple(str(s) for s in schema)
 
+        # Create field map for O(1) lookups in .get() method
+        field_map = {field: i for i, field in enumerate(fields)}
+
         if tuples_only:
             # if we're only handling tuples, we can delegate to super, which is faster
             return type(
                 "RowFactory",
                 (Row,),
-                {"_fields": fields, "__new__": super().__new__, "as_dict": make_as_dict(fields)},
+                {
+                    "_fields": fields,
+                    "_field_map": field_map,
+                    "__new__": super().__new__,
+                    "as_dict": make_as_dict(fields),
+                },
             )
-        return type("RowFactory", (Row,), {"_fields": fields, "as_dict": make_as_dict(fields)})
+        return type(
+            "RowFactory",
+            (Row,),
+            {
+                "_fields": fields,
+                "_field_map": field_map,
+                "as_dict": make_as_dict(fields),
+            },
+        )
