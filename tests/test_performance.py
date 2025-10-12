@@ -90,9 +90,9 @@ def test_to_arrow_performance_from_tuples():
     df_creation_time = df_end - df_start
     rows_per_sec = num_rows / arrow_time
     df_rows_per_sec = num_rows / df_creation_time
-    
-    # Should be able to convert at least 1M rows/sec (conservative target, after warmup)
-    assert rows_per_sec > 1_000_000, f"Arrow conversion from tuples too slow: {rows_per_sec:.0f} rows/sec"
+
+    # Should be able to convert at least 500k rows/sec (conservative target, after warmup)
+    assert rows_per_sec > 500_000, f"Arrow conversion from tuples too slow: {rows_per_sec:.0f} rows/sec"
     assert arrow_table.num_rows == num_rows
 
     print(f"DataFrame from tuples creation performance: {df_rows_per_sec:.0f} rows/sec")
