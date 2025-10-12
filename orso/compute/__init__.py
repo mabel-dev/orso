@@ -25,14 +25,6 @@ from orso.compute.compiled import (
     process_table,
 )
 
-# Import column encoding functions
-from orso.compute.column_encodings import (
-    rle_encode,
-    rle_decode,
-    dict_encode,
-    dict_decode,
-)
-
 __all__ = [
     # From compiled module
     "from_bytes_cython",
@@ -40,9 +32,23 @@ __all__ = [
     "collect_cython",
     "calculate_data_width",
     "process_table",
-    # From column_encodings module
-    "rle_encode",
-    "rle_decode",
-    "dict_encode",
-    "dict_decode",
 ]
+
+# Import column encoding functions if available
+# These require the Cython extension to be built
+try:
+    from orso.compute.column_encodings import (
+        rle_encode,
+        rle_decode,
+        dict_encode,
+        dict_decode,
+    )
+    __all__.extend([
+        "rle_encode",
+        "rle_decode",
+        "dict_encode",
+        "dict_decode",
+    ])
+except ImportError:
+    # Column encodings not available - extension not built
+    pass
