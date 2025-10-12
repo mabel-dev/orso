@@ -279,6 +279,7 @@ def ascii_table(
             hours, seconds = divmod(seconds, 3600)
             minutes, seconds = divmod(seconds, 60)
             years, months = divmod(months, 12)
+            
             parts = []
             if years:
                 parts.append(f"{int(years)}y")
@@ -292,9 +293,10 @@ def ascii_table(
                 parts.append(f"{int(minutes)}m")
             if seconds:
                 parts.append(f"{seconds:.2f}s")
+            if len(parts) == 0:
+                parts.append("0s")
             value = f"\001INTERVALm{' '.join(parts)}\001OFFm"
             return trunc_printable(value, width)
-        if isinstance(value, (list, tuple)):
             # Check if this is an interval represented as [days, microseconds]
             if (
                 type_
@@ -326,7 +328,7 @@ def ascii_table(
 
                     formatted_interval = f"\001INTERVALm{' '.join(parts)}\001OFFm"
                     return trunc_printable(formatted_interval, width)
-                except (ValueError, TypeError):
+                except (ValueError, TypeError) as e:
                     # Fall back to regular list formatting if conversion fails
                     pass
 
