@@ -184,8 +184,9 @@ class DataFrame:
         """
         Convert a Lazy DataFrame to an Eager DataFrame
         """
-        # Convert self._rows to a list, using an empty list if self._rows is None or falsy
-        self._rows = list(self._rows or [])
+        # Only convert to list if not already a list
+        if not isinstance(self._rows, list):
+            self._rows = list(self._rows or [])
 
     def distinct(self) -> "DataFrame":
         seen = set()
