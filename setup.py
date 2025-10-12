@@ -39,6 +39,14 @@ extensions = [
         extra_compile_args=COMPILE_FLAGS,
         extra_link_args=COMPILE_FLAGS,
     ),
+    Extension(
+        name="orso.compute.column_encodings",
+        sources=["orso/compute/column_encodings.pyx"],
+        include_dirs=[numpy.get_include(), "orso/compute"],
+        extra_compile_args=COMPILE_FLAGS,
+        extra_link_args=COMPILE_FLAGS,
+        language="c++",
+    ),
 ]
 
 setup_config = {
