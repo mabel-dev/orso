@@ -235,23 +235,22 @@ cpdef list extract_columns_to_lists(list rows):
     cdef tuple first_row = <tuple>rows[0]
     cdef Py_ssize_t num_cols = len(first_row)
     
-    # Pre-allocate result list
+    # Pre-allocate result list and column lists with the right size
     cdef list columns = []
     cdef list col_data
     cdef tuple row
     cdef object value
     
-    # Create lists for each column
+    # Create pre-allocated lists for each column
     for j in range(num_cols):
-        col_data = []
+        col_data = [None] * num_rows
         columns.append(col_data)
     
-    # Fill the column lists
+    # Fill the column lists - direct indexing is faster than append
     for i in range(num_rows):
         row = <tuple>rows[i]
         for j in range(num_cols):
-            value = row[j]
-            (<list>columns[j]).append(value)
+            (<list>columns[j])[i] = row[j]
     
     return columns
 
@@ -275,11 +274,23 @@ def process_table(table, row_factory, int max_chunksize) -> list:
         A list of transformed rows.
     """
     cdef list rows = [None] * table.num_rows
-    cdef int64_t i = 0
+    cdef int64_t i = 0, j
+    cdef list batch_rows
+    cdef list column_data
+    cdef list columns
+    cdef int num_cols
+    cdef int batch_size
 
     for batch in table.to_batches(max_chunksize):
-        df = batch.to_pandas().replace({np.nan: None})
-        for row in df.itertuples(index=False, name=None):
+        # Convert batch columns to Python lists (column-oriented)
+        # This is faster than converting to dicts first
+        num_cols = batch.num_columns
+        batch_size = batch.num_rows
+        columns = [batch.column(j).to_pylist() for j in range(num_cols)]
+        
+        # Reconstruct tuples from columns
+        for j in range(batch_size):
+            row = tuple(columns[col_idx][j] for col_idx in range(num_cols))
             rows[i] = row_factory(row)
             i += 1
     return rows
