@@ -13,11 +13,16 @@
 import itertools
 import typing
 
+from orso.compute.compiled import extract_columns_to_lists
 from orso.compute.compiled import process_table
 from orso.exceptions import MissingDependencyError
 from orso.row import Row
 from orso.schema import FlatColumn
 from orso.schema import RelationSchema
+
+# Cache for optional dependencies
+_pyarrow = None
+_polars = None
 
 
 class _RowsIterator:
@@ -73,10 +78,13 @@ class _RowsIterator:
 
 
 def to_arrow(dataset, size=None):
-    try:
-        import pyarrow
-    except ImportError as import_error:
-        raise MissingDependencyError(import_error.name) from import_error
+    global _pyarrow
+    if _pyarrow is None:
+        try:
+            import pyarrow
+            _pyarrow = pyarrow
+        except ImportError as import_error:
+            raise MissingDependencyError(import_error.name) from import_error
 
     if size is not None and size >= 0:
         dataset = dataset.head(size)
@@ -84,13 +92,11 @@ def to_arrow(dataset, size=None):
     if dataset.rowcount == 0:
         arrays = [list() for _ in range(dataset.columncount)]
     else:
-        # Use Cython for faster column extraction (fixed segfault issue)
-        from orso.compute.compiled import extract_columns_to_lists
-
+        # Use Cython for faster column extraction
         dataset.materialize()
         arrays = extract_columns_to_lists(dataset._rows)
 
-    return pyarrow.Table.from_arrays(arrays, dataset.column_names)
+    return _pyarrow.Table.from_arrays(arrays, dataset.column_names)
 
 
 def from_arrow(tables, size=None):
@@ -143,11 +149,14 @@ def from_pandas(pandas):
 
 
 def to_polars(dataset, size=None):
-    try:
-        import polars
-    except ImportError as import_error:
-        raise MissingDependencyError(import_error.name) from import_error
-    return polars.DataFrame(r.as_dict for r in dataset.slice(0, size))
+    global _polars
+    if _polars is None:
+        try:
+            import polars
+            _polars = polars
+        except ImportError as import_error:
+            raise MissingDependencyError(import_error.name) from import_error
+    return _polars.DataFrame(r.as_dict for r in dataset.slice(0, size))
 
 
 def from_polars(polars):

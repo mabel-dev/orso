@@ -274,17 +274,23 @@ def process_table(table, row_factory, int max_chunksize) -> list:
         A list of transformed rows.
     """
     cdef list rows = [None] * table.num_rows
-    cdef int64_t i = 0
+    cdef int64_t i = 0, j
     cdef list batch_rows
-    cdef object row
+    cdef list column_data
+    cdef list columns
+    cdef int num_cols
+    cdef int batch_size
 
     for batch in table.to_batches(max_chunksize):
-        # Convert batch to list of tuples directly without going through pandas
-        # This is much faster than batch.to_pandas().itertuples()
-        batch_rows = batch.to_pylist()
-        for row_dict in batch_rows:
-            # Convert dict to tuple in the order of columns
-            row = tuple(row_dict[col] for col in table.column_names)
+        # Convert batch columns to Python lists (column-oriented)
+        # This is faster than converting to dicts first
+        num_cols = batch.num_columns
+        batch_size = batch.num_rows
+        columns = [batch.column(j).to_pylist() for j in range(num_cols)]
+        
+        # Reconstruct tuples from columns
+        for j in range(batch_size):
+            row = tuple(columns[col_idx][j] for col_idx in range(num_cols))
             rows[i] = row_factory(row)
             i += 1
     return rows
