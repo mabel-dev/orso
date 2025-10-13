@@ -235,23 +235,22 @@ cpdef list extract_columns_to_lists(list rows):
     cdef tuple first_row = <tuple>rows[0]
     cdef Py_ssize_t num_cols = len(first_row)
     
-    # Pre-allocate result list
+    # Pre-allocate result list and column lists with the right size
     cdef list columns = []
     cdef list col_data
     cdef tuple row
     cdef object value
     
-    # Create lists for each column
+    # Create pre-allocated lists for each column
     for j in range(num_cols):
-        col_data = []
+        col_data = [None] * num_rows
         columns.append(col_data)
     
-    # Fill the column lists
+    # Fill the column lists - direct indexing is faster than append
     for i in range(num_rows):
         row = <tuple>rows[i]
         for j in range(num_cols):
-            value = row[j]
-            (<list>columns[j]).append(value)
+            (<list>columns[j])[i] = row[j]
     
     return columns
 
@@ -276,10 +275,16 @@ def process_table(table, row_factory, int max_chunksize) -> list:
     """
     cdef list rows = [None] * table.num_rows
     cdef int64_t i = 0
+    cdef list batch_rows
+    cdef object row
 
     for batch in table.to_batches(max_chunksize):
-        df = batch.to_pandas().replace({np.nan: None})
-        for row in df.itertuples(index=False, name=None):
+        # Convert batch to list of tuples directly without going through pandas
+        # This is much faster than batch.to_pandas().itertuples()
+        batch_rows = batch.to_pylist()
+        for row_dict in batch_rows:
+            # Convert dict to tuple in the order of columns
+            row = tuple(row_dict[col] for col in table.column_names)
             rows[i] = row_factory(row)
             i += 1
     return rows
