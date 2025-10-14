@@ -214,7 +214,7 @@ cpdef list calculate_column_widths(list rows):
     return widths
 
 
-cpdef list extract_columns_to_lists(list rows):
+cpdef list extract_columns_to_lists(list rows, int limit=-1):
     """
     Fast column extraction for Arrow table conversion.
     Converts row-oriented data to column-oriented lists.
@@ -222,15 +222,24 @@ cpdef list extract_columns_to_lists(list rows):
     Parameters:
         rows: list of tuples
             Row-oriented data
+        limit: int
+            Maximum number of rows to materialize (-1 means all rows)
     
     Returns:
         list of lists: Column-oriented data
     """
     cdef Py_ssize_t i, j
     cdef Py_ssize_t num_rows = len(rows)
-    
+    cdef Py_ssize_t empty_cols
+
+    if limit >= 0 and limit < num_rows:
+        num_rows = limit
+
     if num_rows == 0:
-        return []
+        if len(rows) == 0:
+            return []
+        empty_cols = len(<tuple>rows[0])
+        return [[] for _ in range(empty_cols)]
     
     cdef tuple first_row = <tuple>rows[0]
     cdef Py_ssize_t num_cols = len(first_row)
@@ -274,23 +283,35 @@ def process_table(table, row_factory, int max_chunksize) -> list:
         A list of transformed rows.
     """
     cdef list rows = [None] * table.num_rows
-    cdef int64_t i = 0, j
-    cdef list batch_rows
-    cdef list column_data
+    cdef int64_t i = 0, k
     cdef list columns
     cdef int num_cols
     cdef int batch_size
+    cdef object column_method
+    cdef object row_iter
+    cdef object row_values
+    cdef object factory = row_factory
 
     for batch in table.to_batches(max_chunksize):
         # Convert batch columns to Python lists (column-oriented)
         # This is faster than converting to dicts first
         num_cols = batch.num_columns
         batch_size = batch.num_rows
-        columns = [batch.column(j).to_pylist() for j in range(num_cols)]
-        
-        # Reconstruct tuples from columns
-        for j in range(batch_size):
-            row = tuple(columns[col_idx][j] for col_idx in range(num_cols))
-            rows[i] = row_factory(row)
+
+        if batch_size == 0:
+            continue
+
+        if num_cols == 0:
+            for k in range(batch_size):
+                rows[i] = factory(())
+                i += 1
+            continue
+
+        column_method = batch.column
+        columns = [column_method(col_idx).to_pylist() for col_idx in range(num_cols)]
+        row_iter = zip(*columns)
+
+        for row_values in row_iter:
+            rows[i] = factory(row_values)
             i += 1
     return rows
