@@ -25,11 +25,13 @@
 import datetime
 import time
 from functools import cached_property
+from threading import RLock
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import Tuple
 from typing import Union
+from weakref import WeakValueDictionary
 
 import numpy
 import orjson
@@ -44,6 +46,10 @@ from orso.schema import RelationSchema
 HEADER_SIZE: int = 14
 HEADER_PREFIX: bytes = b"\x10\x00"
 MAXIMUM_RECORD_SIZE: int = 16 * 1024 * 1024
+
+# Cache Row subclasses so we reuse the lightweight tuple wrappers across identical schemas.
+_ROW_CLASS_CACHE: "WeakValueDictionary[Tuple[Tuple[str, ...], bool], type]" = WeakValueDictionary()
+_ROW_CLASS_CACHE_LOCK = RLock()
 
 
 def extract_columns(table: List[Dict[str, Any]], columns: List[str]) -> Tuple[List[Any], ...]:
@@ -210,27 +216,41 @@ class Row(tuple):
         else:
             fields = tuple(str(s) for s in schema)
 
-        # Create field map for O(1) lookups in .get() method
-        field_map = {field: i for i, field in enumerate(fields)}
+        cache_key = (fields, tuples_only)
+        cached_factory = _ROW_CLASS_CACHE.get(cache_key)
+        if cached_factory is not None:
+            return cached_factory
 
-        if tuples_only:
-            # if we're only handling tuples, we can delegate to super, which is faster
-            return type(
-                "RowFactory",
-                (Row,),
-                {
-                    "_fields": fields,
-                    "_field_map": field_map,
-                    "__new__": super().__new__,
-                    "as_dict": make_as_dict(fields),
-                },
-            )
-        return type(
-            "RowFactory",
-            (Row,),
-            {
-                "_fields": fields,
-                "_field_map": field_map,
-                "as_dict": make_as_dict(fields),
-            },
-        )
+        with _ROW_CLASS_CACHE_LOCK:
+            cached_factory = _ROW_CLASS_CACHE.get(cache_key)
+            if cached_factory is not None:
+                return cached_factory
+
+            # Create field map for O(1) lookups in .get() method
+            field_map = {field: i for i, field in enumerate(fields)}
+
+            if tuples_only:
+                # if we're only handling tuples, we can delegate to super, which is faster
+                row_factory = type(
+                    "RowFactory",
+                    (Row,),
+                    {
+                        "_fields": fields,
+                        "_field_map": field_map,
+                        "__new__": super().__new__,
+                        "as_dict": make_as_dict(fields),
+                    },
+                )
+            else:
+                row_factory = type(
+                    "RowFactory",
+                    (Row,),
+                    {
+                        "_fields": fields,
+                        "_field_map": field_map,
+                        "as_dict": make_as_dict(fields),
+                    },
+                )
+
+            _ROW_CLASS_CACHE[cache_key] = row_factory
+            return row_factory
