@@ -11,3 +11,10 @@ orso.egg-info/**
 **.cpp
 ascii-display-fix.txt
 display-fix.txt
+
+# Benchmark results
+benchmark_results.json
+baseline.json
+current.json
+*_benchmark_*.json
+.venv/
