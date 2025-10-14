@@ -13,6 +13,7 @@
 import datetime
 import decimal
 import logging
+import math
 import os
 import random
 import threading
@@ -429,17 +430,18 @@ def single_item_cache(
     if func is None:
         return lambda f: single_item_cache(f, valid_for_seconds=valid_for_seconds)
 
-    cache = {"last_args": None, "last_kwargs": None, "last_result": None, "last_time": 0}
+    cache = {"last_args": None, "last_kwargs": None, "last_result": None, "last_time": 0.0}
+    infinite_ttl = math.isinf(valid_for_seconds)
 
     @wraps(func)
     def wrapper(*args, **kwargs):
         nonlocal cache
-        current_time = time.time()
+        current_time = time.time() if not infinite_ttl else None
 
         if (
             cache["last_args"] == args
             and cache["last_kwargs"] == kwargs
-            and current_time - cache["last_time"] <= valid_for_seconds
+            and (infinite_ttl or (current_time - cache["last_time"] <= valid_for_seconds))
         ):
             return cache["last_result"]
 
@@ -447,7 +449,7 @@ def single_item_cache(
         cache["last_args"] = args
         cache["last_kwargs"] = kwargs
         cache["last_result"] = result
-        cache["last_time"] = current_time
+        cache["last_time"] = current_time if current_time is not None else cache["last_time"]
 
         return result
 

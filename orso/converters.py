@@ -82,6 +82,7 @@ def to_arrow(dataset, size=None):
     if _pyarrow is None:
         try:
             import pyarrow
+
             _pyarrow = pyarrow
         except ImportError as import_error:
             raise MissingDependencyError(import_error.name) from import_error
@@ -153,6 +154,7 @@ def to_polars(dataset, size=None):
     if _polars is None:
         try:
             import polars
+
             _polars = polars
         except ImportError as import_error:
             raise MissingDependencyError(import_error.name) from import_error

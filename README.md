@@ -139,6 +139,22 @@ Orso is part of the Mabel ecosystem. Contributions are welcome! Please ensure:
 3. New features include appropriate tests
 4. Documentation is updated for API changes
 
+### Performance Benchmarking
+
+Orso includes a comprehensive performance benchmark suite to compare different versions:
+
+```bash
+# Run full benchmark suite
+python tests/test_benchmark_suite.py
+
+# Compare two versions
+python tests/test_benchmark_suite.py -o baseline.json
+# <switch version>
+python tests/test_benchmark_suite.py -o current.json -c baseline.json
+```
+
+See [BENCHMARK_SUITE.md](BENCHMARK_SUITE.md) for detailed documentation.
+
 ## License
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/mabel-dev/orso/blob/main/LICENSE)
