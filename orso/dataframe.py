@@ -33,6 +33,9 @@ class DataFrame:
 
     __slots__ = ("_schema", "_rows", "_cursor", "_row_factory", "arraysize", "_nbytes")
 
+    _LIST_ITERATOR_TYPE = type(iter([]))
+    _TUPLE_ITERATOR_TYPE = type(iter(()))
+
     def __init__(
         self,
         dictionaries: Optional[Iterable[dict]] = None,
@@ -295,7 +298,39 @@ class DataFrame:
     def fetchall(self) -> List[Row]:
         if self._cursor is None:
             raise Exception("Cannot use fetchall and append on the same DataFrame")
-        return list(self._cursor)
+        cursor = self._cursor
+        rows = self._rows
+
+        # Fast-path for materialized rows by slicing instead of iterating element-by-element.
+        if isinstance(rows, list) and isinstance(cursor, self._LIST_ITERATOR_TYPE):
+            remaining = cursor.__length_hint__()
+            total = len(rows)
+            consumed = total - remaining
+            if consumed <= 0:
+                result = rows.copy()
+            elif consumed >= total:
+                result = []
+            else:
+                result = rows[consumed:].copy()
+            self._cursor = iter(())
+            return result
+
+        if isinstance(rows, tuple) and isinstance(cursor, self._TUPLE_ITERATOR_TYPE):
+            remaining = cursor.__length_hint__()
+            total = len(rows)
+            consumed = total - remaining
+            if consumed <= 0:
+                result = list(rows)
+            elif consumed >= total:
+                result = []
+            else:
+                result = list(rows[consumed:])
+            self._cursor = iter(())
+            return result
+
+        result = list(cursor)
+        self._cursor = iter(())
+        return result
 
     def display(
         self,
@@ -426,7 +461,10 @@ class DataFrame:
         return _hash
 
     def __iter__(self):
-        return iter(self._rows)
+        rows = self._rows
+        if isinstance(rows, list):
+            return rows.__iter__()
+        return iter(rows)
 
     def __len__(self) -> int:
         self.materialize()

@@ -196,6 +196,18 @@ ARROW_CONVERSION:
       Change:   +4.2%
 ```
 
+### Latest Comparison: 0.0.226 → 0.0.228
+
+Command:
+```bash
+python tests/test_benchmark_suite.py -o current.json -c baseline.json
+```
+
+- **Arrow conversion:** `to_arrow_standard` is 3.2× faster (16.4M rows/sec vs 5.1M), with decimal and wide workloads up 7–26%.
+- **Append operations:** `append_dict` and the schema variant are 83% and 47% faster; the append+Arrow workflow nearly 1.6×.
+- **Iteration:** Materialized, lazy, and column-access loops are 2–7% faster than 0.0.226, and `fetchall` more than doubles throughput (+125%).
+- **Display:** All table renderers sped up—`small_with_types` 1.8×, `wide_table` 1.7×, and markdown/lazy outputs ~6–31%.
+
 ## Related Files
 
 - `tests/test_performance.py` - Original performance tests

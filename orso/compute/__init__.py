@@ -17,13 +17,11 @@ High-performance compiled implementations for column operations.
 """
 
 # Import compiled functions
-from orso.compute.compiled import (
-    from_bytes_cython,
-    extract_dict_columns,
-    collect_cython,
-    calculate_data_width,
-    process_table,
-)
+from orso.compute.compiled import calculate_data_width
+from orso.compute.compiled import collect_cython
+from orso.compute.compiled import extract_dict_columns
+from orso.compute.compiled import from_bytes_cython
+from orso.compute.compiled import process_table
 
 __all__ = [
     # From compiled module
@@ -37,18 +35,19 @@ __all__ = [
 # Import column encoding functions if available
 # These require the Cython extension to be built
 try:
-    from orso.compute.column_encodings import (
-        rle_encode,
-        rle_decode,
-        dict_encode,
-        dict_decode,
+    from orso.compute.column_encodings import dict_decode
+    from orso.compute.column_encodings import dict_encode
+    from orso.compute.column_encodings import rle_decode
+    from orso.compute.column_encodings import rle_encode
+
+    __all__.extend(
+        [
+            "rle_encode",
+            "rle_decode",
+            "dict_encode",
+            "dict_decode",
+        ]
     )
-    __all__.extend([
-        "rle_encode",
-        "rle_decode",
-        "dict_encode",
-        "dict_decode",
-    ])
 except ImportError:
     # Column encodings not available - extension not built
     pass

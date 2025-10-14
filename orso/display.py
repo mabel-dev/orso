@@ -279,7 +279,7 @@ def ascii_table(
             hours, seconds = divmod(seconds, 3600)
             minutes, seconds = divmod(seconds, 60)
             years, months = divmod(months, 12)
-            
+
             parts = []
             if years:
                 parts.append(f"{int(years)}y")
@@ -344,6 +344,8 @@ def ascii_table(
         return str(value)
 
     def character_width(symbol):
+        if ord(symbol) < 128:
+            return 1
         import unicodedata
 
         # F: Fullwidth
@@ -355,6 +357,20 @@ def ascii_table(
         return 2 if unicodedata.east_asian_width(symbol) in ("F", "W") else 1
 
     def trunc_printable(value, width=None, full_line: bool = True):
+        simple = (
+            ("\n" not in value)
+            and ("\r" not in value)
+            and ("\033" not in value)
+            and ("\001" not in value)
+        )
+        if simple:
+            if width is not None:
+                if len(value) > width:
+                    value = value[:width]
+                if full_line and len(value) < width:
+                    value = value + " " * (width - len(value))
+            return value + "\001OFFm"
+
         offset = 0
         emit = []  # Use list for O(n) string building
         ignoring = False

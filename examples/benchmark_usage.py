@@ -9,13 +9,15 @@ This script demonstrates:
 """
 
 import json
-import sys
 import os
+import sys
+
+from tests.test_benchmark_suite import PerformanceBenchmark
+from tests.test_benchmark_suite import compare_results
 
 # Add the parent directory to the path to import from tests
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from tests.test_benchmark_suite import PerformanceBenchmark, compare_results
 
 
 def example_run_benchmark():
@@ -95,8 +97,9 @@ def example_custom_benchmark():
     print("=" * 80)
     
     import time
+
     from orso.dataframe import DataFrame
-    
+
     # Custom benchmark: Test your specific workload
     print("\nCustom workload: Creating DataFrame from dicts and converting to Arrow")
     

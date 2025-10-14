@@ -4,8 +4,13 @@ with the existing Orso schema column types.
 """
 
 import numpy as np
-from orso.compute import rle_encode, rle_decode, dict_encode, dict_decode
-from orso.schema import RLEColumn, DictionaryColumn
+
+from orso.compute import dict_decode
+from orso.compute import dict_encode
+from orso.compute import rle_decode
+from orso.compute import rle_encode
+from orso.schema import DictionaryColumn
+from orso.schema import RLEColumn
 from orso.types import OrsoTypes
 
 

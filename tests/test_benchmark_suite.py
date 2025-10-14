@@ -20,7 +20,7 @@ import os
 import sys
 import time
 from decimal import Decimal
-from typing import Dict, List, Any
+from typing import Dict, Any
 
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
