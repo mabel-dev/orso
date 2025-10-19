@@ -66,6 +66,60 @@ def _parse_type(type_str: str) -> Union[str, Tuple[str, Tuple[int, ...]]]:
     return type_str.upper()
 
 
+def get_orso_type(type_str: str) -> "OrsoTypes":
+    """
+    Convert a type string to an OrsoType enum value with full type information.
+
+    This function parses a type string and returns an OrsoType enum value with
+    all relevant attributes set (precision, scale, length, element types).
+
+    Parameters:
+        type_str (str): The type definition string (e.g., 'INTEGER', 'ARRAY<INTEGER>', 'DECIMAL(10,2)').
+
+    Returns:
+        OrsoTypes: The corresponding OrsoType enum value with all attributes properly set.
+
+    Raises:
+        ValueError: If the type string is not recognized.
+
+    Examples:
+        >>> t = get_orso_type("INTEGER")
+        >>> t == OrsoTypes.INTEGER
+        True
+
+        >>> t = get_orso_type("DECIMAL(10,2)")
+        >>> t._precision
+        10
+        >>> t._scale
+        2
+
+        >>> t = get_orso_type("VARCHAR[255]")
+        >>> t._length
+        255
+
+        >>> t = get_orso_type("ARRAY<INTEGER>")
+        >>> t._element_type == OrsoTypes.INTEGER
+        True
+    """
+    if not type_str:
+        raise ValueError("Type string cannot be empty")
+
+    # Use the existing from_name method which handles all type attributes
+    _type, _length, _precision, _scale, _element_type = OrsoTypes.from_name(type_str)
+
+    if _type == 0 or _type is None:
+        raise ValueError(f"Unknown type '{type_str}'")
+
+    # Attach all the metadata to the returned type instance
+    # The __init__ method initializes these as None, so we just update them
+    object.__setattr__(_type, "_length", _length)
+    object.__setattr__(_type, "_precision", _precision)
+    object.__setattr__(_type, "_scale", _scale)
+    object.__setattr__(_type, "_element_type", _element_type)
+
+    return _type
+
+
 class OrsoTypes(str, Enum):
     """
     The names of the types supported by Orso

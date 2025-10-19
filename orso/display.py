@@ -297,13 +297,25 @@ def ascii_table(
                 parts.append("0s")
             value = f"\001INTERVALm{' '.join(parts)}\001OFFm"
             return trunc_printable(value, width)
+        if isinstance(value, (list, tuple)):
             # Check if this is an interval represented as [days, microseconds]
-            if (
+            # This could be:
+            # 1. Explicitly typed as INTERVAL
+            # 2. An ARRAY<INTEGER> with exactly 2 elements that might be an interval
+            is_potential_interval = False
+
+            if type_ and "INTERVAL" in str(type_):
+                is_potential_interval = True
+            elif (
                 type_
-                and "INTERVAL" in str(type_)
+                and "ARRAY<INTEGER>" in str(type_)
                 and len(value) == 2
                 and all(isinstance(v, (int, str)) for v in value)
             ):
+                # Heuristic: ARRAY<INTEGER> with 2 elements might be [days, microseconds]
+                is_potential_interval = True
+
+            if is_potential_interval:
                 try:
                     days = int(str(value[0]))  # Handle both int and string values
                     microseconds = int(str(value[1]))
@@ -328,7 +340,7 @@ def ascii_table(
 
                     formatted_interval = f"\001INTERVALm{' '.join(parts)}\001OFFm"
                     return trunc_printable(formatted_interval, width)
-                except (ValueError, TypeError) as e:
+                except (ValueError, TypeError):
                     # Fall back to regular list formatting if conversion fails
                     pass
 
@@ -465,11 +477,11 @@ def ascii_table(
         else:
             for i, row in enumerate(t):
                 displayed_rows += 1
-                if top_and_tail and (table.rowcount > 2 * limit):
-                    if i == limit:
-                        yield "\001PUNCm...\001OFFm"
-                    if i >= limit:
-                        i += t.rowcount - (2 * limit)
+
+                # Handle top_and_tail display
+                if top_and_tail and (table.rowcount > 2 * limit) and i == limit:
+                    yield "\001PUNCm...\001OFFm"
+
                 formatted = [type_formatter(v, w, t) for v, w, t in zip(row, col_width, col_types)]
                 yield (
                     "│\001TYPEm"
