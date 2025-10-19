@@ -342,14 +342,16 @@ class DataFrame:
     ) -> str:
         from .display import ascii_table
 
-        return ascii_table(
+        table_output, displayed_row_count = ascii_table(
             self,
             limit=limit,
             display_width=display_width,
             max_column_width=max_column_width,
             colorize=colorize,
             show_types=show_types,
+            return_row_count=True,
         )
+        return table_output + f"\n[ {displayed_row_count} rows x {self.columncount} columns ]"
 
     def markdown(self, limit: int = 5, max_column_width: int = 30) -> str:
         from .display import markdown
