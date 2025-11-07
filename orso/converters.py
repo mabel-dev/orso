@@ -20,6 +20,7 @@ from orso.row import Row
 from orso.schema import FlatColumn
 from orso.schema import RelationSchema
 from orso.schema import convert_orso_schema_to_arrow_schema
+from orso.types import OrsoTypes
 
 # Cache for optional dependencies
 _pyarrow = None
@@ -109,6 +110,12 @@ def to_arrow(dataset, size=None):
             arrow_schema = convert_orso_schema_to_arrow_schema(dataset_schema)
         except MissingDependencyError:
             # Fall back to letting PyArrow infer types if optional dependency missing
+            arrow_schema = None
+
+        if arrow_schema is not None and any(
+            col.type == OrsoTypes.STRUCT and not getattr(col, "fields", None)
+            for col in dataset_schema.columns
+        ):
             arrow_schema = None
 
     if arrow_schema is not None:

@@ -136,9 +136,26 @@ class DataFrame:
         return self._nbytes
 
     def append(self, entry):
+        # If we have an explicit RelationSchema, normalize JSONB values to bytes
         if isinstance(self._schema, RelationSchema):
-            self._schema.validate(entry)
-        new_row = self._row_factory(entry)
+            # Avoid mutating caller's object
+            record = dict(entry)
+
+            # Lazy import to avoid top-level dependency
+            import orjson
+
+            from orso.types import OrsoTypes
+
+            for col in self._schema.columns:
+                if col.type == OrsoTypes.JSONB:
+                    v = record.get(col.name, None)
+                    if isinstance(v, (dict, list, tuple, set)):
+                        record[col.name] = orjson.dumps(v)
+
+            self._schema.validate(record)
+            new_row = self._row_factory(record)
+        else:
+            new_row = self._row_factory(entry)
         self._rows.append(new_row)
         # Invalidate nbytes cache instead of calculating on every append
         self._nbytes = None

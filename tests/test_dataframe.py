@@ -205,6 +205,61 @@ def test_to_arrow():
         assert col.to_pylist() == [v[i] for v in expected_values]
 
 
+def test_to_arrow_struct_column_with_schema():
+    schema = RelationSchema(
+        name="people",
+        columns=[
+            FlatColumn(name="id", type=OrsoTypes.INTEGER),
+            FlatColumn(
+                name="details",
+                type=OrsoTypes.STRUCT,
+                fields=[
+                    FlatColumn(name="name", type=OrsoTypes.VARCHAR),
+                    FlatColumn(name="age", type=OrsoTypes.INTEGER),
+                ],
+            ),
+        ],
+    )
+
+    df = DataFrame(schema=schema)
+    df.append({"id": 1, "details": {"name": "Alice", "age": 30}})
+    df.append({"id": 2, "details": {"name": "Bob", "age": 25}})
+
+    arrow_table = df.arrow()
+    details_field = arrow_table.schema.field("details")
+    assert details_field.type == pyarrow.struct(
+        [pyarrow.field("name", pyarrow.string()), pyarrow.field("age", pyarrow.int64())]
+    )
+
+    details_column = arrow_table.column("details").to_pylist()
+    assert details_column[0]["age"] == 30
+    assert details_column[1]["name"] == "Bob"
+
+
+def test_arrow_roundtrip_struct_column():
+    struct_type = pyarrow.struct(
+        [pyarrow.field("name", pyarrow.string()), pyarrow.field("age", pyarrow.int64())]
+    )
+    arrow_table = pyarrow.table(
+        {
+            "id": [1, 2],
+            "details": [
+                {"name": "Alice", "age": 30},
+                {"name": "Bob", "age": 25},
+            ],
+        },
+        schema=pyarrow.schema(
+            [pyarrow.field("id", pyarrow.int64()), pyarrow.field("details", struct_type)]
+        ),
+    )
+
+    df = DataFrame.from_arrow(arrow_table)
+    roundtrip = df.arrow()
+
+    assert roundtrip.schema == arrow_table.schema
+    assert roundtrip.column("details").to_pylist() == arrow_table.column("details").to_pylist()
+
+
 def test_to_arrow_with_size():
     df = create_dataframe()
     table = df.arrow(size=4)

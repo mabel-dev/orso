@@ -1,8 +1,6 @@
 import os
 import sys
 
-import pytest
-
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
 import pyarrow
@@ -43,6 +41,18 @@ def test_column_to_field():
     column = FlatColumn(name="test", type=OrsoTypes.DECIMAL)
     arrow_field = column.arrow_field
     assert arrow_field.type == pyarrow.decimal128(28, 21), arrow_field.type
+
+
+def test_struct_column_to_field_metadata():
+    nested = [FlatColumn(name="value", type=OrsoTypes.INTEGER)]
+    column = FlatColumn(name="payload", type=OrsoTypes.STRUCT, fields=nested)
+    arrow_field = column.arrow_field
+
+    assert arrow_field.type == pyarrow.struct([pyarrow.field("value", pyarrow.int64())])
+    assert arrow_field.nullable is True
+
+    fallback_field = FlatColumn(name="missing", type=OrsoTypes.STRUCT).arrow_field
+    assert fallback_field.type == pyarrow.binary()
 
 def test_array_column_to_field():
     column = FlatColumn(name="test", type=OrsoTypes.ARRAY, element_type=OrsoTypes.VARCHAR)
@@ -161,6 +171,17 @@ def test_field_to_column():
     assert column.name == "test"
     assert column.type == OrsoTypes.ARRAY
     assert column.element_type == OrsoTypes.BLOB
+
+    arrow_field = pyarrow.field(
+        "test",
+        pyarrow.struct([pyarrow.field("subfield", pyarrow.int32(), nullable=False)])
+    )
+    column = FlatColumn.from_arrow(arrow_field)
+    assert column.name == "test"
+    assert column.type == OrsoTypes.STRUCT
+    assert column.fields is not None
+    assert column.fields[0].name == "subfield"
+    assert column.fields[0].type == OrsoTypes.INTEGER
 
 
 

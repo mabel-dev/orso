@@ -69,6 +69,9 @@ def test_struct_to_blob():
 
     orso_reformed = FlatColumn.from_arrow(arrow_col)
     assert orso_reformed.type == OrsoTypes.STRUCT
+    assert orso_reformed.fields is not None
+    assert [field.name for field in orso_reformed.fields] == ["subfield"]
+    assert orso_reformed.fields[0].type == OrsoTypes.INTEGER
 
     orso_struct_as_blob_col = FlatColumn.from_arrow(arrow_col, mappable_as_binary=True)
     assert orso_struct_as_blob_col.type == OrsoTypes.BLOB, orso_struct_as_blob_col.type

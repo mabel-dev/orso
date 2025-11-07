@@ -148,6 +148,7 @@ class FlatColumn:
     highest_value: Optional[Any] = None
     lowest_value: Optional[Any] = None
     null_count: Optional[int] = None
+    fields: Optional[List["FlatColumn"]] = None
 
     def __init__(self, **kwargs):
         attributes = {f.name: f for f in fields(self.__class__)}
@@ -168,6 +169,8 @@ class FlatColumn:
                         )
                         for v in value
                     ]
+                if attribute == "fields" and value:
+                    value = [v if isinstance(v, FlatColumn) else FlatColumn(**v) for v in value]
 
                 setattr(self, attribute, value)
             elif not isinstance(attributes[attribute].default, _MISSING_TYPE):
@@ -232,6 +235,7 @@ class FlatColumn:
         # Fetch the native type mapping from Arrow to Python native types
         native_type = arrow_type_map(arrow_field.type)
         element_type = None
+        struct_fields: Optional[List["FlatColumn"]] = None
         # Initialize variables to hold optional decimal properties
         scale: Optional[int] = None
         precision: Optional[int] = None
@@ -242,6 +246,10 @@ class FlatColumn:
             precision = native_type.precision  # type:ignore
         elif mappable_as_binary and native_type == dict:
             field_type = OrsoTypes.BLOB
+        elif native_type == dict:
+            field_type = OrsoTypes.STRUCT
+            if getattr(arrow_field.type, "num_fields", 0):
+                struct_fields = [cls.from_arrow(child) for child in arrow_field.type]
         elif native_type == list:
             field_type = OrsoTypes.ARRAY
             element_type = PYTHON_TO_ORSO_MAP.get(arrow_type_map(arrow_field.type.value_type))
@@ -262,6 +270,7 @@ class FlatColumn:
             nullable=arrow_field.nullable,
             scale=scale,
             precision=precision,
+            fields=struct_fields,
         )
 
     def to_flatcolumn(self) -> "FlatColumn":
@@ -281,6 +290,11 @@ class FlatColumn:
         col.highest_value = self.highest_value
         col.null_count = self.null_count
         col.origin = self.origin
+        col.fields = (
+            [field.to_flatcolumn() for field in self.fields]
+            if getattr(self, "fields", None)
+            else None
+        )
 
         return col
 
@@ -303,7 +317,6 @@ class FlatColumn:
             OrsoTypes.TIMESTAMP: pyarrow.timestamp("us"),
             OrsoTypes.TIME: pyarrow.time32("ms"),
             OrsoTypes.INTERVAL: pyarrow.month_day_nano_interval(),
-            OrsoTypes.STRUCT: pyarrow.binary(),  # convert structs to JSON strings/BSONs
             OrsoTypes.DECIMAL: pyarrow.decimal128(self.precision or DECIMAL_PRECISION, self.scale or 10),
             OrsoTypes.DOUBLE: pyarrow.float64(),
             OrsoTypes.INTEGER: pyarrow.int64(),
@@ -313,6 +326,12 @@ class FlatColumn:
             OrsoTypes.NULL: pyarrow.null(),
         }
         # fmt: on
+
+        if self.type == OrsoTypes.STRUCT:
+            if self.fields:
+                struct_type = pyarrow.struct([field.arrow_field for field in self.fields])
+                return pyarrow.field(name=self.name, type=struct_type, nullable=self.nullable)
+            return pyarrow.field(name=self.name, type=pyarrow.binary(), nullable=self.nullable)
 
         if self.type == OrsoTypes.ARRAY:
             return pyarrow.field(
@@ -731,5 +750,8 @@ def convert_orso_schema_to_arrow_schema(orso_schema, use_identities: bool = Fals
         return schema([col.arrow_field for col in orso_schema.columns])
 
     return schema(
-        [field(name=col.identity, type=col.arrow_field.type) for col in orso_schema.columns]
+        [
+            field(name=col.identity, type=col.arrow_field.type, nullable=col.arrow_field.nullable)
+            for col in orso_schema.columns
+        ]
     )
