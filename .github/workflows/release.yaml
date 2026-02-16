@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14', '3.14t']
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -47,7 +47,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14', '3.14t']
 
     steps:
       - uses: actions/checkout@v3.5.3
@@ -89,7 +89,7 @@ jobs:
     strategy:
       max-parallel: 3
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14', '3.14t']
 
     steps:
       - uses: actions/checkout@v3.5.3
@@ -177,6 +177,20 @@ jobs:
           path: dist-linux-3.13
       - run: mv -v dist-linux-3.13/* dist/
 
+      - name: Stage linux 3.14
+        uses: actions/download-artifact@v4.1.7
+        with:
+          name: dist-linux-3.14
+          path: dist-linux-3.14
+      - run: mv -v dist-linux-3.14/* dist/
+
+      - name: Stage linux 3.14t
+        uses: actions/download-artifact@v4.1.7
+        with:
+          name: dist-linux-3.14t
+          path: dist-linux-3.14t
+      - run: mv -v dist-linux-3.14t/* dist/
+
       - name: Stage macos 3.9
         uses: actions/download-artifact@v4.1.7
         with:
@@ -212,6 +226,20 @@ jobs:
           path: dist-macos-3.13
       - run: mv -v dist-macos-3.13/* dist/
 
+      - name: Stage macos 3.14
+        uses: actions/download-artifact@v4.1.7
+        with:
+          name: dist-macos-3.14
+          path: dist-macos-3.14
+      - run: mv -v dist-macos-3.14/* dist/
+
+      - name: Stage macos 3.14t
+        uses: actions/download-artifact@v4.1.7
+        with:
+          name: dist-macos-3.14t
+          path: dist-macos-3.14t
+      - run: mv -v dist-macos-3.14t/* dist/
+
       - name: Stage windows 3.9
         uses: actions/download-artifact@v4.1.7
         with:
@@ -239,6 +267,27 @@ jobs:
           name: dist-windows-3.12
           path: dist-windows-3.12
       - run: mv -v dist-windows-3.12/* dist/
+
+      - name: Stage windows 3.13
+        uses: actions/download-artifact@v4.1.7
+        with:
+          name: dist-windows-3.13
+          path: dist-windows-3.13
+      - run: mv -v dist-windows-3.13/* dist/
+
+      - name: Stage windows 3.14
+        uses: actions/download-artifact@v4.1.7
+        with:
+          name: dist-windows-3.14
+          path: dist-windows-3.14
+      - run: mv -v dist-windows-3.14/* dist/
+
+      - name: Stage windows 3.14t
+        uses: actions/download-artifact@v4.1.7
+        with:
+          name: dist-windows-3.14t
+          path: dist-windows-3.14t
+      - run: mv -v dist-windows-3.14t/* dist/
   
       - name: Publish distribution 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
