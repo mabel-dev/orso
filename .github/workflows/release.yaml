@@ -17,19 +17,26 @@ jobs:
         include:
           - python-version: '3.9'
             manylinux_image: 'quay.io/pypa/manylinux2014_x86_64'
+            plat: 'manylinux2014_x86_64'
           - python-version: '3.10'
             manylinux_image: 'quay.io/pypa/manylinux2014_x86_64'
+            plat: 'manylinux2014_x86_64'
           - python-version: '3.11'
             manylinux_image: 'quay.io/pypa/manylinux2014_x86_64'
+            plat: 'manylinux2014_x86_64'
           - python-version: '3.12'
             manylinux_image: 'quay.io/pypa/manylinux2014_x86_64'
+            plat: 'manylinux2014_x86_64'
           - python-version: '3.13'
             manylinux_image: 'quay.io/pypa/manylinux2014_x86_64'
+            plat: 'manylinux2014_x86_64'
           - python-version: '3.14'
             manylinux_image: 'quay.io/pypa/manylinux2014_x86_64'
+            plat: 'manylinux2014_x86_64'
           - runner-python: '3.13'
             python-version: '3.14t'
-            manylinux_image: 'ghcr.io/pypa/manylinux/manylinux_2_31_x86_64'
+            manylinux_image: 'quay.io/pypa/manylinux_2_34_x86_64'
+            plat: 'manylinux_2_34_x86_64'
     runs-on: ubuntu-latest
     steps:
       - name: Set up Python (runner)
@@ -70,10 +77,10 @@ jobs:
             fi
           fi
 
-          echo "Using container image: ${IMAGE}"
+          echo "Using container image: ${IMAGE} with PLAT=${{ matrix.plat }}"
 
           docker run --rm \
-            -e PLAT=manylinux2014_x86_64 \
+            -e PLAT=${{ matrix.plat }} \
             -e PACKAGE_NAME=orso \
             -e PYTHON_VERSION=${{ matrix.python-version }} \
             -v `pwd`:/io \
@@ -85,7 +92,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dist-linux-${{ matrix.python-version }}
-          path: io/dist/*manylinux2014_x86_64*.whl
+          path: io/dist/*manylinux*.whl
 
   build-macos:
     runs-on: macos-latest
