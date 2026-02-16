@@ -17,28 +17,26 @@ jobs:
         include:
           - python-version: '3.9'
             manylinux_image: 'quay.io/pypa/manylinux2014_x86_64'
-            plat: 'manylinux2014_x86_64'
           - python-version: '3.10'
             manylinux_image: 'quay.io/pypa/manylinux2014_x86_64'
-            plat: 'manylinux2014_x86_64'
           - python-version: '3.11'
             manylinux_image: 'quay.io/pypa/manylinux2014_x86_64'
-            plat: 'manylinux2014_x86_64'
           - python-version: '3.12'
             manylinux_image: 'quay.io/pypa/manylinux2014_x86_64'
-            plat: 'manylinux2014_x86_64'
           - python-version: '3.13'
             manylinux_image: 'quay.io/pypa/manylinux2014_x86_64'
-            plat: 'manylinux2014_x86_64'
           - python-version: '3.14'
             manylinux_image: 'quay.io/pypa/manylinux2014_x86_64'
-            plat: 'manylinux2014_x86_64'
           - runner-python: '3.13'
             python-version: '3.14t'
-            manylinux_image: 'quay.io/pypa/manylinux_2_31_x86_64'
-            plat: 'manylinux_2_31_x86_64'
+            manylinux_image: 'ghcr.io/pypa/manylinux/manylinux_2_31_x86_64'
     runs-on: ubuntu-latest
     steps:
+      - name: Set up Python (runner)
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.runner-python || matrix.python-version }}
+
       - name: Check out repository
         uses: actions/checkout@v4.1.7
         with:
@@ -48,21 +46,40 @@ jobs:
         run: chmod +x io/build.sh
 
       - name: Build Wheels
-        run: >
-          docker run --rm
-          -e PLAT=${{ matrix.plat }}
-          -e PACKAGE_NAME=orso
-          -e PYTHON_VERSION=${{ matrix.python-version }}
-          -v `pwd`:/io
-          --workdir /io
-          ${{ matrix.manylinux_image }}
-          io/build.sh
+        run: |
+          set -euo pipefail
+
+          DESIRED_IMAGE="${{ matrix.manylinux_image }}"
+          echo "Attempting to pull ${DESIRED_IMAGE}..."
+
+          if docker pull "${DESIRED_IMAGE}" 2>/dev/null; then
+            IMAGE="${DESIRED_IMAGE}"
+          else
+            echo "Failed to pull ${DESIRED_IMAGE}; trying fallback..."
+            if docker pull quay.io/pypa/manylinux2014_x86_64 2>/dev/null; then
+              IMAGE=quay.io/pypa/manylinux2014_x86_64
+            else
+              echo "ERROR: no manylinux image available. Tried: ${DESIRED_IMAGE}, quay.io/pypa/manylinux2014_x86_64"
+              exit 125
+            fi
+          fi
+
+          echo "Using container image: ${IMAGE}"
+
+          docker run --rm \
+            -e PLAT=manylinux2014_x86_64 \
+            -e PACKAGE_NAME=orso \
+            -e PYTHON_VERSION=${{ matrix.python-version }} \
+            -v `pwd`:/io \
+            --workdir /io \
+            "${IMAGE}" \
+            io/build.sh
 
       - name: Archive Wheels
         uses: actions/upload-artifact@v4
         with:
           name: dist-linux-${{ matrix.python-version }}
-          path: io/dist/*${{ matrix.plat }}*.whl
+          path: io/dist/*manylinux2014_x86_64*.whl
 
   build-macos:
     runs-on: macos-latest
@@ -184,7 +201,12 @@ jobs:
         with:
           name: dist-linux-3.14t
           path: dist-linux-3.14t
-      - run: mv -v dist-linux-3.14t/* dist/
+      - run: |
+          if [ -d dist-linux-3.14t ]; then
+            mv -v dist-linux-3.14t/* dist/
+          else
+            echo "dist-linux-3.14t artifact not found; skipping"
+          fi
 
       - name: Stage macos 3.9
         uses: actions/download-artifact@v4.1.7
@@ -233,7 +255,12 @@ jobs:
         with:
           name: dist-macos-3.14t
           path: dist-macos-3.14t
-      - run: mv -v dist-macos-3.14t/* dist/
+      - run: |
+          if [ -d dist-macos-3.14t ]; then
+            mv -v dist-macos-3.14t/* dist/
+          else
+            echo "dist-macos-3.14t artifact not found; skipping"
+          fi
   
       - name: Publish distribution 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
