@@ -33,6 +33,9 @@ jobs:
           - python-version: '3.14'
             manylinux_image: 'quay.io/pypa/manylinux2014_x86_64'
             plat: 'manylinux2014_x86_64'
+          - python-version: '3.14t'
+            manylinux_image: 'ghcr.io/pypa/manylinux/manylinux_2_31_x86_64'
+            plat: 'manylinux_2_31_x86_64'
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -65,7 +68,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14', '3.14t']
 
     steps:
       - uses: actions/checkout@v3.5.3
@@ -167,6 +170,13 @@ jobs:
           path: dist-linux-3.14
       - run: mv -v dist-linux-3.14/* dist/
 
+      - name: Stage linux 3.14t
+        uses: actions/download-artifact@v4.1.7
+        with:
+          name: dist-linux-3.14t
+          path: dist-linux-3.14t
+      - run: mv -v dist-linux-3.14t/* dist/
+
       - name: Stage macos 3.9
         uses: actions/download-artifact@v4.1.7
         with:
@@ -208,6 +218,13 @@ jobs:
           name: dist-macos-3.14
           path: dist-macos-3.14
       - run: mv -v dist-macos-3.14/* dist/
+
+      - name: Stage macos 3.14t
+        uses: actions/download-artifact@v4.1.7
+        with:
+          name: dist-macos-3.14t
+          path: dist-macos-3.14t
+      - run: mv -v dist-macos-3.14t/* dist/
   
       - name: Publish distribution 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
