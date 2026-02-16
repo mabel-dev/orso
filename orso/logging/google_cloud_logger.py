@@ -4,14 +4,13 @@ https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry
 
 import atexit
 import datetime
+import json
 import logging
 import os
 from typing import Any
 from typing import Dict
 from typing import Optional
 from typing import Union
-
-import orjson as json
 
 from orso.logging.levels import LEVELS
 from orso.logging.levels import LEVELS_TO_STRING

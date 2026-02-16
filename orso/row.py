@@ -23,6 +23,7 @@
 # such as as_dict() to render as a dictionary.
 
 import datetime
+import json
 import time
 from functools import cached_property
 from threading import RLock
@@ -34,7 +35,6 @@ from typing import Union
 from weakref import WeakValueDictionary
 
 import numpy
-import orjson
 from ormsgpack import OPT_SERIALIZE_NUMPY
 from ormsgpack import packb
 
@@ -195,7 +195,7 @@ class Row(tuple):
         Returns:
             The JSON byte representation of the Row.
         """
-        return orjson.dumps(self.as_dict, default=str)
+        return json.dumps(self.as_dict, default=str).encode()
 
     @classmethod
     def create_class(

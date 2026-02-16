@@ -51,6 +51,7 @@ Example:
 
 """
 
+import json
 from collections import defaultdict
 from dataclasses import _MISSING_TYPE
 from dataclasses import asdict
@@ -71,7 +72,6 @@ from typing import Union
 from warnings import warn
 
 import numpy
-import orjson
 from data_expectations import Expectation
 
 from orso.exceptions import ColumnDefinitionError
@@ -349,7 +349,7 @@ class FlatColumn:
                 return o.__dict__
             raise TypeError(f"Object of type {o.__class__.__name__} is not JSON serializable")
 
-        return orjson.dumps(asdict(self), default=default_serializer)
+        return json.dumps(asdict(self), default=default_serializer)
 
     @classmethod
     def from_json(cls, json_str: str) -> "FlatColumn":
@@ -363,7 +363,7 @@ class FlatColumn:
                 ]
             return dct
 
-        data = orjson.loads(json_str)
+        data = json.loads(json_str)
         return cls(**data)
 
 

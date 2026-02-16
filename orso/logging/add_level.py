@@ -5,10 +5,9 @@ from: https://stackoverflow.com/a/35804945
 """
 
 import atexit
+import json
 import logging
 from typing import Dict
-
-import orjson
 
 logging_seen_warnings: Dict[int, int] = {}
 
@@ -57,7 +56,7 @@ def add_logging_level(level_name, level_num, method_name=None):
         # if we've added the level,it doesn't format the message as JSON
         if isinstance(message, dict):
             try:
-                message = orjson.dumps(message)
+                message = json.dumps(message)
             except:
                 message = str(message)
         # not just the json decoder outputs in bytes, make it a string

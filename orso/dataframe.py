@@ -142,15 +142,15 @@ class DataFrame:
             record = dict(entry)
 
             # Lazy import to avoid top-level dependency
-            import orjson
+            import json
 
             from orso.types import OrsoTypes
 
             for col in self._schema.columns:
                 if col.type == OrsoTypes.JSONB:
-                    v = record.get(col.name, None)
+                    v = record.get(col.name)
                     if isinstance(v, (dict, list, tuple, set)):
-                        record[col.name] = orjson.dumps(v)
+                        record[col.name] = json.dumps(v)
 
             self._schema.validate(record)
             new_row = self._row_factory(record)
