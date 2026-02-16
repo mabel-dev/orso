@@ -4,12 +4,8 @@ set -ex
 cd $GITHUB_WORKSPACE/io
 cd io
 
-# Handle Python version with potential 't' suffix (e.g., 3.14t)
-PYTHON_VERSION_NO_T=${PYTHON_VERSION/t/}
-PYTHON_VERSION_TAG=${PYTHON_VERSION/./}
-
 # Only build for the specified Python version
-PYBIN="/opt/python/cp${PYTHON_VERSION_TAG}-cp${PYTHON_VERSION_TAG}/bin"
+PYBIN="/opt/python/cp${PYTHON_VERSION//.}-cp${PYTHON_VERSION//.}/bin"
 
 # Install necessary packages
 "${PYBIN}/python" -m pip install -U setuptools wheel numpy cython
