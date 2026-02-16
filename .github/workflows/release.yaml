@@ -35,8 +35,8 @@ jobs:
             plat: 'manylinux2014_x86_64'
           - runner-python: '3.13'
             python-version: '3.14t'
-            manylinux_image: 'quay.io/pypa/manylinux2014_x86_64'
-            plat: 'manylinux2014_x86_64'
+            manylinux_image: 'quay.io/pypa/manylinux_2_31_x86_64'
+            plat: 'manylinux_2_31_x86_64'
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
