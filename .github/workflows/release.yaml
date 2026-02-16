@@ -55,6 +55,12 @@ jobs:
           if docker pull "${DESIRED_IMAGE}" 2>/dev/null; then
             IMAGE="${DESIRED_IMAGE}"
           else
+            # Only fall back for non-3.14t builds
+            if [[ "${{ matrix.python-version }}" == "3.14t" ]]; then
+              echo "ERROR: Cannot access ${DESIRED_IMAGE} required for 3.14t build"
+              exit 125
+            fi
+            
             echo "Failed to pull ${DESIRED_IMAGE}; trying fallback..."
             if docker pull quay.io/pypa/manylinux2014_x86_64 2>/dev/null; then
               IMAGE=quay.io/pypa/manylinux2014_x86_64
