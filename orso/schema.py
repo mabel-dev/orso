@@ -53,6 +53,7 @@ Example:
 
 import json
 from collections import defaultdict
+from collections.abc import MutableMapping
 from dataclasses import _MISSING_TYPE
 from dataclasses import asdict
 from dataclasses import dataclass
@@ -64,7 +65,6 @@ from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
-from typing import MutableMapping
 from typing import Optional
 from typing import Tuple
 from typing import Type

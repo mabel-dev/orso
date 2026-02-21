@@ -12,7 +12,6 @@
 
 import datetime
 import decimal
-import json
 import re
 from enum import Enum
 from typing import Any
@@ -22,6 +21,8 @@ from typing import Type
 from typing import Union
 from warnings import warn
 
+from orso._json import dumps_bytes as json_dumps_bytes
+from orso._json import loads as json_loads
 from orso.tools import parse_iso
 
 
@@ -360,7 +361,7 @@ def parse_boolean(x, **kwargs):
 def parse_bytes(x, **kwargs):
     length = kwargs.get("length")
     if isinstance(x, (dict, list, tuple, set)):
-        value = json.dumps(x).encode()
+        value = json_dumps_bytes(x)
     else:
         value = str(x).encode("utf-8") if not isinstance(x, bytes) else x
     if length:
@@ -392,7 +393,7 @@ def parse_varchar(x, **kwargs):
 def parse_array(x, **kwargs):
     element_type = kwargs.get("element_type")
     if not isinstance(x, (list, tuple, set)):
-        x = json.loads(x)
+        x = json_loads(x)
     if element_type is None:
         return x
     parser = element_type.parse

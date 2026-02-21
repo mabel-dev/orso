@@ -60,6 +60,10 @@ setup_config = {
     "url": "https://github.com/mabel-dev/orso/",
     "ext_modules": cythonize(extensions),
     "install_requires": required,
+    "extras_require": {
+        # pysimdjson provides the `simdjson` Python module used as an optional accelerator.
+        "simdjson": ["pysimdjson"],
+    },
     "package_data": {
         "": ["*.pyx", "*.pxd"],
     },

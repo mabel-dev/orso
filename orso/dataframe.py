@@ -11,6 +11,7 @@
 # limitations under the License.
 
 import typing
+from collections.abc import MutableMapping
 from typing import Generator
 from typing import Iterable
 from typing import List
@@ -21,6 +22,7 @@ from typing import Union
 import numpy
 
 from orso import Row
+from orso._json import dumps_bytes as json_dumps_bytes
 from orso.group_by import GroupBy
 from orso.schema import RelationSchema
 from orso.tools import single_item_cache
@@ -31,7 +33,17 @@ class DataFrame:
     Orso DataFrames are a lightweight container for tabular data.
     """
 
-    __slots__ = ("_schema", "_rows", "_cursor", "_row_factory", "arraysize", "_nbytes")
+    __slots__ = (
+        "_schema",
+        "_rows",
+        "_cursor",
+        "_row_factory",
+        "arraysize",
+        "_nbytes",
+        "_jsonb_column_names",
+        "_append_validation_plan",
+        "_append_expected_column_count",
+    )
 
     _LIST_ITERATOR_TYPE = type(iter([]))
     _TUPLE_ITERATOR_TYPE = type(iter(()))
@@ -92,6 +104,25 @@ class DataFrame:
             self._rows = rows or []  # type:ignore
             self._row_factory = Row.create_class(self._schema)
             self._nbytes = 0
+        self._jsonb_column_names = ()
+        self._append_validation_plan = ()
+        self._append_expected_column_count = 0
+        if isinstance(self._schema, RelationSchema):
+            from orso.types import ORSO_TO_PYTHON_MAP
+            from orso.types import OrsoTypes
+
+            self._jsonb_column_names = tuple(
+                col.name for col in self._schema.columns if col.type == OrsoTypes.JSONB
+            )
+            self._append_validation_plan = tuple(
+                (
+                    col.name,
+                    col.nullable,
+                    None if col.type == OrsoTypes._MISSING_TYPE else ORSO_TO_PYTHON_MAP[col.type],
+                )
+                for col in self._schema.columns
+            )
+            self._append_expected_column_count = len(self._append_validation_plan)
         self.arraysize = 100
         self._cursor = iter(self._rows or [])
 
@@ -135,25 +166,50 @@ class DataFrame:
             self._nbytes = sum(row.nbytes() for row in self._rows)
         return self._nbytes
 
+    def _fast_validate_and_extract_append_record(self, record: dict):
+        """
+        Fast-path validation and extraction for append() when records are valid dicts.
+        Falls back to RelationSchema.validate() on mismatch to preserve errors.
+        """
+        if len(record) != self._append_expected_column_count:
+            return None
+
+        row_values = [None] * self._append_expected_column_count
+        for i, (name, nullable, expected_type) in enumerate(self._append_validation_plan):
+            try:
+                value = record[name]
+            except KeyError:
+                return None
+            if value is None:
+                if not nullable:
+                    return None
+            elif expected_type is not None and not isinstance(value, expected_type):
+                return None
+            row_values[i] = value
+        return tuple(row_values)
+
     def append(self, entry):
-        # If we have an explicit RelationSchema, normalize JSONB values to bytes
+        # If we have an explicit RelationSchema, validate and normalize JSONB values.
         if isinstance(self._schema, RelationSchema):
-            # Avoid mutating caller's object
-            record = dict(entry)
+            record = entry
+            if self._jsonb_column_names and isinstance(entry, MutableMapping):
+                # Copy only when we actually need to mutate JSONB values.
+                for jsonb_column_name in self._jsonb_column_names:
+                    value = entry.get(jsonb_column_name)
+                    if isinstance(value, (dict, list, tuple, set)):
+                        if record is entry:
+                            record = dict(entry)
+                        record[jsonb_column_name] = json_dumps_bytes(value)
 
-            # Lazy import to avoid top-level dependency
-            import json
+            row_values = None
+            if isinstance(record, dict):
+                row_values = self._fast_validate_and_extract_append_record(record)
 
-            from orso.types import OrsoTypes
-
-            for col in self._schema.columns:
-                if col.type == OrsoTypes.JSONB:
-                    v = record.get(col.name)
-                    if isinstance(v, (dict, list, tuple, set)):
-                        record[col.name] = json.dumps(v)
-
-            self._schema.validate(record)
-            new_row = self._row_factory(record)
+            if row_values is None:
+                self._schema.validate(record)
+                new_row = self._row_factory(record)
+            else:
+                new_row = self._row_factory(row_values)
         else:
             new_row = self._row_factory(entry)
         self._rows.append(new_row)
