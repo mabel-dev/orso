@@ -8,7 +8,7 @@ sys.path.insert(1, "/".join([str(p) for p in __file__.split("/")[:-2]]))
 
 print(sys.path)
 
-from orso.types import OrsoTypes
+from orso.types import OrsoTypes, get_orso_type
 import orso
 
 print(orso.__version__)
@@ -63,8 +63,8 @@ CAST_TESTS = [
     ("BLOB", "", b""),
     ("BLOB", b"", b""),
     ("BLOB", "特殊字符", b"\xe7\x89\xb9\xe6\xae\x8a\xe5\xad\x97\xe7\xac\xa6"),
-    ("BLOB", ["list", "item"], b'["list","item"]'),
-    ("BLOB", {"key": "value"}, b'{"key":"value"}'),
+    ("BLOB", ["list", "item"], b'["list", "item"]'),
+    ("BLOB", {"key": "value"}, b'{"key": "value"}'),
    
     ("DATE", "2023-04-18", datetime.date(2023, 4, 18)),
     ("DATE", b"2023-04-18", datetime.date(2023, 4, 18)),
@@ -120,8 +120,8 @@ CAST_TESTS = [
     ("VARCHAR", True, "True"),
     ("VARCHAR", False, "False"),
     ("VARCHAR", b"binary string", "binary string"),
-    ("VARCHAR", ["list", "items"], '["list","items"]'),
-    ("VARCHAR", {"key": "value"}, '{"key":"value"}'),
+    ("VARCHAR", ["list", "items"], '["list", "items"]'),
+    ("VARCHAR", {"key": "value"}, '{"key": "value"}'),
     ("VARCHAR", datetime.date(2023, 4, 18), "2023-04-18"),
     ("VARCHAR", datetime.datetime(2023, 4, 18, 12, 34, 56), "2023-04-18 12:34:56"),
     ("VARCHAR", "", ""),
@@ -168,6 +168,30 @@ BOOLEAN_STRINGS = ("TRUE", "ON", "YES", "1", "1.0", b"TRUE", b"ON", b"YES", b"1"
 bp = lambda x: str(x).upper() in BOOLEAN_STRINGS
 
 print(bp("FALSE"))
+
+
+if __name__ == "__main__":  # pragma: no cover
+    print(f"RUNNING BATTERY OF {len(CAST_TESTS)} DATE TESTS")
+    for type_name, input_value, expected in CAST_TESTS:
+        print(f"{type_name} {input_value} => {expected}" )
+        test_orso_type_parsers(type_name, input_value, expected)
+    print("okay")
+
+
+def test_orso_type_metadata():
+    # Basic metadata is available for all core types and is useful for documentation.
+    int_meta = OrsoTypes.INTEGER.metadata
+    assert int_meta["description"].startswith("Signed"), int_meta
+    assert int_meta["min"] == -9223372036854775808
+    assert int_meta["max"] == 9223372036854775807
+
+    varchar_meta = get_orso_type("VARCHAR[10]").metadata
+    assert varchar_meta["max"] == 10
+    assert "Maximum length" in varchar_meta["notes"]
+
+    dec_meta = get_orso_type("DECIMAL(5,2)").metadata
+    assert dec_meta["min"].startswith("-"), dec_meta
+    assert "." in dec_meta["max"], dec_meta
 
 
 if __name__ == "__main__":  # pragma: no cover

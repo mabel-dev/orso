@@ -216,6 +216,52 @@ class OrsoTypes(str, Enum):
         }
         return MAP.get(self)
 
+    @property
+    def metadata(self) -> dict:
+        """Return metadata used for generating documentation.
+
+        Metadata keys:
+            - description: short text explaining the type
+            - min: minimum representable value (or constraint)
+            - max: maximum representable value (or constraint)
+            - example: example literal for the type
+            - notes: additional documentation notes (Markdown)
+        """
+
+        # Base metadata for each type (static per type)
+        base = _ORSO_TYPE_METADATA.get(self, {}).copy()
+
+        # Add parameterized details when available
+        if self == OrsoTypes.DECIMAL:
+            precision = self._precision or 38
+            scale = self._scale or 21
+            place = max(precision - scale, 0)
+            max_int_part = 10**place - 1 if place > 0 else 0
+            max_fraction = 10**scale - 1
+            base["min"] = f"-{max_int_part}.{str(max_fraction).zfill(scale)}"
+            base["max"] = f"{max_int_part}.{str(max_fraction).zfill(scale)}"
+            base.setdefault("example", "123.45")
+            base.setdefault(
+                "notes",
+                "Precision and scale are configurable. If not specified, defaults to precision=38, scale=21.",
+            )
+        elif self in (OrsoTypes.VARCHAR, OrsoTypes.BLOB, OrsoTypes.VECTOR):
+            length = self._length
+            if length is not None:
+                base["min"] = 0
+                base["max"] = length
+                base["notes"] = f"Maximum length is {length} when specified."
+            else:
+                base.setdefault("notes", "Length is unbounded unless specified.")
+        elif self == OrsoTypes.ARRAY:
+            element = self._element_type
+            base.setdefault(
+                "notes",
+                f"Array containing elements of type {element.value if element is not None else 'UNKNOWN'}.",
+            )
+
+        return base
+
     @staticmethod
     def from_name(name: str) -> tuple:
         _length = None
@@ -262,7 +308,9 @@ class OrsoTypes(str, Enum):
         elif parsed_types[0] == "ARRAY":
             _type = OrsoTypes.ARRAY
             _element_type = parsed_types[1][0]
-            if _element_type.startswith(("ARRAY", "LIST", "NUMERIC", "BSON", "STRING", "DECIMAL", "VECTOR")):
+            if _element_type.startswith(
+                ("ARRAY", "LIST", "NUMERIC", "BSON", "STRING", "DECIMAL", "VECTOR")
+            ):
                 raise ValueError(f"Invalid element type '{_element_type}' for ARRAY type.")
             if _element_type in OrsoTypes.__members__:
                 _type = OrsoTypes.ARRAY
@@ -340,6 +388,100 @@ def parse_decimal(value, *, precision=None, scale=None, **kwargs):
     factory = DecimalFactory.new_factory(precision, scale)
     return factory(value)
 
+
+_ORSO_TYPE_METADATA = {
+    OrsoTypes.BOOLEAN: {
+        "description": "Boolean value representing true or false.",
+        "min": False,
+        "max": True,
+        "example": "TRUE",
+        "notes": "Accepted values include TRUE/FALSE, 1/0, YES/NO, ON/OFF (case-insensitive).",
+    },
+    OrsoTypes.INTEGER: {
+        "description": "Signed 64-bit integer.",
+        "min": -9223372036854775808,
+        "max": 9223372036854775807,
+        "example": "42",
+        "notes": "Parsed from strings, floats, and booleans.",
+    },
+    OrsoTypes.DOUBLE: {
+        "description": "Double-precision floating point number.",
+        "min": -1.7976931348623157e308,
+        "max": 1.7976931348623157e308,
+        "example": "123.45",
+        "notes": "Supports scientific notation (e.g. 1.23e5).",
+    },
+    OrsoTypes.DECIMAL: {
+        "description": "Fixed-point decimal number with configurable precision and scale.",
+        "example": "123.45",
+        "notes": "If precision/scale are not defined, defaults to precision=38 and scale=21.",
+    },
+    OrsoTypes.VARCHAR: {
+        "description": "Variable-length string.",
+        "min": 0,
+        "max": None,
+        "example": "hello",
+        "notes": "By default, length is unbounded unless specified (e.g. VARCHAR[255]).",
+    },
+    OrsoTypes.BLOB: {
+        "description": "Binary large object (bytes).",
+        "min": 0,
+        "max": None,
+        "example": "b'\\x01\\x02'",
+        "notes": "By default, length is unbounded unless specified (e.g. BLOB[1024]).",
+    },
+    OrsoTypes.DATE: {
+        "description": "Calendar date (YYYY-MM-DD).",
+        "min": str(datetime.date.min),
+        "max": str(datetime.date.max),
+        "example": "2023-04-18",
+        "notes": "Parsed from ISO date strings and timestamps.",
+    },
+    OrsoTypes.TIMESTAMP: {
+        "description": "Timestamp including date and time.",
+        "min": str(datetime.datetime.min),
+        "max": str(datetime.datetime.max),
+        "example": "2023-04-18T12:34:56",
+        "notes": "Parsed from ISO 8601 strings and unix timestamps.",
+    },
+    OrsoTypes.TIME: {
+        "description": "Time of day (HH:MM:SS).",
+        "min": str(datetime.time.min),
+        "max": str(datetime.time.max),
+        "example": "12:34:56",
+        "notes": "Parsed from ISO time strings.",
+    },
+    OrsoTypes.INTERVAL: {
+        "description": "Time interval/duration.",
+        "example": "1 day 02:03:04",
+        "notes": "Represented as a Python timedelta.",
+    },
+    OrsoTypes.STRUCT: {
+        "description": "Structured record (mapping of field names to values).",
+        "example": "{'id': 1, 'name': 'Alice'}",
+        "notes": "Serialized as JSON internally.",
+    },
+    OrsoTypes.JSONB: {
+        "description": "JSON binary data.",
+        "example": "{'key': 'value'}",
+        "notes": "Stored as a binary JSON blob.",
+    },
+    OrsoTypes.ARRAY: {
+        "description": "Array of values of a single type.",
+        "example": "[1, 2, 3]",
+        "notes": "Element type is specified as ARRAY<INTEGER>, ARRAY<VARCHAR>, etc.",
+    },
+    OrsoTypes.VECTOR: {
+        "description": "Fixed-length numeric vector.",
+        "example": "[0.1, 0.2, 0.3]",
+        "notes": "Length can be specified as VECTOR[<size>].",
+    },
+    OrsoTypes.NULL: {
+        "description": "Null value.",
+        "example": "NULL",
+        "notes": "Represents absence of a value.",
+    },
+}
 
 ORSO_TO_PYTHON_MAP: dict = {
     OrsoTypes.BOOLEAN: bool,
