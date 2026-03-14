@@ -139,6 +139,7 @@ class OrsoTypes(str, Enum):
     VARCHAR = "VARCHAR"
     NULL = "NULL"
     JSONB = "JSONB"
+    VECTOR = "VECTOR"
     _MISSING_TYPE = 0
 
     def __init__(self, *args, **kwargs):
@@ -163,7 +164,7 @@ class OrsoTypes(str, Enum):
         return self in (self.VARCHAR, self.BLOB)
 
     def is_complex(self):
-        return self in (self.ARRAY, self.STRUCT, self.JSONB, self.INTERVAL)
+        return self in (self.ARRAY, self.STRUCT, self.JSONB, self.INTERVAL, self.VECTOR)
 
     def __str__(self):
         if self.value == self.ARRAY and self._element_type is not None:
@@ -174,6 +175,8 @@ class OrsoTypes(str, Enum):
             return f"VARCHAR[{self._length}]"
         if self.value == self.BLOB and self._length is not None:
             return f"BLOB[{self._length}]"
+        if self.value == self.VECTOR and self._length is not None:
+            return f"VECTOR[{self._length}]"
         return self.value
 
     def parse(self, value: Any, **kwargs) -> Any:
@@ -208,6 +211,8 @@ class OrsoTypes(str, Enum):
             OrsoTypes.TIME: numpy.dtype("O"),
             OrsoTypes.VARCHAR: numpy.dtype("U"),
             OrsoTypes.NULL: numpy.dtype("O"),
+            OrsoTypes.JSONB: numpy.dtype("O"),
+            OrsoTypes.VECTOR: numpy.dtype("O"),
         }
         return MAP.get(self)
 
@@ -241,6 +246,8 @@ class OrsoTypes(str, Enum):
             elif parsed_types == "BSON":
                 warn("Column type BSON will be deprecated in a future version, use JSONB instead.")
                 _type = OrsoTypes.JSONB
+            elif parsed_types == "VECTOR":
+                _type = OrsoTypes.VECTOR
             elif parsed_types == "STRING":
                 raise ValueError(f"Unknown type '{_type}'. Did you mean 'VARCHAR'?")
             elif (
@@ -255,7 +262,7 @@ class OrsoTypes(str, Enum):
         elif parsed_types[0] == "ARRAY":
             _type = OrsoTypes.ARRAY
             _element_type = parsed_types[1][0]
-            if _element_type.startswith(("ARRAY", "LIST", "NUMERIC", "BSON", "STRING", "DECIMAL")):
+            if _element_type.startswith(("ARRAY", "LIST", "NUMERIC", "BSON", "STRING", "DECIMAL", "VECTOR")):
                 raise ValueError(f"Invalid element type '{_element_type}' for ARRAY type.")
             if _element_type in OrsoTypes.__members__:
                 _type = OrsoTypes.ARRAY
@@ -276,8 +283,11 @@ class OrsoTypes(str, Enum):
         elif parsed_types[0] == "VARCHAR":
             _type = OrsoTypes.VARCHAR
             _length = parsed_types[1][0]
-        elif parsed_types[0] == "BLOB":
+        elif parsed_types[0] in ("BLOB", "VARBINARY"):
             _type = OrsoTypes.BLOB
+            _length = parsed_types[1][0]
+        elif parsed_types[0] == "VECTOR":
+            _type = OrsoTypes.VECTOR
             _length = parsed_types[1][0]
         else:
             raise ValueError(f"Unknown column type '{_type}'.")
@@ -346,6 +356,7 @@ ORSO_TO_PYTHON_MAP: dict = {
     OrsoTypes.VARCHAR: str,
     OrsoTypes.JSONB: bytes,
     OrsoTypes.NULL: None,
+    OrsoTypes.VECTOR: list,
 }
 
 PYTHON_TO_ORSO_MAP: dict = {
@@ -400,6 +411,12 @@ def parse_array(x, **kwargs):
     return [parser(v) for v in x]
 
 
+def parse_vector(x, **kwargs):
+    if not isinstance(x, (list, tuple, set)):
+        x = json_loads(x)
+    return [float(v) for v in x]
+
+
 def parse_double(x, **kwargs):
     return float(x)
 
@@ -438,6 +455,7 @@ ORSO_TO_PYTHON_PARSER: dict = {
     OrsoTypes.VARCHAR: parse_varchar,
     OrsoTypes.JSONB: parse_bytes,
     OrsoTypes.NULL: parse_null,
+    OrsoTypes.VECTOR: parse_vector,
 }
 
 
@@ -465,6 +483,7 @@ def find_compatible_type(types: Iterable[OrsoTypes], default=OrsoTypes.VARCHAR) 
         return types[0]
 
     # Define type promotion hierarchy
+    # Types move towards greater numbers
     type_hierarchy = {
         # Numeric promotion
         OrsoTypes.BOOLEAN: 1,
@@ -477,6 +496,9 @@ def find_compatible_type(types: Iterable[OrsoTypes], default=OrsoTypes.VARCHAR) 
         # String/binary promotion
         OrsoTypes.BLOB: 1,
         OrsoTypes.VARCHAR: 2,
+        # Vectors are a special array
+        OrsoTypes.VECTOR: 1,
+        OrsoTypes.ARRAY: 2,
     }
 
     # First check if all types are in the same category
@@ -485,6 +507,8 @@ def find_compatible_type(types: Iterable[OrsoTypes], default=OrsoTypes.VARCHAR) 
     if all(t.is_temporal() for t in types):
         return max(types, key=lambda t: type_hierarchy.get(t, 0))
     if all(t.is_large_object() for t in types):
+        return max(types, key=lambda t: type_hierarchy.get(t, 0))
+    if all(t.is_complex() for t in types):
         return max(types, key=lambda t: type_hierarchy.get(t, 0))
     if all(
         t in (OrsoTypes.BLOB, OrsoTypes.STRUCT, OrsoTypes.JSONB, OrsoTypes.VARCHAR) for t in types
