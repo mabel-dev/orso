@@ -399,6 +399,21 @@ def test_bytes():
     assert first > second
 
 
+def test_nbytes_cache_updates_on_append():
+    # Use a simple list-based schema so append() accepts tuples.
+    df = orso.DataFrame(rows=[], schema=["c1", "c2"])
+
+    # prime the nbytes cache
+    initial = df.nbytes()
+    assert initial == 0
+
+    df.append((1, "one"))
+    appended_row_bytes = df._rows[-1].nbytes()
+
+    # nbytes should have been incremented rather than invalidated
+    assert df.nbytes() == initial + appended_row_bytes
+
+
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests
 

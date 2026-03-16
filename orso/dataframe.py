@@ -213,8 +213,11 @@ class DataFrame:
         else:
             new_row = self._row_factory(entry)
         self._rows.append(new_row)
-        # Invalidate nbytes cache instead of calculating on every append
-        self._nbytes = None
+        # Incrementally update nbytes cache to avoid O(n²) behavior when calling
+        # nbytes() after each append. If cache isn't populated yet, keep it None so
+        # we lazily compute it on demand.
+        if self._nbytes is not None:
+            self._nbytes += new_row.nbytes()
         self._cursor = None
 
     def head(self, size: int = 5) -> "DataFrame":
