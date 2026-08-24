@@ -105,8 +105,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      # setuptools is explicit: it is no longer bundled with Python 3.12+, and it used
+      # to arrive here only as a transitive dependency of setuptools_rust.
       - name: Install Python package dependencies
-        run: python -m pip install --upgrade cython wheel numpy
+        run: python -m pip install --upgrade pip setuptools wheel cython numpy
 
       - name: Build on macOS universal2
         shell: bash
@@ -221,7 +223,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install --upgrade cython wheel numpy
+          # setuptools is not bundled with Python 3.12+; setup.py sdist needs it
+          python -m pip install --upgrade setuptools cython wheel numpy
           python -m pip install --upgrade -r requirements.txt
 
       - name: Create source dist
