@@ -100,6 +100,9 @@ setup_config = {
     "url": "https://github.com/mabel-dev/orso/",
     "ext_modules": cythonize(extensions),
     "install_requires": required,
+    # 3.9 is EOL (Oct 2025) and our own dependencies no longer publish cp39
+    # wheels; without this pip would offer 3.9 users an sdist they cannot use.
+    "python_requires": ">=3.10",
     "extras_require": {
         # pysimdjson provides the `simdjson` Python module used as an optional accelerator.
         "simdjson": ["pysimdjson"],

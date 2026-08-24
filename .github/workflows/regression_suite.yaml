@@ -14,13 +14,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
         include:
           # Windows wheels are release-critical but broke silently in 0.0.219 (3.13) and
           # were dropped entirely in 0.0.233. Build and test on Windows here so a broken
           # MSVC build fails in CI rather than at release time.
           - os: windows-latest
-            python-version: '3.9'
+            python-version: '3.10'
           - os: windows-latest
             python-version: '3.13'
     runs-on: ${{ matrix.os }}

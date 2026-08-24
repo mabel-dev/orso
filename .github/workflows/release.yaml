@@ -14,26 +14,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - python-version: '3.9'
-            manylinux_image: 'quay.io/pypa/manylinux2014_x86_64'
-            plat: 'manylinux2014_x86_64'
-          - python-version: '3.10'
-            manylinux_image: 'quay.io/pypa/manylinux2014_x86_64'
-            plat: 'manylinux2014_x86_64'
-          - python-version: '3.11'
-            manylinux_image: 'quay.io/pypa/manylinux2014_x86_64'
-            plat: 'manylinux2014_x86_64'
-          - python-version: '3.12'
-            manylinux_image: 'quay.io/pypa/manylinux2014_x86_64'
-            plat: 'manylinux2014_x86_64'
-          - python-version: '3.13'
-            manylinux_image: 'quay.io/pypa/manylinux2014_x86_64'
-            plat: 'manylinux2014_x86_64'
-          - python-version: '3.14'
-            manylinux_image: 'quay.io/pypa/manylinux2014_x86_64'
-            plat: 'manylinux2014_x86_64'
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
     runs-on: ubuntu-latest
+    env:
+      # manylinux2014 (glibc 2.17) is no longer buildable: numpy dropped
+      # manylinux_2_17 wheels at 2.3.0, so pip fell back to the sdist and failed
+      # against the image's GCC 10.2.1 ("NumPy requires GCC >= 10.3"). Moving to
+      # glibc 2.28 loses nothing real - pyarrow and numpy are hard runtime
+      # requirements of orso and both ship manylinux_2_28 only, so a glibc 2.17
+      # wheel could not have been installed anyway.
+      MANYLINUX_IMAGE: quay.io/pypa/manylinux_2_28_x86_64
+      PLAT: manylinux_2_28_x86_64
     steps:
       - name: Set up Python (runner)
         uses: actions/setup-python@v4
@@ -52,30 +43,17 @@ jobs:
         run: |
           set -euo pipefail
 
-          DESIRED_IMAGE="${{ matrix.manylinux_image }}"
-          echo "Attempting to pull ${DESIRED_IMAGE}..."
+          echo "Pulling ${MANYLINUX_IMAGE}..."
+          docker pull "${MANYLINUX_IMAGE}"
 
-          if docker pull "${DESIRED_IMAGE}" 2>/dev/null; then
-            IMAGE="${DESIRED_IMAGE}"
-          else
-            echo "Failed to pull ${DESIRED_IMAGE}; trying fallback..."
-            if docker pull quay.io/pypa/manylinux2014_x86_64 2>/dev/null; then
-              IMAGE=quay.io/pypa/manylinux2014_x86_64
-            else
-              echo "ERROR: no manylinux image available. Tried: ${DESIRED_IMAGE}, quay.io/pypa/manylinux2014_x86_64"
-              exit 125
-            fi
-          fi
-
-          echo "Using container image: ${IMAGE} with PLAT=${{ matrix.plat }}"
-
+          echo "Building with ${MANYLINUX_IMAGE} (PLAT=${PLAT})"
           docker run --rm \
-            -e PLAT=${{ matrix.plat }} \
+            -e PLAT="${PLAT}" \
             -e PACKAGE_NAME=orso \
             -e PYTHON_VERSION=${{ matrix.python-version }} \
             -v `pwd`:/io \
             --workdir /io \
-            "${IMAGE}" \
+            "${MANYLINUX_IMAGE}" \
             io/build.sh
 
       - name: Archive Wheels
@@ -83,6 +61,7 @@ jobs:
         with:
           name: dist-linux-${{ matrix.python-version }}
           path: io/dist/*manylinux*.whl
+          if-no-files-found: error
 
   build-macos:
     runs-on: macos-latest
@@ -90,7 +69,6 @@ jobs:
       max-parallel: 4
       matrix:
         include:
-          - python-version: '3.9'
           - python-version: '3.10'
           - python-version: '3.11'
           - python-version: '3.12'
@@ -123,6 +101,7 @@ jobs:
         with:
           name: dist-macos-${{ matrix.python-version }}
           path: dist
+          if-no-files-found: error
 
   build-windows:
     runs-on: windows-latest
@@ -131,7 +110,6 @@ jobs:
       max-parallel: 4
       matrix:
         include:
-          - python-version: '3.9'
           - python-version: '3.10'
           - python-version: '3.11'
           - python-version: '3.12'
@@ -218,7 +196,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.9
+          python-version: '3.12'
 
       - name: Install dependencies
         run: |
