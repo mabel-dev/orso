@@ -46,6 +46,8 @@ from orso.schema import RelationSchema
 HEADER_SIZE: int = 14
 HEADER_PREFIX: bytes = b"\x10\x00"
 MAXIMUM_RECORD_SIZE: int = 16 * 1024 * 1024
+# HEADER_PREFIX + 4 byte length + 8 byte timestamp
+RECORD_HEADER_SIZE: int = len(HEADER_PREFIX) + 4 + 8
 
 # Cache Row subclasses so we reuse the lightweight tuple wrappers across identical schemas.
 _ROW_CLASS_CACHE: "WeakValueDictionary[Tuple[Tuple[str, ...], bool], type]" = WeakValueDictionary()
@@ -148,19 +150,8 @@ class Row(tuple):
         """
         return cls(from_bytes_cython(data))
 
-    def nbytes(self) -> int:
-        if self._cached_byte_size is None:
-            self._cached_byte_size = len(self.as_bytes)
-        return self._cached_byte_size
-
-    @property
-    def as_bytes(self) -> bytes:
-        """
-        Converts the Row to bytes.
-
-        Returns:
-            The byte representation of the Row.
-        """
+    def _packed(self) -> bytes:
+        """msgpack payload for this Row, without the record header."""
 
         def serialize(value):
             if isinstance(value, numpy.datetime64):
@@ -173,7 +164,26 @@ class Row(tuple):
                 return value.tolist()
             return str(value)
 
-        record_bytes = packb(tuple(self), option=OPT_SERIALIZE_NUMPY, default=serialize)
+        return packb(tuple(self), option=OPT_SERIALIZE_NUMPY, default=serialize)
+
+    def nbytes(self) -> int:
+        if self._cached_byte_size is None:
+            # Deliberately not routed through as_bytes: this is a size estimate, and
+            # the 16Mb cap belongs to the record format. Sizing a frame must not fail
+            # just because one row is too big to serialise - callers size frames to
+            # decide when to flush, and arrow() handles such rows fine.
+            self._cached_byte_size = len(self._packed()) + RECORD_HEADER_SIZE
+        return self._cached_byte_size
+
+    @property
+    def as_bytes(self) -> bytes:
+        """
+        Converts the Row to bytes.
+
+        Returns:
+            The byte representation of the Row.
+        """
+        record_bytes = self._packed()
         record_size = len(record_bytes)
         timestamp = time.time_ns()
 
@@ -195,7 +205,9 @@ class Row(tuple):
         Returns:
             The JSON byte representation of the Row.
         """
-        return json.dumps(self.as_dict, default=str).encode()
+        # `separators` keeps this byte-identical to the orjson output this method
+        # produced before 0.0.233; stdlib json defaults to ", "/": " padding.
+        return json.dumps(self.as_dict, default=str, separators=(",", ":")).encode()
 
     @classmethod
     def create_class(

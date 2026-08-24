@@ -40,6 +40,7 @@ class DataFrame:
         "_row_factory",
         "arraysize",
         "_nbytes",
+        "_nbytes_upto",
         "_jsonb_column_names",
         "_append_validation_plan",
         "_append_expected_column_count",
@@ -75,7 +76,11 @@ class DataFrame:
                 'dictionaries'
 
         """
-        self._nbytes = None
+        # `_nbytes` is the summed size of rows[:_nbytes_upto]; nbytes() tops it up
+        # with any rows appended since. Starting both at zero is correct whether or
+        # not `rows` was supplied, because nothing has been counted yet.
+        self._nbytes = 0
+        self._nbytes_upto = 0
         if dictionaries is not None:
             if schema is not None or rows is not None:
                 raise ValueError(
@@ -103,7 +108,6 @@ class DataFrame:
             self._schema = schema  # type:ignore
             self._rows = rows or []  # type:ignore
             self._row_factory = Row.create_class(self._schema)
-            self._nbytes = 0
         self._jsonb_column_names = ()
         self._append_validation_plan = ()
         self._append_expected_column_count = 0
@@ -162,8 +166,18 @@ class DataFrame:
     def nbytes(self) -> int:
         """Approximate the number of bytes used by the DataFrame"""
         self.materialize()
-        if self._nbytes is None:
-            self._nbytes = sum(row.nbytes() for row in self._rows)
+        rows = self._rows
+        total_rows = len(rows)
+        counted = self._nbytes_upto
+        if counted != total_rows:
+            if counted > total_rows:
+                # rows were replaced with a shorter sequence - recount from scratch
+                self._nbytes = sum(row.nbytes() for row in rows)
+            else:
+                # only size the rows appended since the last call, so repeatedly
+                # polling nbytes() while building a frame stays linear overall
+                self._nbytes += sum(rows[i].nbytes() for i in range(counted, total_rows))
+            self._nbytes_upto = total_rows
         return self._nbytes
 
     def _fast_validate_and_extract_append_record(self, record: dict):
@@ -213,11 +227,10 @@ class DataFrame:
         else:
             new_row = self._row_factory(entry)
         self._rows.append(new_row)
-        # Incrementally update nbytes cache to avoid O(n²) behavior when calling
-        # nbytes() after each append. If cache isn't populated yet, keep it None so
-        # we lazily compute it on demand.
-        if self._nbytes is not None:
-            self._nbytes += new_row.nbytes()
+        # Deliberately do NOT size the row here. Row.nbytes() msgpack-serialises the
+        # whole row and throws the bytes away, so doing it per append taxed every
+        # writer whether or not it ever asked for nbytes(). The watermark in nbytes()
+        # picks these rows up on the next call instead.
         self._cursor = None
 
     def head(self, size: int = 5) -> "DataFrame":

@@ -13,35 +13,63 @@ jobs:
       max-parallel: 4
       fail-fast: false
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
-    runs-on: ubuntu-latest
+        os: [ubuntu-latest]
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
+        include:
+          # Windows wheels are release-critical but broke silently in 0.0.219 (3.13) and
+          # were dropped entirely in 0.0.233. Build and test on Windows here so a broken
+          # MSVC build fails in CI rather than at release time.
+          - os: windows-latest
+            python-version: '3.9'
+          - os: windows-latest
+            python-version: '3.13'
+    runs-on: ${{ matrix.os }}
     steps:
 
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.python-version }} x64
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           architecture: x64
 
       - name: Install Requirements
+        shell: bash
         run: |
           python -m pip install --upgrade pip
           python -m pip install --upgrade numpy cython pytest coverage setuptools
           python -m pip install --upgrade --pre -r $GITHUB_WORKSPACE/requirements.txt
-          python -m pip install --upgrade --pre -r $GITHUB_WORKSPACE/tests/requirements.txt
           python setup.py build_ext --inplace
 
+      # opteryx and polars have no wheels for Windows or for the newest interpreters.
+      # They only back optional integration tests, which pytest.importorskip skips when
+      # they are absent, so a failure here must not fail the job.
+      - name: Install Integration Test Requirements (best effort)
+        shell: bash
+        continue-on-error: true
+        run: python -m pip install --upgrade --pre -r $GITHUB_WORKSPACE/tests/requirements.txt
+
       - name: Run Regression Tests
+        shell: bash
         run: python -m coverage run -m pytest
 
+      # Coverage is a property of the suite, not the interpreter. Only enforce it on the
+      # one job where the full optional dependency set installs, otherwise the skipped
+      # integration tests drag the number under the threshold on Windows and 3.14.
       - name: Check Coverage
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        shell: bash
         run: python -m coverage report --include=orso/** --fail-under=70 -m
+
+      - name: Show Coverage
+        if: matrix.os != 'ubuntu-latest' || matrix.python-version != '3.11'
+        shell: bash
+        run: python -m coverage report --include=orso/** -m
 
       - name: "Upload coverage to Codecov"
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v4
         with:
           fail_ci_if_error: false

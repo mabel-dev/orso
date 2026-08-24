@@ -5,10 +5,13 @@ sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
 from orso.dataframe import DataFrame
 from tests import cities
+import pytest
 
 
 def test_to_pandas():
-    import pandas
+    # optional integration dependency - may not have wheels on the newest
+    # interpreters, so skip rather than fail the suite
+    pandas = pytest.importorskip("pandas")
 
     odf = DataFrame(cities.values)
     pdf = odf.pandas()

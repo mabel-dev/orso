@@ -1,0 +1,7 @@
+# The sdist is the install path for any platform we don't publish a wheel for, so it
+# has to contain everything setup.py needs at build time.
+include LICENSE
+include README.md
+include requirements.txt
+include pyproject.toml
+recursive-include orso *.pyx *.h

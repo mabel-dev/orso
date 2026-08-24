@@ -356,7 +356,8 @@ def test_to_map_and_to_dict():
 
 
 def test_group_by():
-    import opteryx
+    # opteryx has no Windows wheels; skip rather than fail the suite there
+    opteryx = pytest.importorskip("opteryx")
 
     gb = opteryx.query("SELECT * FROM $satellites").group_by("planetId").count()
     assert gb.shape == (7, 2)
@@ -384,7 +385,8 @@ def test_adding_dicts_in_wrong_order():
 
 
 def test_bytes():
-    import opteryx
+    # opteryx has no Windows wheels; skip rather than fail the suite there
+    opteryx = pytest.importorskip("opteryx")
     import time
 
     gb = opteryx.query("SELECT * FROM $astronauts")
@@ -412,6 +414,51 @@ def test_nbytes_cache_updates_on_append():
 
     # nbytes should have been incremented rather than invalidated
     assert df.nbytes() == initial + appended_row_bytes
+
+
+def test_nbytes_counts_rows_supplied_at_construction():
+    # Regression: _nbytes was seeded to 0 unconditionally, so a DataFrame built from
+    # existing rows reported 0 bytes forever (broken since 0.0.144).
+    from orso.row import Row
+
+    schema = ["c1", "c2"]
+    row_factory = Row.create_class(schema)
+    rows = [row_factory((1, "one")), row_factory((2, "two")), row_factory((3, "three"))]
+    expected = sum(r.nbytes() for r in rows)
+
+    assert expected > 0
+    assert orso.DataFrame(rows=list(rows), schema=schema).nbytes() == expected
+    # ... and the same when the rows arrive as a generator
+    assert orso.DataFrame(rows=iter(rows), schema=schema).nbytes() == expected
+
+
+def test_nbytes_is_linear_when_polled_during_build():
+    # Regression: polling nbytes() after every append rescanned every row, making the
+    # build quadratic. Production hit this at ~128k rows.
+    import time
+
+    schema = ["c1", "c2"]
+
+    def build(n):
+        df = orso.DataFrame(rows=[], schema=schema)
+        start = time.perf_counter()
+        for i in range(n):
+            df.append((i, "value"))
+            df.nbytes()
+        return time.perf_counter() - start, df
+
+    small_time, _ = build(2_000)
+    large_time, large_df = build(16_000)
+
+    # correctness is the real assertion
+    assert large_df.nbytes() == sum(r.nbytes() for r in large_df._rows)
+
+    # 8x the rows must not cost anything like 8^2 the time; allow generous headroom
+    # for a noisy CI box but still catch a return to quadratic behaviour.
+    assert large_time < small_time * 24, (
+        f"nbytes() polling looks super-linear: {small_time:.4f}s for 2k vs "
+        f"{large_time:.4f}s for 16k"
+    )
 
 
 if __name__ == "__main__":  # prgama: nocover

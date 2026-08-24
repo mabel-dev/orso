@@ -9,6 +9,7 @@ sys.path.insert(1, os.path.join(sys.path[0], ".."))
 from orso import converters
 from orso.dataframe import DataFrame
 from orso.types import OrsoTypes
+import pytest
 
 
 def test_from_arrow():
@@ -113,7 +114,8 @@ def test_from_arrow_none():
 
 
 def test_opteryx_arrow_small():
-    import opteryx
+    # opteryx has no Windows wheels; skip rather than fail the suite there
+    opteryx = pytest.importorskip("opteryx")
     import orso
 
     planets = opteryx.query("SELECT * FROM $planets")
@@ -127,7 +129,8 @@ def test_opteryx_arrow_small():
 
 
 def test_opteryx_arrow_medium():
-    import opteryx
+    # opteryx has no Windows wheels; skip rather than fail the suite there
+    opteryx = pytest.importorskip("opteryx")
     import orso
 
     fake = opteryx.query("SELECT * FROM FAKE(100000, 100) AS FK;")
