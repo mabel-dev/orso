@@ -86,7 +86,8 @@ def test_row_to_json():
 
 
 def test_item_get_access():
-    import opteryx
+    # opteryx has no Windows wheels; skip rather than fail the suite there
+    opteryx = pytest.importorskip("opteryx")
 
     rows = opteryx.query("SELECT * FROM $planets")
     items = []

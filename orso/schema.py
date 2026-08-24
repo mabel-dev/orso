@@ -123,6 +123,40 @@ class SchemaExpectation(Expectation):
         )
 
 
+_ARROW_STATIC_TYPE_MAP: Optional[dict] = None
+
+
+def _arrow_static_type_map() -> dict:
+    """
+    Orso type -> PyArrow type for every type whose Arrow representation is fixed.
+
+    Built once and reused. This used to be rebuilt for every column on every call,
+    which meant a frame with N columns constructed N dicts of PyArrow type objects
+    each time it was converted.
+    """
+    global _ARROW_STATIC_TYPE_MAP
+    if _ARROW_STATIC_TYPE_MAP is None:
+        import pyarrow
+
+        # fmt: off
+        _ARROW_STATIC_TYPE_MAP = {
+            OrsoTypes.BOOLEAN: pyarrow.bool_(),
+            OrsoTypes.BLOB: pyarrow.binary(),
+            OrsoTypes.DATE: pyarrow.date64(),
+            OrsoTypes.TIMESTAMP: pyarrow.timestamp("us"),
+            OrsoTypes.TIME: pyarrow.time32("ms"),
+            OrsoTypes.INTERVAL: pyarrow.month_day_nano_interval(),
+            OrsoTypes.DOUBLE: pyarrow.float64(),
+            OrsoTypes.INTEGER: pyarrow.int64(),
+            OrsoTypes.ARRAY: pyarrow.list_(pyarrow.string()),
+            OrsoTypes.VARCHAR: pyarrow.string(),
+            OrsoTypes.JSONB: pyarrow.binary(),
+            OrsoTypes.NULL: pyarrow.null(),
+        }
+        # fmt: on
+    return _ARROW_STATIC_TYPE_MAP
+
+
 @dataclass(init=False)
 class FlatColumn:
     """
@@ -309,23 +343,15 @@ class FlatColumn:
     def arrow_field(self):
         import pyarrow
 
-        # fmt: off
-        type_map: dict = {
-            OrsoTypes.BOOLEAN: pyarrow.bool_(),
-            OrsoTypes.BLOB: pyarrow.binary(),
-            OrsoTypes.DATE: pyarrow.date64(),
-            OrsoTypes.TIMESTAMP: pyarrow.timestamp("us"),
-            OrsoTypes.TIME: pyarrow.time32("ms"),
-            OrsoTypes.INTERVAL: pyarrow.month_day_nano_interval(),
-            OrsoTypes.DECIMAL: pyarrow.decimal128(self.precision or DECIMAL_PRECISION, self.scale or 10),
-            OrsoTypes.DOUBLE: pyarrow.float64(),
-            OrsoTypes.INTEGER: pyarrow.int64(),
-            OrsoTypes.ARRAY: pyarrow.list_(pyarrow.string()),
-            OrsoTypes.VARCHAR: pyarrow.string(),
-            OrsoTypes.JSONB: pyarrow.binary(),
-            OrsoTypes.NULL: pyarrow.null(),
-        }
-        # fmt: on
+        # DECIMAL is the only type whose Arrow type depends on the column (precision
+        # and scale), so it is resolved per call; everything else comes from the shared
+        # cache built once per process rather than rebuilt for every column.
+        type_map = _arrow_static_type_map()
+
+        def _resolve(orso_type):
+            if orso_type == OrsoTypes.DECIMAL:
+                return pyarrow.decimal128(self.precision or DECIMAL_PRECISION, self.scale or 10)
+            return type_map.get(orso_type, pyarrow.string())
 
         if self.type == OrsoTypes.STRUCT:
             if self.fields:
@@ -336,10 +362,10 @@ class FlatColumn:
         if self.type == OrsoTypes.ARRAY:
             return pyarrow.field(
                 name=self.name,
-                type=pyarrow.list_(type_map.get(self.element_type, pyarrow.string())),
+                type=pyarrow.list_(_resolve(self.element_type)),
             )
 
-        return pyarrow.field(name=self.name, type=type_map.get(self.type, pyarrow.string()))
+        return pyarrow.field(name=self.name, type=_resolve(self.type))
 
     def to_json(self) -> str:
         def default_serializer(o):
