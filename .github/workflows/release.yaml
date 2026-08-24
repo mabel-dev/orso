@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
     runs-on: ubuntu-latest
     env:
       # manylinux2014 (glibc 2.17) is no longer buildable: numpy dropped
@@ -69,7 +69,6 @@ jobs:
       max-parallel: 4
       matrix:
         include:
-          - python-version: '3.9'
           - python-version: '3.10'
           - python-version: '3.11'
           - python-version: '3.12'
@@ -111,7 +110,6 @@ jobs:
       max-parallel: 4
       matrix:
         include:
-          - python-version: '3.9'
           - python-version: '3.10'
           - python-version: '3.11'
           - python-version: '3.12'
@@ -198,7 +196,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.9
+          python-version: '3.12'
 
       - name: Install dependencies
         run: |
