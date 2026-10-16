@@ -751,3 +751,31 @@ Done:
 Measured against v1 (0.0.246) built and run back to back, control drift +4.4%:
 **51 cases faster, 0 slower, 7 unchanged; geometric mean 64.4% faster.**
 
+
+## 18. Consumer suites (2026-10-16)
+
+Delivery step 8, run early so phase 7 starts from a known consumer baseline. Each
+consumer's own test suite ran twice in one scratch Python 3.14 venv with no orso
+installed: once with v1 (0.0.246, built from c09cc35) on `PYTHONPATH`, once with this
+checkout. Outcomes were compared per test, not by totals.
+
+| consumer | tests | v1 | v2 | passed on v1, not v2 |
+|---|---|---|---|---|
+| mabel | 192 | 190 passed, 2 failed | identical | 0 |
+| opteryx 0.26.8 (unit, sql_battery, wildcard) | 10,431 | 6,865 passed | 6,864 passed | 1 |
+
+- **mabel**: the two failures (`test_reader_validation.py::test_dataset_prefix_validator`,
+  `test_reader_all_good`) are environmental and fail identically on v1. Wall time 51.7 s on
+  v1, 35.7 s on v2.
+- **opteryx**: the shared failures are environmental and identical on both versions: optional
+  connectors absent from the venv (pyiceberg, psycopg2, cassandra, google-cloud, polars,
+  redis, vortex) and opteryx's query builder calling `textwrap.indent()` in a way 3.14
+  rejects.
+- **The one difference is §8 fix 11, which conflicts with a consumer's test.** opteryx pins
+  `TRY_CAST('2021-02-21T12:00:00+01:00' AS TIMESTAMP) == 2021-02-21 12:00:00` with the
+  comment "Timezone ignored" (`tests/unit/core/test_cast.py`). v1 ignored every offset
+  and kept the wall-clock time. v2 applies it and returns 11:00 UTC. This is the change the
+  fix intends, but opteryx's TIMESTAMP is naive and its own test documents the v1
+  behaviour, so either that test changes or fix 11 is reverted before tagging. **Open.**
+  - Related: when draken's parser refuses an offset form (`+01`, hours only), v2 falls back to
+    v1's parser, which drops the offset. So v2 is not yet consistent about offsets either way.
