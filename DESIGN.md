@@ -818,7 +818,9 @@ Verified on the x86 Linux box (Debian 12, clang 22 Pythons from uv) as well as m
 | Linux x86-64, 3.14 | 747 passed, 6 skipped |
 | Linux x86-64, 3.14t | 746 passed, 7 skipped (polars has no 3.14t wheel), GIL stays off after import; thread and GC tests clean in 30 of 30 repeated runs |
 
-This is the first Linux build of v2. CI gains a 3.14t job. On the GIL build the change
+This is the first Linux build of v2. **3.14t is not a target (decided 2026-10-16): CI runs
+3.10–3.14 only, and only 3.14 is verified going forward.** The locks stay, as no-ops on GIL
+builds. On the GIL build the change
 costs nothing measurable: against the previous commit built back to back, every case is
 within ±5% on reruns.
 
@@ -853,7 +855,7 @@ Conversion), built as §4.8 describes, in `native/draken_bridge.h` and `orso/_dr
   own `to_pylist()` gives UTC-aware datetimes and `(months, us)` tuples. Intervals with
   months have no `timedelta`, so those columns keep draken's tuples.
 - **Not done:** zero-copy export (decision 4, copy first, still stands); STRUCT columns
-  (draken has none); Linux and 3.14t runs of the bridge itself. The x86 box's
+  (draken has none); a Linux 3.14 run of the bridge itself. The x86 box's
   opteryx-core is a July build without the bridge symbols, so only the refusal path ran
   there.
 
