@@ -892,3 +892,47 @@ of 18, full suite with draken 765 passed, 6 skipped. The same timing script on t
 
 **Open finding:** on x86 Linux, `to_draken()` is about 20% slower than `arrow()`; on macOS
 arm64 it is about 28% faster. Import is faster than Arrow's on both. Not investigated yet.
+
+## 21. Version battery, mabel retest and the §9 targets (2026-10-16)
+
+**Python versions, macOS arm64**, each built from a clean `git archive` of 480ca83:
+
+| Python | result |
+|---|---|
+| 3.10.22 | 752 passed, 2 skipped |
+| 3.11.15 | 752 passed, 2 skipped |
+| 3.12.13 | 752 passed, 2 skipped |
+| 3.13.13 | 752 passed, 2 skipped |
+| 3.14.5 | 747 passed, 7 skipped (polars and PyPI opteryx do not install, so their tests skip) |
+
+**mabel retest** after the GC, locking and bridge commits: per-test identical to v1 and to
+the earlier v2 run (190 passed, the same 2 `google-cloud-storage` failures). The mabel
+write workload is unchanged against the pre-GC build (within 1% on all three cases).
+
+**Against v1, back to back** (control drift -0.9%): 49 faster, 0 slower, 9 within ±5%,
+geometric mean 63.2% faster. The within-5% cases are iteration over rows that are
+already Python tuples, where v1 and v2 do the same work.
+
+**§9 targets** (ns per op, this run):
+
+| case | v1 | v2 | target | met |
+|---|---|---|---|---|
+| append/dict_with_relation_schema | 496 | 89 | ≤ 150 | yes |
+| append/schema_validate | 878 | 110 | ≤ 150 | yes |
+| arrow/from_arrow_materialized | 576 | 32 | ≤ 60 | yes |
+| arrow/from_arrow_first_1000_rows (per call) | 56,710 | 272 | ≤ 60 per row | yes |
+| iterate/for_row_in_materialized | 7 | 7 | 7 | yes |
+| types/parse_timestamps | 738 | 118 | ≤ 120 | yes |
+| construct/schema_find_column | 883 | 74 | ≤ 60 | no |
+| row/create_from_dict | 222 | 94 | ≤ 80 | no |
+| arrow/to_arrow_relation_schema | 104 | 56 | ≤ 40 | no |
+| row/nbytes_first_call | 372 | 96 | ≤ 40 | no |
+| row/as_dict | 244 | 120 | ≤ 60 | no |
+| arrow/to_arrow_wide_20_columns | 759 | 314 | ≤ 120 | no |
+| construct/flatcolumn_init_typed | 2,188 | 613 | ≤ 400 | no |
+| row/as_json | 1,683 | 709 | ≤ 300 | no |
+| types/parse_decimals | 1,255 | 870 | ≤ 400 | no |
+| display/ascii_100_rows_with_types (per call) | 37,100 | 16,600 | ≤ 3,000 | no |
+
+Every target case is faster than v1, by 1.4x (decimals) to 200x (windowed import). Six
+of the sixteen targets are met.
