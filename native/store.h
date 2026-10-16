@@ -894,9 +894,28 @@ inline int append_record(Store& st, PyObject* const* vals) {
     return 0;
 }
 
+// A Store lives inside a Python object (`orso._native._Store`, bound in native.cpp) so the
+// cyclic garbage collector can see the references it holds: a frame's store is shared by
+// every view and cursor of it, so no single frame could report them without the
+// collector counting them more than once. Frames hold a strong reference to that object
+// and a raw pointer into it for the hot paths.
+inline nb::object new_store(uint32_t nfields, Store*& out) {
+    Store* st = new Store(nfields);
+    nb::object o;
+    try {
+        o = nb::cast(st, nb::rv_policy::take_ownership);
+    } catch (...) {
+        delete st;
+        throw;
+    }
+    out = st;
+    return o;
+}
+
 class Frame {
 public:
-    std::shared_ptr<Store> store;
+    nb::object store_ref;     // the _Store object; owns *store
+    Store* store = nullptr;
     nb::object plan_ref;
     const Plan* plan = nullptr;
     uint64_t offset = 0;
@@ -908,7 +927,7 @@ public:
     explicit Frame(nb::handle plan_h) {
         plan_ref = nb::borrow(plan_h);
         plan = nb::cast<const Plan*>(plan_h);
-        store = std::make_shared<Store>(static_cast<uint32_t>(plan->nfields));
+        store_ref = new_store(static_cast<uint32_t>(plan->nfields), store);
     }
 
     uint64_t length() const noexcept { return is_view ? view_length : store->rows; }
@@ -918,7 +937,8 @@ public:
     // string and nested-block offset stays valid, and the copy takes its own reference to
     // every object the old store holds (a superset of the window's, which is harmless).
     void detach() {
-        auto fresh = std::make_shared<Store>(store->nfields);
+        Store* fresh = nullptr;
+        nb::object fresh_ref = new_store(store->nfields, fresh);
         const uint64_t n = view_length;
         if (n) fresh->records.append(store->record(offset), static_cast<size_t>(n * store->stride));
         fresh->arena.append(store->arena.data(), store->arena.size());
@@ -928,7 +948,8 @@ public:
             Py_INCREF(o);
         }
         fresh->rows = n;
-        store = std::move(fresh);
+        store_ref = std::move(fresh_ref);
+        store = fresh;
         offset = 0;
         is_view = false;
     }
@@ -1063,9 +1084,42 @@ public:
         d["arena_bytes"] = static_cast<uint64_t>(store->arena.size());
         d["objects"] = static_cast<uint64_t>(store->objects.size());
         d["is_view"] = is_view;
-        d["shared"] = store.use_count() > 1;
+        d["shared"] = Py_REFCNT(store_ref.ptr()) > 1;
         return d;
     }
+};
+
+// ----- free threading (DESIGN.md §6) ------------------------------------------------
+//
+// Two locks, both CPython critical sections, so a thread that blocks while holding one
+// releases it instead of deadlocking (against another thread, or a stop-the-world GC):
+//   * the frame's (or cursor's) own, taken by the binding with nb::lock_self(): offset,
+//     window, detach, the nbytes watermark and the cursor position;
+//   * the store's, taken here: records, arena and objects, which every view and cursor of
+//     a frame shares, so an append on one cannot move memory another is reading.
+// On GIL builds both compile to nothing.
+//
+// The store a frame points at can change only in detach(), under the frame's lock. If
+// that lock was suspended while this one was waited for, another thread may have
+// detached in between, so the guard re-checks and retries on the new store.
+struct StoreGuard {
+#ifdef NB_FREE_THREADED
+    nb::object held;
+    PyCriticalSection cs;
+    explicit StoreGuard(const Frame& f) {
+        for (;;) {
+            held = f.store_ref;
+            PyCriticalSection_Begin(&cs, held.ptr());
+            if (f.store_ref.ptr() == held.ptr()) return;
+            PyCriticalSection_End(&cs);
+        }
+    }
+    ~StoreGuard() { PyCriticalSection_End(&cs); }
+#else
+    explicit StoreGuard(const Frame&) {}
+#endif
+    StoreGuard(const StoreGuard&) = delete;
+    StoreGuard& operator=(const StoreGuard&) = delete;
 };
 
 // ---------------------------------------------------------------------------------
@@ -1103,5 +1157,66 @@ public:
 
     uint64_t remaining() const noexcept { return pos >= frame.length() ? 0 : frame.length() - pos; }
 };
+
+// ----- cyclic GC --------------------------------------------------------------------
+//
+// Each object reports exactly the references it owns. Only the store is cleared: it is
+// where cycles through user values close (a value that refers back to its frame), and
+// clearing it replaces each held object with None, so a frame or cursor that outlives the
+// collection still decodes safely. Plan, Frame and FrameCursor are never cleared, so no
+// method can meet a half-torn-down instance.
+
+inline int store_tp_traverse(PyObject* self, visitproc visit, void* arg) {
+    Py_VISIT(Py_TYPE(self));
+    if (!nb::inst_ready(self)) return 0;
+    const Store* st = nb::inst_ptr<Store>(self);
+    for (PyObject* o : st->objects) Py_VISIT(o);
+    return 0;
+}
+
+inline int store_tp_clear(PyObject* self) {
+    if (!nb::inst_ready(self)) return 0;
+    Store* st = nb::inst_ptr<Store>(self);
+    std::vector<PyObject*> old(st->objects.size());
+    for (size_t k = 0; k < old.size(); ++k) {
+        old[k] = st->objects[k];
+        st->objects[k] = Py_NewRef(Py_None);
+    }
+    for (PyObject* o : old) Py_DECREF(o);
+    return 0;
+}
+
+inline int plan_tp_traverse(PyObject* self, visitproc visit, void* arg) {
+    Py_VISIT(Py_TYPE(self));
+    if (!nb::inst_ready(self)) return 0;
+    const Plan* p = nb::inst_ptr<Plan>(self);
+    Py_VISIT(p->row_type_ref.ptr());
+    Py_VISIT(p->fields.ptr());
+    Py_VISIT(p->validate.ptr());
+    Py_VISIT(p->dumps.ptr());
+    for (const PlanColumn& c : p->columns) {
+        Py_VISIT(c.name.ptr());
+        Py_VISIT(c.expected_ref.ptr());
+    }
+    return 0;
+}
+
+inline int visit_frame(const Frame& f, visitproc visit, void* arg) {
+    Py_VISIT(f.store_ref.ptr());
+    Py_VISIT(f.plan_ref.ptr());
+    return 0;
+}
+
+inline int frame_tp_traverse(PyObject* self, visitproc visit, void* arg) {
+    Py_VISIT(Py_TYPE(self));
+    if (!nb::inst_ready(self)) return 0;
+    return visit_frame(*nb::inst_ptr<Frame>(self), visit, arg);
+}
+
+inline int cursor_tp_traverse(PyObject* self, visitproc visit, void* arg) {
+    Py_VISIT(Py_TYPE(self));
+    if (!nb::inst_ready(self)) return 0;
+    return visit_frame(nb::inst_ptr<FrameCursor>(self)->frame, visit, arg);
+}
 
 }  // namespace orso

@@ -22,25 +22,44 @@ namespace orso {
 inline PyObject* g_east_asian_width = nullptr;  // unicodedata.east_asian_width
 inline std::unordered_map<Py_UCS4, uint8_t> g_char_width;
 
+// The width cache is shared by every thread. Free-threaded builds guard it with a PyMutex,
+// which detaches the thread while it waits, so it cannot stall a stop-the-world pause;
+// Python is never called with it held except for the one-off import below.
+#ifdef Py_GIL_DISABLED
+inline PyMutex g_char_width_mu = {0};
+struct CharWidthLock {
+    CharWidthLock() { PyMutex_Lock(&g_char_width_mu); }
+    ~CharWidthLock() { PyMutex_Unlock(&g_char_width_mu); }
+};
+#else
+struct CharWidthLock {};
+#endif
+
 // 1 or 2, or 0 with an exception set
 inline int char_width(Py_UCS4 c) {
     if (c < 128) return 1;
-    auto it = g_char_width.find(c);
-    if (it != g_char_width.end()) return it->second;
-    if (g_east_asian_width == nullptr) {
-        PyObject* mod = PyImport_ImportModule("unicodedata");
-        if (mod == nullptr) return 0;
-        g_east_asian_width = PyObject_GetAttrString(mod, "east_asian_width");
-        Py_DECREF(mod);
-        if (g_east_asian_width == nullptr) return 0;
+    PyObject* fn;
+    {
+        CharWidthLock lock;
+        auto it = g_char_width.find(c);
+        if (it != g_char_width.end()) return it->second;
+        if (g_east_asian_width == nullptr) {
+            PyObject* mod = PyImport_ImportModule("unicodedata");
+            if (mod == nullptr) return 0;
+            g_east_asian_width = PyObject_GetAttrString(mod, "east_asian_width");
+            Py_DECREF(mod);
+            if (g_east_asian_width == nullptr) return 0;
+        }
+        fn = g_east_asian_width;  // kept for the process lifetime once set
     }
     PyObject* ch = PyUnicode_FromOrdinal(static_cast<int>(c));
     if (ch == nullptr) return 0;
-    PyObject* kind = PyObject_CallOneArg(g_east_asian_width, ch);
+    PyObject* kind = PyObject_CallOneArg(fn, ch);
     Py_DECREF(ch);
     if (kind == nullptr) return 0;
     const int w = (PyUnicode_CompareWithASCIIString(kind, "F") == 0 || PyUnicode_CompareWithASCIIString(kind, "W") == 0) ? 2 : 1;
     Py_DECREF(kind);
+    CharWidthLock lock;
     if (g_char_width.size() < 65536) g_char_width.emplace(c, static_cast<uint8_t>(w));
     return w;
 }

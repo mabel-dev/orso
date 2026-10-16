@@ -107,9 +107,9 @@ NB_MODULE(_native, m) {
     // Raw C functions: these sit on hot paths (every find_column, every timestamp parse)
     // where nanobind's argument dispatch would be most of the cost.
     static PyMethodDef fast_methods[] = {
-        {"schema_epoch", [](PyObject*, PyObject*) -> PyObject* { return PyLong_FromUnsignedLongLong(orso::g_schema_epoch); },
+        {"schema_epoch", [](PyObject*, PyObject*) -> PyObject* { return PyLong_FromUnsignedLongLong(orso::g_schema_epoch.load(std::memory_order_relaxed)); },
          METH_NOARGS, "The schema epoch: bumped by every write that can invalidate a schema cache."},
-        {"bump_schema_epoch", [](PyObject*, PyObject*) -> PyObject* { ++orso::g_schema_epoch; Py_RETURN_NONE; },
+        {"bump_schema_epoch", [](PyObject*, PyObject*) -> PyObject* { orso::g_schema_epoch.fetch_add(1, std::memory_order_relaxed); Py_RETURN_NONE; },
          METH_NOARGS, "Invalidate every schema cache (after an in-place change orso cannot see)."},
         {"parse_iso_text", [](PyObject*, PyObject* v) -> PyObject* { return orso::parse_iso_text(v); },
          METH_O, "ISO-8601 str/bytes to a naive UTC datetime, or None when the strict parser refuses it."},
@@ -206,7 +206,18 @@ NB_MODULE(_native, m) {
         return w;
     }, nb::arg("value").none(), "msgpack size of one value, as v1's serialiser would write it.");
 
-    nb::class_<orso::Plan>(m, "Plan")
+    static PyType_Slot store_slots[] = {{Py_tp_traverse, (void*)orso::store_tp_traverse},
+                                        {Py_tp_clear, (void*)orso::store_tp_clear},
+                                        {0, nullptr}};
+    static PyType_Slot plan_slots[] = {{Py_tp_traverse, (void*)orso::plan_tp_traverse}, {0, nullptr}};
+    static PyType_Slot frame_slots[] = {{Py_tp_traverse, (void*)orso::frame_tp_traverse}, {0, nullptr}};
+    static PyType_Slot cursor_slots[] = {{Py_tp_traverse, (void*)orso::cursor_tp_traverse}, {0, nullptr}};
+
+    // A frame's record store; no constructor, frames make their own (store.h).
+    nb::class_<orso::Store>(m, "_Store", nb::type_slots(store_slots))
+        .def_ro("rows", &orso::Store::rows);
+
+    nb::class_<orso::Plan>(m, "Plan", nb::type_slots(plan_slots))
         .def(nb::init<nb::handle, nb::handle, nb::handle, nb::handle>(), nb::arg("row_type"),
              nb::arg("columns").none(), nb::arg("validate").none(), nb::arg("dumps").none())
         .def("row", &orso::Plan::build_row, nb::arg("entry").none(), "A validated Row for `entry`, v1 append() semantics.")
@@ -221,30 +232,43 @@ NB_MODULE(_native, m) {
         .def_prop_ro("typed", [](const orso::Plan& p) { return p.typed; })
         .def_prop_ro("nfields", [](const orso::Plan& p) { return p.nfields; });
 
-    nb::class_<orso::Frame>(m, "Frame")
+    // Every Frame / FrameCursor method holds the instance's critical section
+    // (nb::lock_self) and, where it touches records, the store's (StoreGuard); see
+    // store.h. Both are no-ops on GIL builds.
+    using orso::Frame;
+    using orso::FrameCursor;
+    using orso::StoreGuard;
+    nb::class_<Frame>(m, "Frame", nb::type_slots(frame_slots))
         .def(nb::init<nb::handle>(), nb::arg("plan"))
-        .def("append", &orso::Frame::append, nb::arg("entry").none())
-        .def("__len__", &orso::Frame::length)
-        .def("row", &orso::Frame::row, nb::arg("i"))
-        .def("rows", &orso::Frame::rows, nb::arg("start") = 0, nb::arg("stop") = -1)
-        .def("view", &orso::Frame::view, nb::arg("start"), nb::arg("count"))
-        .def("nbytes", &orso::Frame::nbytes)
-        .def("stats", &orso::Frame::stats)
-        .def("collect_into", [](const orso::Frame& f, uintptr_t address, std::vector<Py_ssize_t> cols, Py_ssize_t n) {
+        .def("append", [](Frame& f, nb::handle entry) { StoreGuard g(f); f.append(entry); },
+             nb::arg("entry").none(), nb::lock_self())
+        .def("__len__", [](const Frame& f) { StoreGuard g(f); return f.length(); }, nb::lock_self())
+        .def("row", [](const Frame& f, int64_t i) { StoreGuard g(f); return f.row(i); }, nb::arg("i"), nb::lock_self())
+        .def("rows", [](const Frame& f, int64_t start, int64_t stop) { StoreGuard g(f); return f.rows(start, stop); },
+             nb::arg("start") = 0, nb::arg("stop") = -1, nb::lock_self())
+        .def("view", [](const Frame& f, int64_t start, int64_t count) { StoreGuard g(f); return f.view(start, count); },
+             nb::arg("start"), nb::arg("count"), nb::lock_self())
+        .def("nbytes", [](Frame& f) { StoreGuard g(f); return f.nbytes(); }, nb::lock_self())
+        .def("stats", [](const Frame& f) { StoreGuard g(f); return f.stats(); }, nb::lock_self())
+        .def("collect_into", [](const Frame& f, uintptr_t address, std::vector<Py_ssize_t> cols, Py_ssize_t n) {
+            StoreGuard g(f);
             if (n < 0 || static_cast<uint64_t>(n) > f.length()) throw nb::index_error("collect window out of range");
             if (orso::collect_frame_into(reinterpret_cast<PyObject**>(address), *f.store, f.offset, cols, n) < 0) {
                 throw nb::python_error();
             }
-        }, nb::arg("address"), nb::arg("cols"), nb::arg("n"),
+        }, nb::arg("address"), nb::arg("cols"), nb::arg("n"), nb::lock_self(),
            "Fill a C-contiguous (len(cols), n) numpy object array at `address` with these fields.")
-        .def("cursor", [](const orso::Frame& f) { return orso::FrameCursor(f); },
+        .def("cursor", [](const Frame& f) { StoreGuard g(f); return FrameCursor(f); }, nb::lock_self(),
              "A DB-API cursor over the rows this frame holds now.")
-        .def("extend", &orso::Frame::extend, nb::arg("rows"), nb::arg("limit") = -1,
+        .def("extend", [](Frame& f, nb::handle rows, int64_t limit) { StoreGuard g(f); f.extend(rows, limit); },
+             nb::arg("rows"), nb::arg("limit") = -1, nb::lock_self(),
              "Append Python rows positionally, unvalidated; each must have nfields values.")
-        .def("column_values", &orso::Frame::column_values, nb::arg("j"), nb::arg("limit") = -1,
+        .def("column_values", [](const Frame& f, uint32_t j, int64_t limit) { StoreGuard g(f); return f.column_values(j, limit); },
+             nb::arg("j"), nb::arg("limit") = -1, nb::lock_self(),
              "Field j of the first `limit` rows as a list of Python values.")
-        .def("import_arrow", [](orso::Frame& f, nb::handle source, int64_t limit) {
+        .def("import_arrow", [](Frame& f, nb::handle source, int64_t limit) {
             // A Table imports batch by batch; a RecordBatch directly. Returns rows imported.
+            StoreGuard g(f);
             if (f.is_view) f.detach();
             int64_t imported = 0;
             auto one = [&](PyObject* batch) {
@@ -261,9 +285,10 @@ NB_MODULE(_native, m) {
                 one(source.ptr());
             }
             return imported;
-        }, nb::arg("source"), nb::arg("limit") = -1,
+        }, nb::arg("source"), nb::arg("limit") = -1, nb::lock_self(),
            "Import a pyarrow Table or RecordBatch through the C Data Interface.")
-        .def("export_columns", [](const orso::Frame& f, nb::handle specs, int64_t limit) {
+        .def("export_columns", [](const Frame& f, nb::handle specs, int64_t limit) {
+            StoreGuard g(f);
             uint64_t n = f.length();
             if (limit >= 0 && static_cast<uint64_t>(limit) < n) n = static_cast<uint64_t>(limit);
             nb::list out;
@@ -275,16 +300,18 @@ NB_MODULE(_native, m) {
             }
             if (j != f.store->nfields) throw nb::value_error("one export spec per field is required");
             return out;
-        }, nb::arg("specs"), nb::arg("limit") = -1,
+        }, nb::arg("specs"), nb::arg("limit") = -1, nb::lock_self(),
            "Per field: (schema, array) PyCapsules for pyarrow, or None where pyarrow must convert.");
 
-    nb::class_<orso::FrameCursor>(m, "FrameCursor")
+    nb::class_<FrameCursor>(m, "FrameCursor", nb::type_slots(cursor_slots))
         .def("__iter__", [](nb::handle self) { return nb::borrow(self); })
-        .def("__next__", &orso::FrameCursor::next)
-        .def("__length_hint__", &orso::FrameCursor::remaining)
-        .def("take", &orso::FrameCursor::take, nb::arg("n"), "The next `n` rows as a list.")
-        .def("rest", &orso::FrameCursor::rest, "Every remaining row as a list.")
-        .def_ro("position", &orso::FrameCursor::pos, "Rows fetched so far.");
+        .def("__next__", [](FrameCursor& c) { StoreGuard g(c.frame); return c.next(); }, nb::lock_self())
+        .def("__length_hint__", [](const FrameCursor& c) { return c.remaining(); }, nb::lock_self())
+        .def("take", [](FrameCursor& c, int64_t n) { StoreGuard g(c.frame); return c.take(n); }, nb::arg("n"),
+             nb::lock_self(), "The next `n` rows as a list.")
+        .def("rest", [](FrameCursor& c) { StoreGuard g(c.frame); return c.rest(); }, nb::lock_self(),
+             "Every remaining row as a list.")
+        .def_prop_ro("position", [](const FrameCursor& c) { return c.pos; }, nb::lock_self(), "Rows fetched so far.");
 
     m.def("draken_source", []() { return std::string(ORSO_DRAKEN_SOURCE); },
           "Commit of opteryx-core the vendored draken headers were copied from.");

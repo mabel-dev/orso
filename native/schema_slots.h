@@ -17,6 +17,7 @@
 #include <Python.h>
 #include <datetime.h>
 
+#include <atomic>
 #include <cstdint>
 
 #include "core/iso_datetime.h"
@@ -24,7 +25,9 @@
 
 namespace orso {
 
-inline uint64_t g_schema_epoch = 1;
+// Atomic so free-threaded builds can bump it from any thread; on GIL builds the relaxed
+// increment costs what a plain one does.
+inline std::atomic<uint64_t> g_schema_epoch{1};
 
 struct TrackedSlotObject {
     PyObject_HEAD
@@ -55,7 +58,7 @@ inline PyObject* TrackedSlot_get(PyObject* self, PyObject* obj, PyObject* type) 
 inline int TrackedSlot_set(PyObject* self, PyObject* obj, PyObject* value) {
     auto* t = reinterpret_cast<TrackedSlotObject*>(self);
     const int r = Py_TYPE(t->member)->tp_descr_set(t->member, obj, value);
-    if (r == 0 && t->bump) ++g_schema_epoch;
+    if (r == 0 && t->bump) g_schema_epoch.fetch_add(1, std::memory_order_relaxed);
     return r;
 }
 

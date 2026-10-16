@@ -332,6 +332,13 @@ and not tuned for it: nanobind compiled with `NB_FREE_THREADED` where
 `Py_GIL_DISABLED`, a mutex on `Store` around append and on `Frame` around cache fill,
 no mutable module-level state. Read-only views need no lock.
 
+*As built (2026-10-16, §19):* the locks are CPython critical sections, not mutexes, so a
+blocked holder releases them instead of deadlocking. Each Frame and FrameCursor method
+holds its own instance's (`nb::lock_self`) and the store's (`StoreGuard`). Views do take
+the store's lock, because the frame they share it with can append and move the
+buffers under them. Module-level state is the atomic schema epoch and the display width
+cache behind a `PyMutex`; the Row field cache was already per thread.
+
 ## 7. Build and packaging
 
 - `setup.py` builds one extension, `orso._native`, from `native/native.cpp` with the
@@ -779,3 +786,38 @@ checkout. Outcomes were compared per test, not by totals.
   behaviour, so either that test changes or fix 11 is reverted before tagging. **Open.**
   - Related: when draken's parser refuses an offset form (`+01`, hours only), v2 falls back to
     v1's parser, which drops the offset. So v2 is not yet consistent about offsets either way.
+
+## 19. Rewrite gaps closed (2026-10-16)
+
+Two gaps phases 2–6 left against §4.2 and §6, closed before phase 7.
+
+- **The store takes part in cyclic GC.** A value held as a Python object that refers back
+  to its frame (`h.df = df` after `df.append({"a": h})`) leaked forever: the store's
+  references were invisible to the collector. A frame's store is shared by its views and
+  cursors, so no one frame can report those references without them being counted more
+  than once, and the collector would then free live values. The store therefore lives
+  inside its own Python object (`_native._Store`, not constructible from Python), which
+  reports and, when collected, clears them. Clearing swaps each value for None, so a
+  survivor still decodes safely. Plan, Frame and FrameCursor report their own references
+  and are never cleared. `tests/test_native_gc.py`, including 50 values shared by a frame,
+  5 views and 3 cursors surviving repeated collections.
+- **Free-threaded builds are locked** (§6, as built). Found on 3.14t: `DataFrame.append`
+  could lose rows when threads appended to an empty frame at once. Each made its own
+  store and the last one won (19,941 of 20,000 rows kept). v1 only ever appended to a
+  list, so this was a v2 regression on 3.14t. The empty-to-store switch is now made once
+  under a lock, with the steady-state path unlocked. `tests/test_native_threads.py`:
+  concurrent appends growing the records and arena while other threads read through
+  views, cursors, `nbytes()`, column reads and Arrow export, plus concurrent view
+  detaches, display and epoch bumps.
+
+Verified on the x86 Linux box (Debian 12, clang 22 Pythons from uv) as well as macOS:
+
+| build | result |
+|---|---|
+| macOS arm64, 3.14 | 747 passed, 6 skipped |
+| Linux x86-64, 3.14 | 747 passed, 6 skipped |
+| Linux x86-64, 3.14t | 746 passed, 7 skipped (polars has no 3.14t wheel), GIL stays off after import; thread and GC tests clean in 30 of 30 repeated runs |
+
+This is the first Linux build of v2. CI gains a 3.14t job. On the GIL build the change
+costs nothing measurable: against the previous commit built back to back, every case is
+within ±5% on reruns.

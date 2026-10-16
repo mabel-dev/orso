@@ -27,6 +27,7 @@
 # one. Phase 3 and 5 give those paths native routes and the conversion goes away.
 # ---------------------------------------------------------------------------------
 
+import threading
 import typing
 from collections.abc import MutableMapping
 from itertools import islice
@@ -51,6 +52,9 @@ from orso.group_by import GroupBy
 from orso.schema import RelationSchema
 from orso.types import ORSO_TO_PYTHON_MAP
 from orso.types import OrsoTypes
+
+# Taken only for the one-time move of an empty frame into the native store (append()).
+_STORE_SWITCH = threading.Lock()
 
 
 def _numpy():
@@ -313,35 +317,44 @@ class DataFrame:
 
     def append(self, entry):
         frame = self._frame
-        if frame is None:
-            rows = self._py_rows
-            if not isinstance(rows, list):
-                self.materialize()
-                rows = self._py_rows
-            if rows:
-                # the frame already holds Python rows: keep them that way, validated
-                # natively when there is a RelationSchema
-                if isinstance(self._schema, RelationSchema):
-                    rows.append(self._get_plan().row(entry))
-                else:
-                    rows.append(self._row_factory(entry))
-                self._cursor = None
-                return
-            # an empty frame: rows from here on go into the native record store. The
-            # first record is written before the switch so a rejected record leaves the
-            # frame exactly as it was.
-            frame = Frame(self._get_plan())
-            frame.append(entry)
-            self._frame = frame
-            self._py_rows = None
+        if frame is not None:
+            frame.append(entry)  # the store frame's own lock covers concurrent appends
             self._decoded = None
+            # Appending invalidates the cursor (v1). Rows are not sized here; nbytes()
+            # picks them up from the store when it is next called.
             self._cursor = None
             return
-        frame.append(entry)
-        self._decoded = None
-        # Appending invalidates the cursor (v1). Rows are not sized here; nbytes() picks
-        # them up from the store when it is next called.
-        self._cursor = None
+        rows = self._py_rows
+        if rows is None:
+            # another thread moved this frame into the native store since we looked
+            return self.append(entry)
+        if not isinstance(rows, list):
+            self.materialize()
+            rows = self._py_rows
+        if rows:
+            # the frame already holds Python rows: keep them that way, validated
+            # natively when there is a RelationSchema
+            if isinstance(self._schema, RelationSchema):
+                rows.append(self._get_plan().row(entry))
+            else:
+                rows.append(self._row_factory(entry))
+            self._cursor = None
+            return
+        # An empty frame: rows from here on go into the native record store. Threads that
+        # all find it empty must agree on one store (free-threaded builds), so the switch
+        # is made once, under a lock, and everyone else appends to the store it made. The
+        # first record is written before the switch so a rejected record leaves the frame
+        # exactly as it was.
+        with _STORE_SWITCH:
+            if self._frame is None and self._py_rows is rows and not rows:
+                frame = Frame(self._get_plan())
+                frame.append(entry)
+                self._frame = frame
+                self._py_rows = None
+                self._decoded = None
+                self._cursor = None
+                return
+        return self.append(entry)
 
     def head(self, size: int = 5) -> "DataFrame":
         return self.slice(0, size)
