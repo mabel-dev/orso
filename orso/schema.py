@@ -54,6 +54,7 @@ Example:
 import json
 from collections import defaultdict
 from collections.abc import MutableMapping
+from copy import deepcopy as _deepcopy
 from dataclasses import _MISSING_TYPE
 from dataclasses import MISSING as _MISSING
 from dataclasses import asdict
@@ -231,6 +232,58 @@ def _install_tracked_slots(cls, field_names, bump_fields):
             setattr(cls, name, TrackedSlot(member, name, bump=name in bump_fields))
         else:
             setattr(cls, name, TrackedSlot(member, name, default, bump=name in bump_fields))
+
+
+# Values deepcopy would hand back unchanged: immutable scalars and enum members. The
+# planner of the PyPI opteryx deep-copies schemas on every query, so __deepcopy__ below
+# shares these instead of sending each one through copy.deepcopy (v1, a plain dataclass,
+# paid copy's __dict__ path; v2's slots would otherwise pay __getstate__/__setstate__ on
+# top). Enum classes are added as they are seen.
+_SHARED_ON_DEEPCOPY = {type(None), bool, int, float, complex, str, bytes, frozenset}
+
+
+def _deepcopy_list_of_shared(value, memo):
+    """deepcopy of a list, short-cut when every item is a shared value (aliases are
+    strings, most lists are empty). Records the copy in memo exactly as copy.deepcopy
+    does, so a list referenced twice in one copied graph is still one list."""
+    found = memo.get(id(value))
+    if found is not None:
+        return found
+    shared = _SHARED_ON_DEEPCOPY
+    for item in value:
+        if type(item) not in shared:
+            return _deepcopy(value, memo)
+    copied = value[:]
+    memo[id(value)] = copied
+    try:  # copy.deepcopy keeps originals alive so their ids cannot be reused mid-copy
+        memo[id(memo)].append(value)
+    except KeyError:
+        memo[id(memo)] = [value]
+    return copied
+
+
+def _deepcopy_slots(self, new, slots, memo):
+    """Copy the hidden slots (and any subclass __dict__) of `self` into `new`."""
+    shared = _SHARED_ON_DEEPCOPY
+    get = object.__getattribute__
+    put = object.__setattr__
+    for slot in slots:
+        try:
+            value = get(self, slot)
+        except AttributeError:
+            continue
+        kind = type(value)
+        if kind not in shared:
+            if kind is list:
+                value = _deepcopy_list_of_shared(value, memo)
+            elif isinstance(value, Enum):
+                shared.add(kind)
+            else:
+                value = _deepcopy(value, memo)
+        put(new, slot, value)
+    extra = getattr(self, "__dict__", None)
+    if extra:
+        put(new, "__dict__", _deepcopy(extra, memo))
 
 
 _FIELD_SPECS: Dict[type, tuple] = {}
@@ -418,6 +471,14 @@ class FlatColumn:
         for key, value in state.items():
             object.__setattr__(self, key, value)
         object.__setattr__(self, "_arrow_cache", None)
+
+    def __deepcopy__(self, memo):
+        cls = type(self)
+        new = object.__new__(cls)
+        memo[id(self)] = new  # before the fields, so a field that refers back finds it
+        _deepcopy_slots(self, new, _COLUMN_SLOTS, memo)
+        object.__setattr__(new, "_arrow_cache", None)
+        return new
 
     def __str__(self):
         return self.identity
@@ -915,6 +976,14 @@ class RelationSchema:
         for key, value in state.items():
             object.__setattr__(self, key, value)
         object.__setattr__(self, "_schema_cache", None)
+
+    def __deepcopy__(self, memo):
+        cls = type(self)
+        new = object.__new__(cls)
+        memo[id(self)] = new
+        _deepcopy_slots(self, new, _SCHEMA_SLOTS, memo)
+        object.__setattr__(new, "_schema_cache", None)
+        return new
 
     def _cache(self) -> _SchemaCache:
         columns = self.columns
