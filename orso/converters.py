@@ -333,26 +333,85 @@ def import_tables(frame, tables, limit: int = -1) -> int:
     return imported
 
 
-def _lazy_native_rows(tables, plan, row_factory, limit):
-    """Rows from a generator of tables, one table at a time, as v1 iterated them."""
-    remaining = limit
-    for table in tables:
-        if remaining == 0:
-            return
-        frame = Frame(plan)
-        try:
-            n = frame.import_arrow(table, remaining)
-        except ValueError:
-            # a table of a different width cannot share the store: v1's conversion
-            rows = process_table(table, row_factory, 10_000)
-            if remaining > 0:
-                rows = rows[:remaining]
-            n = len(rows)
-            yield from rows
-        else:
+class LazyArrowRows:
+    """
+    The rows of a stream of Arrow tables, read one table at a time as they are iterated,
+    as v1's generator was. A DataFrame holding one that has not been read yet can skip the
+    rows altogether: drain() imports every remaining table into one native store, so
+    arrow(), len() and display() work from the store and no row is ever made in Python.
+    """
+
+    __slots__ = ("_tables", "_plan", "_row_factory", "_remaining", "_gen", "started")
+
+    def __init__(self, tables, plan, row_factory, limit):
+        self._tables = tables
+        self._plan = plan
+        self._row_factory = row_factory
+        self._remaining = limit  # rows still wanted; negative means all
+        self.started = False
+        # One generator, handed to everyone who iterates: a cursor made with iter() and a
+        # later list() share how far it has got, exactly as with v1's generator, and rows
+        # stream from the native cursor at C speed rather than through a Python __next__.
+        self._gen = self._generate()
+
+    def __iter__(self):
+        return self._gen
+
+    def __next__(self):
+        return next(self._gen)
+
+    def _generate(self):
+        self.started = True  # runs on the first next(), not at construction
+        for table in self._tables:
+            if self._remaining == 0:
+                return
+            frame = Frame(self._plan)
+            try:
+                n = frame.import_arrow(table, self._remaining)
+            except ValueError:
+                # a table of a different width cannot share the store: v1's conversion
+                converted = process_table(table, self._row_factory, 10_000)
+                if self._remaining > 0:
+                    converted = converted[: self._remaining]
+                n = len(converted)
+                if self._remaining > 0:
+                    self._remaining -= n
+                yield from converted
+                continue
+            if self._remaining > 0:
+                self._remaining -= n
             yield from frame.cursor()
-        if remaining > 0:
-            remaining -= n
+
+    def drain(self):
+        """
+        Every remaining row, then exhausted, as v1's generator was after list() (a cursor
+        sharing this object reads nothing more). Returns a store Frame when all the
+        tables could share one, else a list of rows. Only before anything was read.
+        """
+        assert not self.started, "drain() after rows were read"
+        self.started = True
+        frame = Frame(self._plan)
+        rows = None
+        for table in self._tables:
+            if self._remaining == 0:
+                break
+            if rows is None:
+                try:
+                    n = frame.import_arrow(table, self._remaining)
+                except ValueError:
+                    rows = frame.rows()  # what the store holds so far, then rows from here on
+                else:
+                    if self._remaining > 0:
+                        self._remaining -= n
+                    continue
+            converted = process_table(table, self._row_factory, 10_000)
+            if self._remaining > 0:
+                converted = converted[: self._remaining]
+                self._remaining -= len(converted)
+            rows.extend(converted)
+        self._tables = iter(())
+        self._remaining = 0
+        return frame if rows is None else rows
 
 
 def from_arrow(tables, size=None):
@@ -398,7 +457,7 @@ def from_arrow(tables, size=None):
         frame.import_arrow(first_table, limit)
         return frame.cursor(), orso_schema
     return (
-        _lazy_native_rows(itertools.chain([first_table], tables), plan, row_factory, limit),
+        LazyArrowRows(itertools.chain([first_table], tables), plan, row_factory, limit),
         orso_schema,
     )
 

@@ -47,6 +47,7 @@ from orso._native import collect_rows_into
 from orso._native import rows_from_dicts
 from orso._native import rows_nbytes
 from orso._native import xxh64 as _xxh64
+from orso.converters import LazyArrowRows as _LazyArrowRows
 from orso.exceptions import MissingDependencyError
 from orso.group_by import GroupBy
 from orso.schema import RelationSchema
@@ -318,6 +319,8 @@ class DataFrame:
 
     def nbytes(self) -> int:
         """Approximate the number of bytes used by the DataFrame"""
+        if self._frame is None:
+            self.materialize()  # unread Arrow rows become a store frame here
         frame = self._frame
         if frame is not None:
             return frame.nbytes()
@@ -351,6 +354,8 @@ class DataFrame:
             return self.append(entry)
         if not isinstance(rows, list):
             self.materialize()
+            if self._frame is not None:  # unread Arrow rows became a store frame
+                return self.append(entry)
             rows = self._py_rows
         if rows:
             # the frame already holds Python rows: keep them that way, validated
@@ -422,7 +427,19 @@ class DataFrame:
         """
         # store frames are always materialised; list frames only when not a list already
         if self._frame is None and not isinstance(self._py_rows, list):
-            self._py_rows = list(self._py_rows or [])
+            rows = self._py_rows
+            if type(rows) is _LazyArrowRows and not rows.started:
+                # untouched rows of Arrow tables: import them into one native store
+                # instead of making every row in Python (arrow() then exports from it)
+                drained = rows.drain()
+                if isinstance(drained, list):
+                    self._py_rows = drained
+                else:
+                    self._frame = drained
+                    self._py_rows = None
+                    self._decoded = None
+                return
+            self._py_rows = list(rows or [])
 
     def distinct(self) -> "DataFrame":
         seen = set()
@@ -490,6 +507,8 @@ class DataFrame:
         return self.collect(columns=items, limit=None)
 
     def slice(self, offset: int = 0, length: int = None) -> "DataFrame":
+        if self._frame is None:
+            self.materialize()  # unread Arrow rows become a store frame here
         frame = self._frame
         if frame is not None:
             n = len(frame)
@@ -524,6 +543,8 @@ class DataFrame:
         return DataFrame(schema=self._schema, rows=(m for i, m in enumerate(self) if i in indexes))
 
     def row(self, i) -> Row:
+        if self._frame is None:
+            self.materialize()  # unread Arrow rows become a store frame here
         frame = self._frame
         if frame is not None:
             decoded = self._decoded
@@ -636,6 +657,8 @@ class DataFrame:
         Yields:
             DataFrames
         """
+        if self._frame is None:
+            self.materialize()  # unread Arrow rows become a store frame here
         frame = self._frame
         if frame is not None:
             for i in range(0, len(frame), batch_size):
@@ -725,6 +748,8 @@ class DataFrame:
 
     @property
     def rowcount(self) -> int:
+        if self._frame is None:
+            self.materialize()  # unread Arrow rows become a store frame here
         frame = self._frame
         if frame is not None:
             return len(frame)
@@ -755,6 +780,8 @@ class DataFrame:
         return iter(rows)
 
     def __len__(self) -> int:
+        if self._frame is None:
+            self.materialize()  # unread Arrow rows become a store frame here
         frame = self._frame
         if frame is not None:
             return len(frame)
