@@ -422,6 +422,19 @@ class DataFrame:
             if not isinstance(c, int):
                 column_indicies[i] = self.column_names.index(c)
 
+        frame = self._frame
+        if frame is not None:
+            # v2: decode only the requested fields; same object array v1 returned
+            n = len(frame) if limit < 0 else min(limit, len(frame))
+            collected = numpy.empty((len(column_indicies), n), dtype=object)
+            if n:
+                width = self.columncount
+                for i, j in enumerate(column_indicies):
+                    if j < 0 or j >= width:
+                        raise IndexError(f"Column index out of bounds (0 <= {j} < {width})")
+                    collected[i] = numpy.fromiter(frame.column_values(j, n), dtype=object, count=n)
+            return collected[0] if single else collected
+
         collected = collect_cython(
             self._rows, numpy.array(column_indicies, dtype=numpy.int32), limit
         )

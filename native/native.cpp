@@ -25,6 +25,8 @@
 #include "arrow_import.h"
 #include "decimal.h"
 #include "schema_slots.h"
+#include "serialize.h"
+#include "render.h"
 #include "width.h"
 #include "core/alloc.h"
 #include "core/append_buffer.h"
@@ -109,6 +111,26 @@ NB_MODULE(_native, m) {
          METH_NOARGS, "Invalidate every schema cache (after an in-place change orso cannot see)."},
         {"parse_iso_text", [](PyObject*, PyObject* v) -> PyObject* { return orso::parse_iso_text(v); },
          METH_O, "ISO-8601 str/bytes to a naive UTC datetime, or None when the strict parser refuses it."},
+        {"row_packed", [](PyObject*, PyObject* row) -> PyObject* { return orso::row_packed(row); },
+         METH_O, "msgpack payload of a row, byte-identical to v1's Row._packed()."},
+        {"row_as_bytes", [](PyObject*, PyObject* row) -> PyObject* { return orso::row_as_bytes(row); },
+         METH_O, "v1's record bytes for a row: header, length, timestamp, payload."},
+        {"row_from_bytes", [](PyObject*, PyObject* data) -> PyObject* { return orso::row_from_bytes(data); },
+         METH_O, "The values tuple of a v1 record."},
+        {"row_as_json", [](PyObject*, PyObject* row) -> PyObject* { return orso::row_as_json(row); },
+         METH_O, "Row.as_json bytes, or None when Python's json should do the row."},
+        {"trunc_printable", reinterpret_cast<PyCFunction>(reinterpret_cast<void (*)(void)>(
+             +[](PyObject*, PyObject* const* args, Py_ssize_t nargs) -> PyObject* {
+                 if (nargs < 1 || nargs > 3 || !PyUnicode_Check(args[0])) {
+                     PyErr_SetString(PyExc_TypeError, "trunc_printable(str, width=None, full_line=True)");
+                     return nullptr;
+                 }
+                 PyObject* width = nargs > 1 ? args[1] : Py_None;
+                 const int full_line = nargs > 2 ? PyObject_IsTrue(args[2]) : 1;
+                 if (full_line < 0) return nullptr;
+                 return orso::trunc_printable(args[0], width, full_line);
+             })),
+         METH_FASTCALL, "display.py's trunc_printable, natively."},
         {nullptr, nullptr, 0, nullptr},
     };
     if (PyModule_AddFunctions(m.ptr(), fast_methods) < 0) throw nb::python_error();
@@ -117,6 +139,15 @@ NB_MODULE(_native, m) {
         Py_XINCREF(fn.ptr());
         Py_XSETREF(orso::g_value_sizer, fn.ptr());
     }, nb::arg("fn"), "Install the Python fallback that sizes one value the way v1 did.");
+
+    m.def("set_serializers", [](nb::handle packer, nb::handle unpacker, nb::handle data_error, nb::handle fromtimestamp) {
+        for (auto [slot, h] : {std::pair{&orso::g_value_packer, packer}, std::pair{&orso::g_payload_unpacker, unpacker},
+                              std::pair{&orso::g_data_error, data_error}, std::pair{&orso::g_fromtimestamp, fromtimestamp}}) {
+            Py_INCREF(h.ptr());
+            Py_XSETREF(*slot, h.ptr());
+        }
+    }, nb::arg("packer"), nb::arg("unpacker"), nb::arg("data_error"), nb::arg("fromtimestamp"),
+       "Install the Python fallbacks the native record and JSON writers use.");
 
     m.def("rows_from_dicts", [](nb::handle row_type, nb::handle keys, nb::handle first, nb::handle rest) {
         if (!PyType_Check(row_type.ptr()) || !PyTuple_Check(keys.ptr())) throw nb::type_error("rows_from_dicts(type, tuple, dict, iterator)");

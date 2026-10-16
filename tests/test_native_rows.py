@@ -377,3 +377,15 @@ if __name__ == "__main__":  # pragma: no cover
     from tests import run_tests
 
     run_tests()
+
+
+def test_store_frame_collect_matches_list_frame_without_decoding_rows():
+    store, listed = twin_frames(mixed_rows(40))
+    for args in (("a",), (["a", "d"],), (2,), ([0, 1, 2, 3],), ("b", 7), ("c", 0)):
+        x, y = store.collect(*args), listed.collect(*args)
+        assert type(x) is type(y) and x.shape == y.shape and x.dtype == y.dtype
+        assert repr(x) == repr(y), args
+    for bad in (-1, 4):
+        with pytest.raises(IndexError):
+            store.collect(bad)
+    assert store._frame is not None  # still a store frame: no rows were decoded

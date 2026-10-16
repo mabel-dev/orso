@@ -29,7 +29,6 @@
 import datetime
 import json
 import sys
-import time
 from threading import RLock
 from typing import Any
 from typing import Dict
@@ -42,9 +41,15 @@ import numpy
 from ormsgpack import OPT_SERIALIZE_NUMPY
 from ormsgpack import packb
 
+from ormsgpack import unpackb
+
 from orso._native import RowBase
+from orso._native import row_as_bytes as _row_as_bytes
+from orso._native import row_as_json as _row_as_json
+from orso._native import row_from_bytes as _row_from_bytes
+from orso._native import row_packed as _row_packed
+from orso._native import set_serializers
 from orso._native import set_value_sizer
-from orso.compute.compiled import from_bytes_cython
 from orso.exceptions import DataError
 from orso.schema import RelationSchema
 
@@ -112,7 +117,14 @@ def _value_size(value) -> int:
     return len(packb(value, option=OPT_SERIALIZE_NUMPY, default=_serialize))
 
 
+def _pack_value(value) -> bytes:
+    """One value as v1 packed it; the native writer uses this for types it leaves to
+    ormsgpack (numpy, enums, UUIDs, dataclasses, aware datetimes and the like)."""
+    return packb(value, option=OPT_SERIALIZE_NUMPY, default=_serialize)
+
+
 set_value_sizer(_value_size)
+set_serializers(_pack_value, unpackb, DataError, datetime.datetime.fromtimestamp)
 
 
 class Row(RowBase):
@@ -139,45 +151,36 @@ class Row(RowBase):
         Returns:
             A new Row instance.
         """
-        return cls(from_bytes_cython(data))
+        return cls(_row_from_bytes(data))
 
     def _packed(self) -> bytes:
         """msgpack payload for this Row, without the record header."""
-        return packb(tuple(self), option=OPT_SERIALIZE_NUMPY, default=_serialize)
+        return _row_packed(self)
 
     @property
     def as_bytes(self) -> bytes:
         """
-        Converts the Row to bytes.
+        Converts the Row to bytes: a 2-byte prefix, the payload length, a nanosecond
+        timestamp, and the msgpack payload (byte-identical to v1's).
 
         Returns:
             The byte representation of the Row.
         """
-        record_bytes = self._packed()
-        record_size = len(record_bytes)
-        timestamp = time.time_ns()
-
-        if record_size > MAXIMUM_RECORD_SIZE:
-            raise DataError("Record length cannot exceed 16Mb")
-
-        return (
-            HEADER_PREFIX
-            + record_size.to_bytes(4, "big")
-            + timestamp.to_bytes(8, "big")
-            + record_bytes
-        )
+        return _row_as_bytes(self)
 
     @property
     def as_json(self) -> bytes:
         """
-        Converts the Row to JSON bytes.
+        Converts the Row to JSON bytes, exactly as
+        `json.dumps(self.as_dict, default=str, separators=(",", ":")).encode()`.
 
         Returns:
             The JSON byte representation of the Row.
         """
-        # `separators` keeps this byte-identical to the orjson output this method
-        # produced before 0.0.233; stdlib json defaults to ", "/": " padding.
-        return json.dumps(self.as_dict, default=str, separators=(",", ":")).encode()
+        out = _row_as_json(self)
+        if out is None:  # rows the native writer leaves to Python's json
+            out = json.dumps(self.as_dict, default=str, separators=(",", ":")).encode()
+        return out
 
     @classmethod
     def create_class(

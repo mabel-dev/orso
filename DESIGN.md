@@ -664,3 +664,53 @@ Short of the §9 targets: `FlatColumn()` (636 ns against ≤ 400; a random ident
 eighteen slot writes) and decimal parsing (884 ns against ≤ 400; the stdlib quantize
 dominates). `flatcolumn_from_arrow` was re-measured after the `arrow_type_map` change.
 
+## 16. Phase 5 status (2026-10-16)
+
+Done, on macOS arm64 / CPython 3.14:
+
+- **Records** (`native/serialize.h`): `Row.as_bytes`, `_packed` and `from_bytes` write
+  and read msgpack natively, byte-identical to v1. The writer encodes the common exact
+  types exactly as ormsgpack does (measured: unsigned family for positive ints, str8,
+  RFC 3339 text for naive datetimes, subclasses as their base type, `str(value)` for
+  Decimal); every other value (numpy, enums, UUIDs, dataclasses, aware datetimes, ints
+  wider than 64 bits) is packed by ormsgpack itself, one value at a time. msgpack is
+  concatenative, so the record is identical by construction. The reader handles what
+  the writer emits and hands anything else to `ormsgpack.unpackb`; v1's header checks,
+  errors and `__datetime__` post-processing are kept.
+- **Deviation from decision 7**: ormsgpack stays a dependency, as the encoder of last
+  resort. Dropping it would mean re-implementing ormsgpack's handling of numpy,
+  dataclasses, enums and UUIDs to stay byte-identical, or changing those bytes. It is no
+  longer on the path of ordinary rows.
+- **JSON**: `Row.as_json` reproduces `json.dumps(as_dict, default=str,
+  separators=(",", ":"))` natively: ASCII-only output with `\u` escapes and surrogate
+  pairs, `float.__repr__`, NaN/Infinity, json's key conversions, `str(value)` for the
+  rest. Rows it is not sure of (non-str or duplicate field names, cycles, deep nesting)
+  go to Python's json.
+- **Display**: profiling put ~70% of `display()` in `trunc_printable`, a character walk
+  per cell. It is now native (`native/render.h`), character for character; widths come
+  from the running Python's `unicodedata`, cached per character. Layout, colours and
+  type formatting stay in `display.py`. `markdown()` was already cheap and is unchanged.
+- **collect()** on a store frame decodes only the requested fields, returning the same
+  object array v1 did, with v1's bounds errors.
+- **Tests**: `tests/test_native_serialize.py` (95) compares payloads with ormsgpack and
+  JSON with `json.dumps` across 3,000 random rows each plus every edge type,
+  `from_bytes` with v1's Cython reader, and `trunc_printable` with v1's across 20,000
+  random strings. Full suite 755 passed, 6 skipped.
+
+Measured against v1 (0.0.246) built and run back to back, control drift +0.0%:
+**47 cases faster, 0 slower, 11 unchanged; geometric mean 63.4% faster.**
+
+| case | v1 ns/op | v2 ns/op | speedup |
+|---|---|---|---|
+| row/as_bytes | 326 | 122 | 2.7x |
+| row/as_json | 1,629 | 696 | 2.3x |
+| display/ascii_100_rows_with_types | 36,687 | 16,387 | 2.2x |
+| display/str_of_100k_row_frame | 43,016 | 20,638 | 2.1x |
+| row/from_bytes | 345 | 173 | 2.0x |
+| display/ascii_wide_50_columns | 60,515 | 35,800 | 1.7x |
+| display/markdown_50_rows | 1,854 | 1,850 | 1.0x |
+
+Short of §9: `as_json` (696 ns against ≤ 300; float and datetime reprs still go through
+Python's formatters) and `display` (16 µs a row against ≤ 3 µs; the rest of the per-cell
+formatting is still Python). Both are interactive or occasional paths.
+

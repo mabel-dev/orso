@@ -65,6 +65,9 @@ COLORS = {
 }
 
 
+from orso._native import trunc_printable as _native_trunc_printable  # noqa: E402
+
+
 def colorizer(record, can_colorize=True):
     record = str(record)
     record = record.replace(r"\u0001", "\x01")
@@ -369,6 +372,12 @@ def ascii_table(
         return 2 if unicodedata.east_asian_width(symbol) in ("F", "W") else 1
 
     def trunc_printable(value, width=None, full_line: bool = True):
+        # v2: the per-character walk is native (orso/native/render.h), same output
+        if type(value) is str:
+            return _native_trunc_printable(value, width, full_line)
+        return _trunc_printable_python(value, width, full_line)
+
+    def _trunc_printable_python(value, width=None, full_line: bool = True):
         simple = (
             ("\n" not in value)
             and ("\r" not in value)
