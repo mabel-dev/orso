@@ -21,3 +21,6 @@ baseline.json
 current.json
 *_benchmark_*.json
 .venv/
+
+# v1 build used by benchmarks/demo.py
+benchmarks/.v1/
