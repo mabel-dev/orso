@@ -191,6 +191,7 @@ def _native_extension():
             os.path.join(NATIVE_DIR, "decimal.h"),
             os.path.join(NATIVE_DIR, "arrow_import.h"),
             os.path.join(NATIVE_DIR, "arrow_export.h"),
+            os.path.join(NATIVE_DIR, "schema_slots.h"),
             DRAKEN_SOURCE_RECORD,
         ],
     )

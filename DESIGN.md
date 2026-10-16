@@ -593,3 +593,74 @@ v1 bugs found, not fixed (schema conversion is phase 4):
 - `FlatColumn.from_arrow` crashes on `map` columns, and `arrow_type_map` refuses
   dictionary-encoded columns, so neither v1 nor v2 can import them. Pinned by tests.
 
+## 15. Phase 4 status (2026-10-16)
+
+Done, on macOS arm64 / CPython 3.14:
+
+- **Slotted schema classes, dataclass metadata kept.** `FlatColumn` and `RelationSchema`
+  store every field in a hidden `__slots__` member behind `orso._native.TrackedSlot`, a C
+  data descriptor: reads cost a slot read, and an unset field reads as its default, as v1's
+  class attributes gave. They stay dataclasses in metadata (`__dataclass_fields__`, the
+  generated `__eq__` and `__repr__`) because the PyPI opteryx planner declares
+  `@dataclass(init=False) class ExpressionColumn(FlatColumn)`, whose generated equality
+  and repr only cover the inherited fields if `FlatColumn` is still a dataclass, and
+  because `to_dict()`/`to_json()` use `asdict()`. Construction is hand-written (a fast
+  path for plain `FlatColumn`; subclasses go through their attributes so re-declared
+  fields such as `ConstantColumn.length` land where reads find them). Copies and pickles
+  carry the fields and drop the caches. Columns no longer have a `__dict__`.
+- **Cached lookups that survive mutation.** The PyPI opteryx binder renames, re-aliases
+  and retypes columns in place and reassigns `schema.columns`. Writes to the fields
+  lookups depend on (name, aliases, type, element type, nullability, precision, scale,
+  length, child fields) bump a process-wide schema epoch; a schema's cache (name and
+  alias → column, case-folded names, name tuples, Arrow schema, validation plan) is
+  valid while the epoch, the columns list's identity and its length are unchanged.
+  Building a column never bumps the epoch. Not detected: replacing a list element in
+  place (`schema.columns[i] = c`, `column.aliases[0] = "x"`); neither consumer does it.
+  The validation plan is cached on the schema for `validate()`; `DataFrame` keeps its own
+  per-frame plan (built on first append), which is cheap enough per mabel blob.
+- **Native validation**: `RelationSchema.validate` confirms a passing record with the
+  native plan (exact keys, nullability, `isinstance`) and sends anything else down v1's
+  path, so errors are v1's. Checked against v1 on 3,000 random records.
+- **Parsers**: `parse_iso` tries draken's `iso_datetime.h` first and falls back to v1's
+  parser for anything it refuses, so every string v1 accepted still parses.
+  `OrsoTypes.from_name` is memoised (deprecated spellings are not, so they still warn);
+  `OrsoTypes.parse` skips the keyword set for parameterless types; decimal factories and
+  their quantize contexts are cached; `arrow_type_map` builds its table once.
+- **Fixes** (all pinned by tests):
+  - `parse_iso` applies a time-zone offset (§8 fix 11) and keeps fractional seconds;
+    a `datetime` argument keeps its microseconds. v1 dropped all three. **Observable.**
+  - DECIMAL scale 0 exports as scale 0 (v1: `scale or 10` made `DECIMAL(10,0)`
+    `decimal128(10,10)`).
+  - Map columns import as ARRAY and dictionary-encoded columns as their value type
+    (v1's schema conversion crashed on the first and refused the second).
+  - `FlatColumn.from_arrow` no longer writes column parameters onto the shared
+    `OrsoTypes` member (§8 fix 2). opteryx's own converter still sets them itself.
+  - `to_flatcolumn()` keeps `length`, `disposition` and `expectations`.
+  - `random_string()` always returns exactly `width` characters (v1 could return fewer).
+  - `tests/test_faker.py::test_unfakeable_types` was flaky (the faker returns None for 1%
+    of nullable values before its type check); the test's column is now non-nullable.
+- **Tests**: `tests/test_native_schema.py` (23). Full suite 660 passed, 6 skipped.
+
+Measured against v1 (0.0.246) built and run back to back, twice (control drift +12.0%,
+then −5.2%): **44–48 cases faster, 0 slower; geometric mean 60.5–61.1% faster.**
+From the second run:
+
+| case | v1 ns/op | v2 ns/op | speedup |
+|---|---|---|---|
+| construct/schema_find_column | 920 | 74 | 12.4x |
+| types/from_name | 654 | 60 | 11.0x |
+| construct/orso_schema_to_arrow_schema | 2,923 | 314 | 9.3x |
+| append/schema_validate | 891 | 109 | 8.2x |
+| types/parse_timestamps | 762 | 118 | 6.4x |
+| types/parse_dates | 654 | 130 | 5.0x |
+| construct/flatcolumn_init_typed | 2,211 | 636 | 3.5x |
+| construct/flatcolumn_from_arrow | 3,147 | 1,009 | 3.1x |
+| construct/relation_schema_from_kwargs | 3,066 | 1,195 | 2.6x |
+| construct/flatcolumn_init_from_string_type | 3,029 | 1,275 | 2.4x |
+| types/parse_scalars | 374 | 219 | 1.7x |
+| types/parse_decimals | 1,293 | 884 | 1.5x |
+
+Short of the §9 targets: `FlatColumn()` (636 ns against ≤ 400; a random identity and
+eighteen slot writes) and decimal parsing (884 ns against ≤ 400; the stdlib quantize
+dominates). `flatcolumn_from_arrow` was re-measured after the `arrow_type_map` change.
+

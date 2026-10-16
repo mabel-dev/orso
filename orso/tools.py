@@ -22,6 +22,8 @@ import uuid
 from collections import OrderedDict
 from functools import wraps
 from random import getrandbits
+
+from orso._native import parse_iso_text as _parse_iso_text
 from typing import Any
 from typing import Callable
 from typing import List
@@ -531,10 +533,7 @@ class DecimalFactory(decimal.Decimal):
         Returns:
             decimal.Decimal: The quantized decimal.
         """
-        context = decimal.Context(
-            prec=self.precision,
-            rounding=decimal.ROUND_HALF_EVEN,
-        )
+        context, factor = _decimal_context(self.precision, self.scale)
 
         if isinstance(value, float):
             value = format(value, ".99g")
@@ -548,9 +547,6 @@ class DecimalFactory(decimal.Decimal):
             value += "." + "0"  # minimal fractional part to allow quantize
 
         decimal_value = context.create_decimal(value)
-
-        safe_scale = min(self.scale, 28)
-        factor = decimal.Decimal("10") ** -safe_scale
 
         # Perform quantization with proper error handling
         try:
@@ -584,27 +580,39 @@ class DecimalFactory(decimal.Decimal):
             DecimalFactory instance with .__call__ behavior
         """
         # Create an inert Decimal (value doesn't matter, won't be used)
-        instance = decimal.Decimal.__new__(cls, "0")
-        object.__setattr__(instance, "scale", scale)
-        object.__setattr__(instance, "precision", precision)
+        key = (cls, precision, scale)
+        instance = _DECIMAL_FACTORIES.get(key)
+        if instance is None:
+            instance = decimal.Decimal.__new__(cls, "0")
+            object.__setattr__(instance, "scale", scale)
+            object.__setattr__(instance, "precision", precision)
+            if len(_DECIMAL_FACTORIES) < 1024:
+                _DECIMAL_FACTORIES[key] = instance
         return instance
 
 
-def arrow_type_map(parquet_type) -> Union[Type, None]:
-    """
-    Maps PyArrow types to corresponding Python types.
+# v2: a factory per (precision, scale), and the quantize context and factor it needs, are
+# built once rather than on every value parsed
+_DECIMAL_FACTORIES: dict = {}
+_DECIMAL_CONTEXTS: dict = {}
 
-    Parameters:
-        parquet_type: lib.DataType
-            PyArrow DataType object.
 
-    Returns:
-        Type or None: Corresponding Python type for the PyArrow DataType or None if not recognized.
+def _decimal_context(precision, scale):
+    key = (precision, scale)
+    found = _DECIMAL_CONTEXTS.get(key)
+    if found is None:
+        context = decimal.Context(prec=precision, rounding=decimal.ROUND_HALF_EVEN)
+        factor = decimal.Decimal("10") ** -min(scale, 28)
+        found = (context, factor)
+        if len(_DECIMAL_CONTEXTS) < 1024:
+            _DECIMAL_CONTEXTS[key] = found
+    return found
 
-    Raises:
-        ValueError: If the PyArrow DataType is not recognized.
-    """
 
+_ARROW_TYPE_MAP = None
+
+
+def _build_arrow_type_map():
     try:
         import pyarrow.lib as lib
     except ImportError as import_error:
@@ -636,12 +644,37 @@ def arrow_type_map(parquet_type) -> Union[Type, None]:
         lib.Type_LARGE_LIST: list,
         lib.Type_FIXED_SIZE_LIST: list,
         lib.Type_STRUCT: dict,
-        lib.Type_MAP: dict,
+        lib.Type_MAP: list,  # v2: to_pylist() gives a list of (key, value) tuples (v1: dict, which crashed from_arrow)
         lib.Type_BINARY: bytes,
         lib.Type_LARGE_BINARY: bytes,
         lib.Type_STRING_VIEW: str,
     }
+    return lib, type_map
 
+
+def arrow_type_map(parquet_type) -> Union[Type, None]:
+    """
+    Maps PyArrow types to corresponding Python types.
+
+    Parameters:
+        parquet_type: lib.DataType
+            PyArrow DataType object.
+
+    Returns:
+        Type or None: Corresponding Python type for the PyArrow DataType or None if not recognized.
+
+    Raises:
+        ValueError: If the PyArrow DataType is not recognized.
+    """
+
+    global _ARROW_TYPE_MAP
+    if _ARROW_TYPE_MAP is None:
+        _ARROW_TYPE_MAP = _build_arrow_type_map()  # v2: built once, not on every call
+    lib, type_map = _ARROW_TYPE_MAP
+
+    if parquet_type.id == lib.Type_DICTIONARY:
+        # v2: a dictionary-encoded column holds values of its value type (v1 raised)
+        return arrow_type_map(parquet_type.value_type)
     if parquet_type.id in type_map:
         return type_map[parquet_type.id]
     elif parquet_type.id in {lib.Type_DECIMAL128, lib.Type_DECIMAL256}:
@@ -678,10 +711,11 @@ def random_string(width: int = 16) -> str:
         desired width into the number of random bits needed, and then
         formatting it as a hexadecimal string.
     """
-    num_chars = ((width + 1) >> 1) << 3  # Convert length to number of bits
-    rand_bytes = getrandbits(num_chars)  # Generate random bits
-    # Convert to hex string, clip '0x' prefix, and zero-fill as needed
-    return ("000000" + hex(rand_bytes)[2:])[-width:]
+    # v2: exactly `width` hex digits, zero-padded. v1 padded with only six zeros, so a
+    # small enough random value came back shorter than `width`.
+    if width == 16:
+        return f"{getrandbits(64):016x}"
+    return format(getrandbits(4 * width), f"0{width}x") if width > 0 else ""
 
 
 def parse_iso(value):
@@ -701,6 +735,10 @@ def parse_iso(value):
 
     # If the last character is a Z, we ignore it.
     # If we can't parse as a date we return None rather than error
+    #
+    # v2: well-formed ISO-8601 text goes through draken's parser first, which keeps
+    # fractional seconds and applies a time-zone offset (the result is naive UTC). Text it
+    # refuses falls through to the v1 parser below, so nothing v1 accepted stops parsing.
     try:
         input_type = type(value)
 
@@ -711,6 +749,10 @@ def parse_iso(value):
         if input_type == str and value.isdigit():
             value = int(value)
             input_type = int
+        elif input_type == str:
+            parsed = _parse_iso_text(value)
+            if parsed is not None:
+                return parsed
 
         if input_type == numpy.datetime64:
             # this can create dates rather than datetimes, so don't return yet
@@ -728,7 +770,7 @@ def parse_iso(value):
             return value.to_pydatetime()
 
         if input_type == datetime.datetime:
-            return value.replace(microsecond=0)
+            return value  # v1 dropped the microseconds here
         if input_type == datetime.date:
             return datetime.datetime.combine(value, datetime.time.min)
 

@@ -326,18 +326,20 @@ def arrow_columns():
 
 
 @pytest.mark.parametrize(
-    "array, error",
+    "array, orso_type",
     [
-        (pa.array([[("k", 1)]], pa.map_(pa.string(), pa.int64())), TypeError),
-        (pa.array(["x", "y", "x"]).dictionary_encode(), ValueError),
+        (pa.array([[("k", 1)], None, []], pa.map_(pa.string(), pa.int64())), OrsoTypes.ARRAY),
+        (pa.array(["x", None, "y", "x"]).dictionary_encode(), OrsoTypes.VARCHAR),
     ],
     ids=["map", "dictionary"],
 )
-def test_schema_conversion_limits_are_v1s(array, error):
-    # FlatColumn.from_arrow / arrow_type_map (unchanged from v1) cannot describe map or
-    # dictionary-encoded columns, so neither v1 nor v2 imports them. Logged for phase 4.
-    with pytest.raises(error):
-        orso.DataFrame.from_arrow(pa.table({"c": array}))
+def test_map_and_dictionary_columns_import(array, orso_type):
+    # v1's schema conversion crashed on map columns and refused dictionary-encoded ones,
+    # so neither imported; v2 describes them (map as ARRAY, dictionary by its value type)
+    table = pa.table({"c": array})
+    df = orso.DataFrame.from_arrow(table)
+    assert df.schema.columns[0].type == orso_type
+    assert_rows_match(list(df), rows_of(table))
 
 
 def rows_of(table):

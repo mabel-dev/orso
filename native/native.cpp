@@ -24,6 +24,7 @@
 #include "arrow_export.h"
 #include "arrow_import.h"
 #include "decimal.h"
+#include "schema_slots.h"
 #include "width.h"
 #include "core/alloc.h"
 #include "core/append_buffer.h"
@@ -95,6 +96,23 @@ NB_MODULE(_native, m) {
     if (row_base == nullptr) throw nb::python_error();
     m.attr("RowBase") = nb::borrow(reinterpret_cast<PyObject*>(row_base));
 
+    PyObject* tracked = PyType_FromSpec(&orso::TrackedSlot_spec);
+    if (tracked == nullptr) throw nb::python_error();
+    m.attr("TrackedSlot") = nb::steal(tracked);
+
+    // Raw C functions: these sit on hot paths (every find_column, every timestamp parse)
+    // where nanobind's argument dispatch would be most of the cost.
+    static PyMethodDef fast_methods[] = {
+        {"schema_epoch", [](PyObject*, PyObject*) -> PyObject* { return PyLong_FromUnsignedLongLong(orso::g_schema_epoch); },
+         METH_NOARGS, "The schema epoch: bumped by every write that can invalidate a schema cache."},
+        {"bump_schema_epoch", [](PyObject*, PyObject*) -> PyObject* { ++orso::g_schema_epoch; Py_RETURN_NONE; },
+         METH_NOARGS, "Invalidate every schema cache (after an in-place change orso cannot see)."},
+        {"parse_iso_text", [](PyObject*, PyObject* v) -> PyObject* { return orso::parse_iso_text(v); },
+         METH_O, "ISO-8601 str/bytes to a naive UTC datetime, or None when the strict parser refuses it."},
+        {nullptr, nullptr, 0, nullptr},
+    };
+    if (PyModule_AddFunctions(m.ptr(), fast_methods) < 0) throw nb::python_error();
+
     m.def("set_value_sizer", [](nb::handle fn) {
         Py_XINCREF(fn.ptr());
         Py_XSETREF(orso::g_value_sizer, fn.ptr());
@@ -133,6 +151,14 @@ NB_MODULE(_native, m) {
         .def(nb::init<nb::handle, nb::handle, nb::handle, nb::handle>(), nb::arg("row_type"),
              nb::arg("columns").none(), nb::arg("validate").none(), nb::arg("dumps").none())
         .def("row", &orso::Plan::build_row, nb::arg("entry").none(), "A validated Row for `entry`, v1 append() semantics.")
+        .def("check", [](const orso::Plan& p, nb::handle entry) {
+            // True when `entry` passes v1's fast checks (exact keys, nullability,
+            // isinstance); False means "ask RelationSchema.validate's slow path".
+            orso::ValueBuffer buf(p.nfields);
+            const int r = p.gather_typed_fast(entry.ptr(), buf);
+            if (r < 0) throw nb::python_error();
+            return r == 1;
+        }, nb::arg("entry").none())
         .def_prop_ro("typed", [](const orso::Plan& p) { return p.typed; })
         .def_prop_ro("nfields", [](const orso::Plan& p) { return p.nfields; });
 

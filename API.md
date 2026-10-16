@@ -280,6 +280,11 @@ and reads `row_count_metric`/`row_count_estimate` freely.
 
 ### 4.2 `FlatColumn` (tier 1, dataclass with `__eq__` over all fields)
 
+v2: still a dataclass in metadata (`dataclasses.fields`, `asdict`, the generated `__eq__`
+and `__repr__`, and subclassing with `@dataclass(init=False)` all work as in v1), but
+fields live in `__slots__`, so instances have no `__dict__`. `to_flatcolumn()` now keeps
+every field (v1 lost `length`, `disposition` and `expectations`).
+
 Keyword-only construction. Every field is a public attribute.
 
 | field | default | notes |
@@ -485,12 +490,12 @@ display tests accept.
 
 | name | tier | contract |
 |---|---|---|
-| `random_string(width=16)` | 1 | lowercase hex string of exactly `width` characters, called for every `FlatColumn` identity and all over opteryx |
+| `random_string(width=16)` | 1 | lowercase hex string of exactly `width` characters (v1 could return fewer), called for every `FlatColumn` identity and all over opteryx |
 | `random_int()` | 1 | random unsigned 32-bit int |
 | `single_item_cache(func=None, *, valid_for_seconds=inf)` | 1 | memoises the most recent `(args, kwargs)` result; usable bare or with arguments; stacks under `@property` |
 | `lru_cache_with_expiry(func=None, *, max_size=5, valid_for_seconds=inf)` | 2 | |
 | `retry(max_tries=3, backoff_seconds=1, exponential_backoff=False, max_backoff=4, retry_exceptions=(Exception,), jitter=False, callback=None)` | 2 | decorator |
-| `parse_iso(value)` | 1 (behind every temporal `parse`) | fast ISO-8601 parser, not a full one: `YYYY-MM-DD`, `YYYY-MM-DD[ T]HH:MM[:SS[.ffffff]]`, optional trailing `Z` or `+offset` (dropped, no conversion); digit strings and numbers are epoch seconds (UTC, tz stripped); numpy `datetime64`, pandas timestamps, `date` and `datetime` pass through with microseconds zeroed; returns naive `datetime` or `None` |
+| `parse_iso(value)` | 1 (behind every temporal `parse`); **v2 applies offsets (result is naive UTC) and keeps fractional seconds and a `datetime`'s microseconds; v1 dropped them** | fast ISO-8601 parser, not a full one: `YYYY-MM-DD`, `YYYY-MM-DD[ T]HH:MM[:SS[.ffffff]]`, optional trailing `Z` or `+offset` (dropped, no conversion); digit strings and numbers are epoch seconds (UTC, tz stripped); numpy `datetime64`, pandas timestamps, `date` and `datetime` pass through with microseconds zeroed; returns naive `datetime` or `None` |
 | `DecimalFactory` | 2 | `Decimal` subclass carrying `precision`/`scale`, `new_factory(precision, scale)` |
 | `arrow_type_map(arrow_type)` | 2 | §5.5 |
 | `timed`, `log`, `counter`, `throttle`, `monitor`, `repeat`, `islice` | 3 | decorators and helpers nothing imports |
