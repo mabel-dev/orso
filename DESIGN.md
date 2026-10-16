@@ -367,7 +367,7 @@ cache behind a `PyMutex`; the Row field cache was already per thread.
 | 8 | append plan rebuilt per `DataFrame()` | cached on the schema |
 | 9 | `find_column` builds lists per lookup | O(1) dict |
 | 10 | `DATE` exports as `date64` while `date32` imports as `date` and `date64` as `datetime`, so a date round-trips as a datetime | export `date32`; import both as `date` |
-| 11 | ISO parser drops `Z` / `+HH:MM`, shifting values | offsets honoured, normalised to UTC |
+| 11 | ISO parser drops `Z` / `+HH:MM`, shifting values | offsets honoured, normalised to UTC; one that cannot be applied is refused (None) |
 | 12 | `arrow()` with a `STRUCT` column lacking `fields` abandons the whole declared schema | only that column falls back |
 | 13 | `__hash__` serialises every row to text | hash the record bytes |
 | 14 | a row of the wrong width is stored and corrupts `arrow()` later | width checked at ingest |
@@ -783,9 +783,14 @@ checkout. Outcomes were compared per test, not by totals.
   comment "Timezone ignored" (`tests/unit/core/test_cast.py`). v1 ignored every offset
   and kept the wall-clock time. v2 applies it and returns 11:00 UTC. This is the change the
   fix intends, but opteryx's TIMESTAMP is naive and its own test documents the v1
-  behaviour, so either that test changes or fix 11 is reverted before tagging. **Open.**
-  - Related: when draken's parser refuses an offset form (`+01`, hours only), v2 falls back to
-    v1's parser, which drops the offset. So v2 is not yet consistent about offsets either way.
+  behaviour, so either that test changes or fix 11 is reverted before tagging.
+  **Resolved 2026-10-16: fix 11 stays.** opteryx-core's own copy of that test already expects
+  11:00 ("Offset honoured: normalised to UTC, never discarded"), and draken's parser states
+  the same rule, so v2 brings PyPI opteryx in line with opteryx-core. The fallback that still
+  dropped offsets draken refuses (hours-only `+01`) now returns None, so `parse_iso` gives
+  draken's answer on every input (`tests/test_tools_dates.py::test_matches_drakens_parser`).
+  PyPI opteryx's `test_cast` expectation changes to 11:00 when it adopts orso v2 (its repo).
+  mabel has its own parser and is unaffected.
 
 ## 19. Rewrite gaps closed (2026-10-16)
 

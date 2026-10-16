@@ -42,6 +42,13 @@ DATE_TESTS = [
         ("2023-02-29", None),
         ("2021-01-11T12:00-0530", datetime.datetime(2021, 1, 11, 17, 30)),  # v1: 12:00
         (datetime.datetime(2024, 1, 1, 1, 2, 3, 456), datetime.datetime(2024, 1, 1, 1, 2, 3, 456)),  # v1 dropped the 456
+        # offsets that cannot be applied are refused, never dropped (v1: all 12:00 or 12:00:00)
+        ("2021-02-21T12:00:00+01", None),
+        ("2021-02-21T12:00:00-05", None),
+        ("2021-02-21 12:00+01", None),
+        ("2021-02-21T12:00:00+01:00:00", None),
+        ("2021-02-21T12:00:00 +01:00", None),
+        ("2021-02-21T12:00:00+1:00", None),
     ]
 # fmt:on
 
@@ -49,6 +56,31 @@ DATE_TESTS = [
 @pytest.mark.parametrize("string, expect", DATE_TESTS)
 def test_date_parser(string, expect):
     assert parse_iso(string) == expect, f"in:{string}  res:{parse_iso(string)} exp:{expect}"
+
+
+# The rule is draken's (and so opteryx-core's CAST): orso must give the same instant, or
+# refuse, wherever draken's parser has an answer, and must never accept an offset it
+# refuses.
+DRAKEN_AGREEMENT = [
+    "2021-02-21T12:00:00",
+    "2021-02-21T12:00:00Z",
+    "2021-02-21T12:00:00+01:00",
+    "2021-02-21T12:00:00+0100",
+    "2021-02-21T12:00:00-05:30",
+    "2021-02-21T12:00:00+01",
+    "2021-02-21T12:00:00.123456+01:00",
+    "2021-02-21 23:30-02:00",
+    "2021-02-21T00:30:00+14:00",
+]
+
+
+@pytest.mark.parametrize("text", DRAKEN_AGREEMENT)
+def test_matches_drakens_parser(text):
+    from orso._native import parse_timestamp_us
+
+    us = parse_timestamp_us(text)
+    expected = None if us is None else datetime.datetime(1970, 1, 1) + datetime.timedelta(microseconds=us)
+    assert parse_iso(text) == expected
 
 
 if __name__ == "__main__":  # pragma: no cover

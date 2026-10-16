@@ -738,7 +738,9 @@ def parse_iso(value):
     #
     # v2: well-formed ISO-8601 text goes through draken's parser first, which keeps
     # fractional seconds and applies a time-zone offset (the result is naive UTC). Text it
-    # refuses falls through to the v1 parser below, so nothing v1 accepted stops parsing.
+    # refuses falls through to the v1 parser below, except text with an offset: that is
+    # refused (None), never parsed with the offset dropped. The result matches draken's
+    # parser and opteryx-core's CAST.
     try:
         input_type = type(value)
 
@@ -782,10 +784,12 @@ def parse_iso(value):
         if input_type == str and 10 <= len(value) <= 33:
             if value[-1] == "Z":
                 value = value[:-1]
-            if "+" in value:
-                value = value.split("+")[0]
-                if not 10 <= len(value) <= 28:
-                    return None
+            # v2: draken's parser above applies every offset it accepts. One it refused
+            # (hours only, "+01") cannot be applied here either, and v1 dropped it, which
+            # shifts the value by the offset. Refuse it instead, as draken and
+            # opteryx-core do. Past the date, a '+' or '-' can only start an offset.
+            if "+" in value or "-" in value[10:]:
+                return None
             val_len = len(value)
             if value[4] != "-" or value[7] != "-":
                 return None
