@@ -11,4 +11,3 @@
 # limitations under the License.
 
 __version__: str = "0.1.2"
-__author__: str = "@joocer"
