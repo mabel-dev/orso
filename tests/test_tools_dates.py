@@ -5,8 +5,15 @@ import pytest
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
 import datetime
-import numpy
-import pandas
+
+try:  # optional in v2: their cases run when installed
+    import numpy
+except ImportError:  # pragma: no cover
+    numpy = None
+try:
+    import pandas
+except ImportError:  # pragma: no cover
+    pandas = None
 
 from orso.tools import parse_iso
 
@@ -32,10 +39,6 @@ DATE_TESTS = [
         ("1999-12-31T23:59:59.999999", datetime.datetime(1999,12,31,23,59,59,999999)),
         ("1999-12-31T23:59:59.999999+0800", datetime.datetime(1999,12,31,15,59,59,999999)),  # v1: 23:59:59
         ("1999-12-31T23:59:59.99999999", datetime.datetime(1999,12,31,23,59,59,999999)),  # past us: truncated
-        (numpy.datetime64("2021-01-11T12:00"), datetime.datetime(2021, 1, 11, 12, 0)),
-        (numpy.datetime64("2021-02-21T00:00"), datetime.datetime(2021, 2, 21)),
-        (pandas.Timestamp("2021-03-11T12:00"), datetime.datetime(2021, 3, 11, 12, 0, 0)),
-        (pandas.Timestamp("2021-04-21T00:00"), datetime.datetime(2021, 4, 21)),
         # still accepted through the v1 fallback, which ignores what follows the seconds
         ("2024-01-01 00:00:00 UTC", datetime.datetime(2024, 1, 1)),
         ("2021-1-5", datetime.datetime(2021, 1, 5)),  # v1: None (it needed two-digit fields)
@@ -51,6 +54,16 @@ DATE_TESTS = [
         ("2021-02-21T12:00:00+1:00", None),
     ]
 # fmt:on
+if numpy is not None:
+    DATE_TESTS += [
+        (numpy.datetime64("2021-01-11T12:00"), datetime.datetime(2021, 1, 11, 12, 0)),
+        (numpy.datetime64("2021-02-21T00:00"), datetime.datetime(2021, 2, 21)),
+    ]
+if pandas is not None:
+    DATE_TESTS += [
+        (pandas.Timestamp("2021-03-11T12:00"), datetime.datetime(2021, 3, 11, 12, 0, 0)),
+        (pandas.Timestamp("2021-04-21T00:00"), datetime.datetime(2021, 4, 21)),
+    ]
 
 
 @pytest.mark.parametrize("string, expect", DATE_TESTS)

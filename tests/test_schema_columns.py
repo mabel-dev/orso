@@ -7,7 +7,12 @@ sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
 import datetime
 import pyarrow
-import numpy
+
+try:  # numpy is optional in v2: only the array-backed virtual columns need it
+    import numpy
+except ImportError:  # pragma: no cover
+    numpy = None
+needs_numpy = pytest.mark.skipif(numpy is None, reason="numpy is not installed")
 
 from orso.types import OrsoTypes
 
@@ -66,6 +71,7 @@ def test_flat_column_with_unknown_type():
         FlatColumn(name="test", type="unknown")
 
 
+@needs_numpy
 def test_flat_column_materialize():
     flat_column = FlatColumn(name="athena", type=OrsoTypes.INTEGER)
 
@@ -173,6 +179,7 @@ def test_type_checks():
     schema.validate({str(k): v for k, v in TEST_DATA.items()})
 
 
+@needs_numpy
 def test_function_column():
     func_column = FunctionColumn(name="aries", type=OrsoTypes.DATE, binding=datetime.date.today)
 
@@ -194,6 +201,7 @@ def test_function_column():
     assert all(v == datetime.date.today() for v in values)
 
 
+@needs_numpy
 def test_constant_column():
     FACT: str = "The god of merchants, shepherds and messengers."
 
@@ -218,6 +226,7 @@ def test_constant_column():
     assert all(v == FACT for v in values)
 
 
+@needs_numpy
 def test_dict_column():
     MONTH_LENGTHS: list = ["31", "28", "31", "30", "31", "30", "31", "31", "30", "31", "30", "31"]
 
@@ -234,6 +243,7 @@ def test_dict_column():
     assert list(values) == MONTH_LENGTHS
 
 
+@needs_numpy
 def test_rle_column():
     SEASON_LENGTHS: list = ["31", "30", "31", "31", "30", "31", "31", "31", "31"]
 
@@ -250,6 +260,7 @@ def test_rle_column():
     assert list(values) == SEASON_LENGTHS
 
 
+@needs_numpy
 def test_sparse_column():
     VARYING_LENGTHS: list = ["31", None, "31", None, None, "31", "30", "31", None]
 
@@ -266,9 +277,9 @@ def test_sparse_column():
     assert numpy.array_equal(values, numpy.array(VARYING_LENGTHS))
 
 
-import numpy
 
 
+@needs_numpy
 def test_sparse_column_multiply():
     # Initialize the sparse column
     original_values = [1, None, 2, None, None, 3, 4, 5, None]
@@ -288,6 +299,7 @@ def test_sparse_column_multiply():
 
 
 # Constant Column Test
+@needs_numpy
 def test_constant_column_multiply():
     constant_col = ConstantColumn(name="const", type=OrsoTypes.INTEGER, length=5, value=3)
     constant_col.values *= 2
@@ -297,6 +309,7 @@ def test_constant_column_multiply():
 
 
 # Dictionary Column Test
+@needs_numpy
 def test_dictionary_column_multiply():
     original_values = [1, 3, 2, 2, 3, 1]
     dict_col = DictionaryColumn(name="dict", type=OrsoTypes.INTEGER, values=original_values)
@@ -308,6 +321,7 @@ def test_dictionary_column_multiply():
 
 
 # RLE Column Test
+@needs_numpy
 def test_rle_column_multiply():
     original_values = [1, 1, 2, 2, 3, 3]
     rle_col = RLEColumn(name="rle", type=OrsoTypes.INTEGER, values=original_values)

@@ -217,6 +217,7 @@ def test_to_flatcolumn_keeps_every_field():
 
 
 def test_constant_column_keeps_its_own_fields():
+    pytest.importorskip("numpy")  # collect() and array-backed columns return numpy arrays
     c = ConstantColumn(name="c", value=7, length=4, type=OrsoTypes.INTEGER)
     assert (c.length, c.value, list(c.materialize())) == (4, 7, [7, 7, 7, 7])
     assert copy.deepcopy(c) == c

@@ -450,6 +450,7 @@ def test_type_combinations():
     assert find_compatible_type([OrsoTypes.INTEGER, OrsoTypes.JSONB]) == OrsoTypes.VARCHAR
 
 def test_type_to_numpy_dtype():
+    pytest.importorskip("numpy")  # collect() and array-backed columns return numpy arrays
     import numpy
     assert OrsoTypes.INTEGER.numpy_dtype == numpy.dtype("int64")
 

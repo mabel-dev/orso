@@ -21,7 +21,10 @@ import pytest
 
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
-import numpy
+try:  # optional in v2; numpy values are exercised when it is installed
+    import numpy
+except ImportError:  # pragma: no cover
+    numpy = None
 from ormsgpack import OPT_SERIALIZE_NUMPY
 from ormsgpack import packb
 
@@ -79,9 +82,13 @@ VALUES = [
     decimal.Decimal("1.50"), decimal.Decimal("-0"), decimal.Decimal("NaN"),
     [], (), {}, [1, "a", None, [2.5, {"k": (b"x",)}]], {"a": 1, "b": [True]}, list(range(16)),
     {str(i): i for i in range(16)}, Colour.RED, Level.HIGH, uuid.UUID(int=7), Point(1),
-    numpy.int64(5), numpy.float32(1.5), numpy.bool_(True), numpy.array([1, 2]),
-    numpy.datetime64("2024-01-01T00:00:00"), bytearray(b"ab"), memoryview(b"cd"),
+    bytearray(b"ab"), memoryview(b"cd"),
 ]
+if numpy is not None:
+    VALUES += [
+        numpy.int64(5), numpy.float32(1.5), numpy.bool_(True), numpy.array([1, 2]),
+        numpy.datetime64("2024-01-01T00:00:00"),
+    ]
 
 
 def v1_payload(row):

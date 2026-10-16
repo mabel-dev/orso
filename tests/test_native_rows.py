@@ -380,6 +380,7 @@ if __name__ == "__main__":  # pragma: no cover
 
 
 def test_store_frame_collect_matches_list_frame_without_decoding_rows():
+    pytest.importorskip("numpy")  # collect() and array-backed columns return numpy arrays
     store, listed = twin_frames(mixed_rows(40))
     for args in (("a",), (["a", "d"],), (2,), ([0, 1, 2, 3],), ("b", 7), ("c", 0)):
         x, y = store.collect(*args), listed.collect(*args)
