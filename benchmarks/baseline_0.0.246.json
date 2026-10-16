@@ -1,0 +1,757 @@
+{
+  "meta": {
+    "orso": "0.0.246",
+    "python": "3.14.5",
+    "implementation": "CPython",
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "commit": "c09cc35",
+    "dirty": true,
+    "timestamp": "2026-10-15T22:29:02+00:00",
+    "rounds": 5,
+    "scale": 1.0
+  },
+  "results": {
+    "construct/dataframe_from_dicts": {
+      "group": "construct",
+      "ops": 50000,
+      "min_ms": 12.73075,
+      "median_ms": 12.875625,
+      "rounds_ms": [
+        12.882042,
+        12.875625,
+        12.73075,
+        12.825542,
+        13.05325
+      ]
+    },
+    "construct/dataframe_from_rows_materialized": {
+      "group": "construct",
+      "ops": 2000000,
+      "min_ms": 4.97625,
+      "median_ms": 5.033834,
+      "rounds_ms": [
+        5.182834,
+        5.166667,
+        5.033834,
+        4.97625,
+        5.015209
+      ]
+    },
+    "construct/relation_schema_from_kwargs": {
+      "group": "construct",
+      "ops": 4000,
+      "min_ms": 11.58125,
+      "median_ms": 11.622917,
+      "rounds_ms": [
+        11.622917,
+        11.596416,
+        11.664542,
+        11.58125,
+        11.679125
+      ]
+    },
+    "construct/flatcolumn_init_typed": {
+      "group": "construct",
+      "ops": 20000,
+      "min_ms": 42.891584,
+      "median_ms": 43.354,
+      "rounds_ms": [
+        45.460833,
+        43.70575,
+        42.980792,
+        43.354,
+        42.891584
+      ]
+    },
+    "construct/flatcolumn_init_from_string_type": {
+      "group": "construct",
+      "ops": 20000,
+      "min_ms": 57.934167,
+      "median_ms": 58.037542,
+      "rounds_ms": [
+        58.085792,
+        58.216375,
+        58.014166,
+        57.934167,
+        58.037542
+      ]
+    },
+    "construct/flatcolumn_from_arrow": {
+      "group": "construct",
+      "ops": 3000,
+      "min_ms": 9.444166,
+      "median_ms": 9.449208,
+      "rounds_ms": [
+        9.510459,
+        9.449208,
+        9.447959,
+        9.444166,
+        9.464291
+      ]
+    },
+    "construct/orso_schema_to_arrow_schema": {
+      "group": "construct",
+      "ops": 2000,
+      "min_ms": 5.689042,
+      "median_ms": 5.738417,
+      "rounds_ms": [
+        5.855333,
+        5.689042,
+        5.709917,
+        5.738417,
+        5.743083
+      ]
+    },
+    "construct/schema_to_dict_from_dict": {
+      "group": "construct",
+      "ops": 500,
+      "min_ms": 17.305375,
+      "median_ms": 17.346458,
+      "rounds_ms": [
+        17.45875,
+        17.346458,
+        17.329625,
+        17.305375,
+        17.532208
+      ]
+    },
+    "construct/schema_find_column": {
+      "group": "construct",
+      "ops": 50000,
+      "min_ms": 42.949083,
+      "median_ms": 42.994834,
+      "rounds_ms": [
+        43.015875,
+        42.967083,
+        42.949083,
+        42.994834,
+        43.572209
+      ]
+    },
+    "construct/random_string": {
+      "group": "construct",
+      "ops": 100000,
+      "min_ms": 12.393459,
+      "median_ms": 12.473417,
+      "rounds_ms": [
+        12.496417,
+        12.444334,
+        12.393459,
+        12.473417,
+        12.498833
+      ]
+    },
+    "append/dict_with_relation_schema": {
+      "group": "append",
+      "ops": 50000,
+      "min_ms": 24.924958,
+      "median_ms": 25.097958,
+      "rounds_ms": [
+        24.96675,
+        25.097958,
+        25.354542,
+        25.116583,
+        24.924958
+      ]
+    },
+    "append/dict_with_column_names": {
+      "group": "append",
+      "ops": 50000,
+      "min_ms": 12.900084,
+      "median_ms": 13.055792,
+      "rounds_ms": [
+        12.965834,
+        13.22875,
+        13.055792,
+        13.133166,
+        12.900084
+      ]
+    },
+    "append/tuple_with_column_names": {
+      "group": "append",
+      "ops": 50000,
+      "min_ms": 9.272833,
+      "median_ms": 9.602667,
+      "rounds_ms": [
+        9.272833,
+        9.520333,
+        9.607875,
+        9.602667,
+        9.769167
+      ]
+    },
+    "append/dict_with_jsonb_column": {
+      "group": "append",
+      "ops": 20000,
+      "min_ms": 24.956375,
+      "median_ms": 25.122333,
+      "rounds_ms": [
+        25.122333,
+        25.183542,
+        24.956375,
+        25.14625,
+        25.006875
+      ]
+    },
+    "append/schema_validate": {
+      "group": "append",
+      "ops": 50000,
+      "min_ms": 42.198958,
+      "median_ms": 42.375583,
+      "rounds_ms": [
+        42.203333,
+        42.377792,
+        42.198958,
+        42.380958,
+        42.375583
+      ]
+    },
+    "append/append_then_nbytes_then_arrow": {
+      "group": "append",
+      "ops": 20000,
+      "min_ms": 18.497875,
+      "median_ms": 18.941542,
+      "rounds_ms": [
+        18.941542,
+        19.011375,
+        18.849625,
+        18.497875,
+        18.959417
+      ]
+    },
+    "row/create_from_dict": {
+      "group": "row",
+      "ops": 100000,
+      "min_ms": 22.730958,
+      "median_ms": 22.905125,
+      "rounds_ms": [
+        22.916375,
+        22.905125,
+        22.730958,
+        23.172208,
+        22.845583
+      ]
+    },
+    "row/create_from_tuple": {
+      "group": "row",
+      "ops": 100000,
+      "min_ms": 15.609292,
+      "median_ms": 15.889666,
+      "rounds_ms": [
+        16.028375,
+        15.873625,
+        16.060292,
+        15.889666,
+        15.609292
+      ]
+    },
+    "row/create_from_tuple_tuples_only": {
+      "group": "row",
+      "ops": 100000,
+      "min_ms": 11.78,
+      "median_ms": 11.83375,
+      "rounds_ms": [
+        11.83375,
+        11.966459,
+        11.84525,
+        11.78,
+        11.82625
+      ]
+    },
+    "row/as_dict": {
+      "group": "row",
+      "ops": 100000,
+      "min_ms": 24.694917,
+      "median_ms": 24.824583,
+      "rounds_ms": [
+        24.824583,
+        24.694917,
+        24.925458,
+        24.871833,
+        24.752625
+      ]
+    },
+    "row/get_by_name": {
+      "group": "row",
+      "ops": 100000,
+      "min_ms": 3.447792,
+      "median_ms": 3.510833,
+      "rounds_ms": [
+        3.510833,
+        3.513875,
+        3.492584,
+        3.535125,
+        3.447792
+      ]
+    },
+    "row/as_bytes": {
+      "group": "row",
+      "ops": 50000,
+      "min_ms": 16.310583,
+      "median_ms": 16.483833,
+      "rounds_ms": [
+        16.483833,
+        16.310583,
+        16.615041,
+        16.407917,
+        16.494166
+      ]
+    },
+    "row/from_bytes": {
+      "group": "row",
+      "ops": 50000,
+      "min_ms": 17.036333,
+      "median_ms": 17.186292,
+      "rounds_ms": [
+        17.328,
+        17.036333,
+        17.186292,
+        17.237791,
+        17.158292
+      ]
+    },
+    "row/as_json": {
+      "group": "row",
+      "ops": 50000,
+      "min_ms": 80.642792,
+      "median_ms": 80.970708,
+      "rounds_ms": [
+        81.163542,
+        80.970708,
+        80.909666,
+        80.642792,
+        81.018917
+      ]
+    },
+    "row/nbytes_first_call": {
+      "group": "row",
+      "ops": 50000,
+      "min_ms": 18.321916,
+      "median_ms": 18.336625,
+      "rounds_ms": [
+        18.321916,
+        18.448583,
+        18.336625,
+        18.397083,
+        18.330209
+      ]
+    },
+    "arrow/to_arrow_inferred_types": {
+      "group": "arrow",
+      "ops": 100000,
+      "min_ms": 10.409458,
+      "median_ms": 10.513375,
+      "rounds_ms": [
+        10.409458,
+        10.513375,
+        10.532333,
+        10.796667,
+        10.463084
+      ]
+    },
+    "arrow/to_arrow_relation_schema": {
+      "group": "arrow",
+      "ops": 100000,
+      "min_ms": 10.357166,
+      "median_ms": 10.457416,
+      "rounds_ms": [
+        10.357166,
+        10.506875,
+        10.468917,
+        10.404667,
+        10.457416
+      ]
+    },
+    "arrow/to_arrow_decimal_columns": {
+      "group": "arrow",
+      "ops": 50000,
+      "min_ms": 5.305125,
+      "median_ms": 5.47925,
+      "rounds_ms": [
+        5.489167,
+        5.524833,
+        5.47925,
+        5.338875,
+        5.305125
+      ]
+    },
+    "arrow/to_arrow_wide_20_columns": {
+      "group": "arrow",
+      "ops": 100000,
+      "min_ms": 74.928458,
+      "median_ms": 75.4255,
+      "rounds_ms": [
+        75.493166,
+        75.397375,
+        75.994791,
+        75.4255,
+        74.928458
+      ]
+    },
+    "arrow/to_arrow_limit_1000_of_100k": {
+      "group": "arrow",
+      "ops": 50000,
+      "min_ms": 5.506333,
+      "median_ms": 5.547,
+      "rounds_ms": [
+        5.680083,
+        5.506333,
+        5.547,
+        5.706083,
+        5.543
+      ]
+    },
+    "arrow/from_arrow_materialized": {
+      "group": "arrow",
+      "ops": 100000,
+      "min_ms": 56.384666,
+      "median_ms": 56.731417,
+      "rounds_ms": [
+        56.765542,
+        56.384666,
+        56.865708,
+        56.597417,
+        56.731417
+      ]
+    },
+    "arrow/from_arrow_10_chunks_materialized": {
+      "group": "arrow",
+      "ops": 100000,
+      "min_ms": 56.533875,
+      "median_ms": 56.57225,
+      "rounds_ms": [
+        56.57225,
+        56.751,
+        56.533875,
+        56.58225,
+        56.54175
+      ]
+    },
+    "arrow/from_arrow_list_of_tables_materialized": {
+      "group": "arrow",
+      "ops": 100000,
+      "min_ms": 54.711791,
+      "median_ms": 54.857625,
+      "rounds_ms": [
+        55.327833,
+        54.857625,
+        54.717458,
+        55.310291,
+        54.711791
+      ]
+    },
+    "arrow/from_arrow_first_1000_rows": {
+      "group": "arrow",
+      "ops": 1000,
+      "min_ms": 55.902167,
+      "median_ms": 56.046084,
+      "rounds_ms": [
+        56.413917,
+        55.902167,
+        55.927583,
+        56.5075,
+        56.046084
+      ]
+    },
+    "arrow/roundtrip_arrow_orso_arrow": {
+      "group": "arrow",
+      "ops": 100000,
+      "min_ms": 66.335917,
+      "median_ms": 66.503041,
+      "rounds_ms": [
+        68.006375,
+        66.503041,
+        66.335917,
+        66.4425,
+        66.884583
+      ]
+    },
+    "iterate/for_row_in_materialized": {
+      "group": "iterate",
+      "ops": 2000000,
+      "min_ms": 14.520208,
+      "median_ms": 14.529791,
+      "rounds_ms": [
+        14.529791,
+        14.520208,
+        14.526917,
+        14.677166,
+        14.537166
+      ]
+    },
+    "iterate/for_row_in_generator_backed": {
+      "group": "iterate",
+      "ops": 1000000,
+      "min_ms": 12.4985,
+      "median_ms": 12.537542,
+      "rounds_ms": [
+        12.504334,
+        12.4985,
+        12.569042,
+        12.578875,
+        12.537542
+      ]
+    },
+    "iterate/fetchall": {
+      "group": "iterate",
+      "ops": 2000000,
+      "min_ms": 4.455041,
+      "median_ms": 4.600666,
+      "rounds_ms": [
+        4.600666,
+        4.627291,
+        4.455041,
+        4.701292,
+        4.513583
+      ]
+    },
+    "iterate/fetchmany_1000_loop": {
+      "group": "iterate",
+      "ops": 1000000,
+      "min_ms": 17.937,
+      "median_ms": 18.025917,
+      "rounds_ms": [
+        18.162166,
+        18.025917,
+        17.937,
+        17.999333,
+        18.038541
+      ]
+    },
+    "iterate/fetchone_loop": {
+      "group": "iterate",
+      "ops": 1000000,
+      "min_ms": 23.267167,
+      "median_ms": 23.629125,
+      "rounds_ms": [
+        23.807875,
+        23.560833,
+        23.788,
+        23.267167,
+        23.629125
+      ]
+    },
+    "iterate/collect_one_column": {
+      "group": "iterate",
+      "ops": 2000000,
+      "min_ms": 4.685875,
+      "median_ms": 4.818666,
+      "rounds_ms": [
+        4.96175,
+        4.818666,
+        4.741833,
+        4.87675,
+        4.685875
+      ]
+    },
+    "iterate/collect_three_columns": {
+      "group": "iterate",
+      "ops": 2000000,
+      "min_ms": 14.382417,
+      "median_ms": 14.642042,
+      "rounds_ms": [
+        14.382417,
+        14.642042,
+        15.076792,
+        15.177459,
+        14.497417
+      ]
+    },
+    "iterate/to_batches_1000": {
+      "group": "iterate",
+      "ops": 2000000,
+      "min_ms": 6.299416,
+      "median_ms": 6.427959,
+      "rounds_ms": [
+        6.722291,
+        6.427959,
+        6.42375,
+        6.299416,
+        6.62125
+      ]
+    },
+    "iterate/head_5_repeated": {
+      "group": "iterate",
+      "ops": 20000,
+      "min_ms": 33.162792,
+      "median_ms": 33.247,
+      "rounds_ms": [
+        33.582959,
+        33.210333,
+        33.247,
+        33.862,
+        33.162792
+      ]
+    },
+    "iterate/slice_10k_window": {
+      "group": "iterate",
+      "ops": 2000,
+      "min_ms": 86.447167,
+      "median_ms": 86.601916,
+      "rounds_ms": [
+        86.715041,
+        86.601916,
+        86.447167,
+        86.80175,
+        86.503708
+      ]
+    },
+    "iterate/query_predicate": {
+      "group": "iterate",
+      "ops": 1000000,
+      "min_ms": 11.767542,
+      "median_ms": 11.900667,
+      "rounds_ms": [
+        12.049416,
+        11.900667,
+        12.084333,
+        11.767542,
+        11.861291
+      ]
+    },
+    "iterate/distinct": {
+      "group": "iterate",
+      "ops": 500000,
+      "min_ms": 14.990333,
+      "median_ms": 15.263792,
+      "rounds_ms": [
+        15.45425,
+        15.263792,
+        15.369333,
+        15.081541,
+        14.990333
+      ]
+    },
+    "iterate/group_by_count": {
+      "group": "iterate",
+      "ops": 100000,
+      "min_ms": 25.29675,
+      "median_ms": 25.413709,
+      "rounds_ms": [
+        25.413709,
+        25.366917,
+        25.436292,
+        25.29675,
+        25.473791
+      ]
+    },
+    "display/ascii_100_rows_with_types": {
+      "group": "display",
+      "ops": 500,
+      "min_ms": 18.1635,
+      "median_ms": 18.305375,
+      "rounds_ms": [
+        18.552167,
+        18.305375,
+        18.583458,
+        18.1635,
+        18.165667
+      ]
+    },
+    "display/ascii_wide_50_columns": {
+      "group": "display",
+      "ops": 200,
+      "min_ms": 12.124917,
+      "median_ms": 12.205083,
+      "rounds_ms": [
+        12.205083,
+        12.298542,
+        12.124917,
+        12.183958,
+        12.232333
+      ]
+    },
+    "display/str_of_100k_row_frame": {
+      "group": "display",
+      "ops": 200,
+      "min_ms": 8.371583,
+      "median_ms": 8.560833,
+      "rounds_ms": [
+        8.572375,
+        8.560833,
+        8.593,
+        8.371583,
+        8.509958
+      ]
+    },
+    "display/markdown_50_rows": {
+      "group": "display",
+      "ops": 2500,
+      "min_ms": 4.628709,
+      "median_ms": 4.644125,
+      "rounds_ms": [
+        4.663667,
+        4.644125,
+        4.639542,
+        4.67725,
+        4.628709
+      ]
+    },
+    "types/from_name": {
+      "group": "types",
+      "ops": 50000,
+      "min_ms": 31.167,
+      "median_ms": 31.247333,
+      "rounds_ms": [
+        31.247333,
+        31.268125,
+        31.167,
+        31.462834,
+        31.184583
+      ]
+    },
+    "types/parse_scalars": {
+      "group": "types",
+      "ops": 100000,
+      "min_ms": 35.398375,
+      "median_ms": 35.683042,
+      "rounds_ms": [
+        35.773042,
+        35.398375,
+        35.768375,
+        35.683042,
+        35.444792
+      ]
+    },
+    "types/parse_timestamps": {
+      "group": "types",
+      "ops": 50000,
+      "min_ms": 36.101125,
+      "median_ms": 36.352167,
+      "rounds_ms": [
+        36.492208,
+        36.216041,
+        36.101125,
+        36.352167,
+        36.416667
+      ]
+    },
+    "types/parse_dates": {
+      "group": "types",
+      "ops": 50000,
+      "min_ms": 31.704625,
+      "median_ms": 31.751084,
+      "rounds_ms": [
+        31.751084,
+        31.778458,
+        31.706375,
+        32.086208,
+        31.704625
+      ]
+    },
+    "types/parse_decimals": {
+      "group": "types",
+      "ops": 50000,
+      "min_ms": 62.738417,
+      "median_ms": 62.839041,
+      "rounds_ms": [
+        62.839041,
+        63.18875,
+        62.817334,
+        62.738417,
+        62.888667
+      ]
+    }
+  }
+}

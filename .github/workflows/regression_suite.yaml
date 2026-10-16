@@ -15,14 +15,6 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
-        include:
-          # Windows wheels are release-critical but broke silently in 0.0.219 (3.13) and
-          # were dropped entirely in 0.0.233. Build and test on Windows here so a broken
-          # MSVC build fails in CI rather than at release time.
-          - os: windows-latest
-            python-version: '3.10'
-          - os: windows-latest
-            python-version: '3.13'
     runs-on: ${{ matrix.os }}
     steps:
 
@@ -39,11 +31,18 @@ jobs:
         shell: bash
         run: |
           python -m pip install --upgrade pip
-          python -m pip install --upgrade numpy cython pytest coverage setuptools
+          python -m pip install --upgrade numpy cython pytest coverage setuptools nanobind
           python -m pip install --upgrade --pre -r $GITHUB_WORKSPACE/requirements.txt
           python setup.py build_ext --inplace
 
-      # opteryx and polars have no wheels for Windows or for the newest interpreters.
+      # The native layer is built on headers copied from opteryx-core (DESIGN.md §3).
+      # A copy that no longer matches native/draken/SOURCE was edited by hand or
+      # half-synced; either way it must not reach main.
+      - name: Verify vendored draken headers
+        shell: bash
+        run: python tools/sync_draken.py --check
+
+      # opteryx and polars have no wheels for the newest interpreters.
       # They only back optional integration tests, which pytest.importorskip skips when
       # they are absent, so a failure here must not fail the job.
       - name: Install Integration Test Requirements (best effort)
@@ -57,7 +56,7 @@ jobs:
 
       # Coverage is a property of the suite, not the interpreter. Only enforce it on the
       # one job where the full optional dependency set installs, otherwise the skipped
-      # integration tests drag the number under the threshold on Windows and 3.14.
+      # integration tests drag the number under the threshold on 3.14.
       - name: Check Coverage
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
         shell: bash

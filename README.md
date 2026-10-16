@@ -141,19 +141,28 @@ Orso is part of the Mabel ecosystem. Contributions are welcome! Please ensure:
 
 ### Performance Benchmarking
 
-Orso includes a comprehensive performance benchmark suite to compare different versions:
+Orso has a micro-benchmark harness in `benchmarks/` covering construction, append,
+Row, Arrow conversion, iteration, display and type parsing. Each case is warmed up
+and timed over several rounds; compare the minimum against a saved baseline:
 
 ```bash
-# Run full benchmark suite
-python tests/test_benchmark_suite.py
+# Run the full suite (or a subset with -k <substring>)
+python benchmarks/bench.py
 
-# Compare two versions
-python tests/test_benchmark_suite.py -o baseline.json
-# <switch version>
-python tests/test_benchmark_suite.py -o current.json -c baseline.json
+# Record a baseline, change code, rebuild the extensions, then compare
+python benchmarks/bench.py -o benchmarks/baseline_0.0.246.json
+python setup.py build_ext --inplace
+python benchmarks/bench.py -c benchmarks/baseline_0.0.246.json
 ```
 
-See [BENCHMARK_SUITE.md](BENCHMARK_SUITE.md) for detailed documentation.
+`make bench` and `make bench-baseline` wrap the same commands.
+
+### Building from source
+
+`make compile` builds the Cython extensions and the native layer (`orso._native`, a
+nanobind extension over draken headers vendored into `native/`). The vendored headers
+are copied from an `opteryx-core` checkout beside this one with `make sync-draken` and
+verified with `make check-draken`; never edit them in place. See `DESIGN.md`.
 
 ## License
 

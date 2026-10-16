@@ -1,0 +1,481 @@
+#pragma once
+#include <stdint.h>
+#include <stddef.h>
+#include "string_slot.h"
+// =============================================================================
+// Draken unified ABI — single source of truth (CLAUDE.md §11).
+//
+// This header is FROZEN for the duration of the C++-first rebuild. ~95 compiled
+// `cimport draken.core.buffers` sites bind `DrakenVector`'s layout at compile
+// time, so the layout must stay byte-identical (40 bytes on LP64). ABI drift (a
+// silent field reorder or enum renumber) segfaults consumers instead of failing
+// the build, so the layout is pinned by the static_asserts at the bottom of this
+// file.
+//
+// Logical-type descriptor (06) and value statistics (05) are deliberately
+// out-of-band, keyed by column — NOT fields on these structs. Adding either
+// breaks the 40-byte freeze and the cimport ABI. Do not add them here.
+// =============================================================================
+
+// Portable compile-time assertion (C11 / C++11 / older-toolchain fallback).
+#if defined(__cplusplus)
+  #define DRAKEN_STATIC_ASSERT(cond, msg) static_assert(cond, msg)
+#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+  #define DRAKEN_STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
+#else
+  #define DRAKEN_STATIC_ASSERT_CAT_(a, b) a##b
+  #define DRAKEN_STATIC_ASSERT_CAT(a, b) DRAKEN_STATIC_ASSERT_CAT_(a, b)
+  #define DRAKEN_STATIC_ASSERT(cond, msg) \
+      typedef char DRAKEN_STATIC_ASSERT_CAT(draken_static_assert_, __LINE__)[(cond) ? 1 : -1]
+#endif
+
+typedef enum {
+    // Integer types: 1–19
+    DRAKEN_INT8           = 1,
+    DRAKEN_INT16          = 2,
+    DRAKEN_INT32          = 3,
+    DRAKEN_INT64          = 4,
+    DRAKEN_DECIMAL        = 5,  // logical DECIMAL(p≤18,s); physical int64 unscaled value
+
+    // Floating-point types: 20–29
+    DRAKEN_FLOAT32        = 20,
+    DRAKEN_FLOAT64        = 21,
+
+    // Temporal types: 30–49
+    DRAKEN_DATE32         = 30,
+    DRAKEN_TIMESTAMP64    = 40,
+    DRAKEN_TIME32         = 41,
+    DRAKEN_TIME64         = 42,
+    DRAKEN_INTERVAL       = 43,
+
+    // Boolean: 50
+    DRAKEN_BOOL           = 50,
+
+    // String-like: 60–79
+    DRAKEN_VARCHAR        = 60,  // default; ASCII semantics; byte-length ops
+    // 61: reserved — permanently retired by E.30c (was DRAKEN_DICTIONARY, a shape-as-type violation; see CLAUDE.md §11)
+    // 62: reserved — permanently retired by E.30c (was DRAKEN_CONSTANT,   a shape-as-type violation; see CLAUDE.md §11)
+    DRAKEN_NVARCHAR       = 63,  // opt-in UTF-8; codepoint-length ops; Unicode-aware ops (future)
+    DRAKEN_VARBINARY      = 64,  // opaque bytes; byte-length ops; character ops throw
+    DRAKEN_VARIANT        = 65,  // polymorphic JSON value; German-string storage holds JSON text; renders to Python as str
+
+    // Complex types: 80–99
+    DRAKEN_ARRAY          = 80,
+
+    // 100: reserved — permanently retired (was DRAKEN_NON_NATIVE, "unoptimized or
+    //      fallback-wrapped Arrow types"). A migration artefact of the shim that
+    //      existed while the column types were being built out natively; by the time
+    //      PyArrow was banned from the engine (CLAUDE.md §4) nothing constructed one,
+    //      and it had zero producers when removed. Not renumbered — the tag value is
+    //      burned, per the ABI freeze.
+
+    // D.11 — new types (added at the end; do NOT renumber anything above)
+    DRAKEN_NULL           = 101,  // Self-describing null: type==NULL ⟹ every row null; no data, no validity.
+    DRAKEN_VECTOR_FP16    = 102,  // fp16 embedding vector; dimension via mandatory logical descriptor.
+
+    // Decimal "do both" (doc 06): DRAKEN_DECIMAL (5) is the int64-backed fast path
+    // (logical DECIMAL p≤18); DRAKEN_DECIMAL128 is the int128-backed correct-but-scalar
+    // tier (logical DECIMAL p≤38). Physical `data` is a 16-byte __int128 unscaled value;
+    // scale/precision live in the mandatory logical descriptor. No native SIMD for int128.
+    DRAKEN_DECIMAL128     = 103,
+
+    // Unsigned integers (E33): same-width kernel parity with the signed family;
+    // mixed signed/unsigned binary ops promote to the next-wider signed type
+    // (or DRAKEN_DECIMAL128 for UINT64+INT64). Appended at the tail, same as
+    // DECIMAL128/VECTOR_FP16/NULL above — do NOT relocate into 1-19.
+    DRAKEN_UINT8          = 104,
+    DRAKEN_UINT16         = 105,
+    DRAKEN_UINT32         = 106,
+    DRAKEN_UINT64         = 107,
+
+    // UUID (docs/UUID_TYPE_DESIGN.md): 16 opaque bytes in RFC 9562 network order — the
+    // order the value is written in text — so memcmp order == canonical-text order.
+    // Not numeric: no arithmetic. Appended at the tail; skene persists this number.
+    DRAKEN_UUID           = 108,
+} DrakenType;
+
+typedef struct {
+    void* data;               // int64_t*, double*, etc.
+    uint8_t* null_bitmap;     // optional, 1 bit per row
+    size_t length;
+    size_t itemsize;
+    DrakenType type;
+} DrakenFixedBuffer;
+
+typedef struct {
+    uint8_t* data;            // UTF-8 bytes
+    uint32_t* offsets;        // [N+1] entries — unsigned: addresses up to 4 GB
+                              // of accumulated bytes (matches the German-string
+                              // arena's own uint32 offset cap).
+    uint8_t* null_bitmap;     // optional
+    size_t length;
+    DrakenType type;
+} DrakenVarBuffer;
+
+typedef struct {
+    uint8_t* data;
+    int32_t length;
+} DrakenConstantStringPayload;
+
+// German-string storage. Replaces DrakenVarBuffer for string values: an array
+// of 16-byte DrakenStringSlot slots (length + inline-12 OR length + prefix + arena
+// offset) plus a byte arena for long-form payloads (> 12 bytes). Used as the
+// `data` payload of a string DrakenVector under the unified format.
+//
+// Lifetime: slots and arena are both owned by this struct when owns_buffers
+// is non-zero. arena_used tracks bytes consumed during construction; arena_cap
+// is the allocation size. Slots whose length <= 12 do not reference the arena.
+//
+// `payloads_elided` states — explicitly — whether the long-form payload BYTES
+// exist. Do NOT infer this from `arena`/`arena_cap`: a NULL arena answers "no
+// arena was allocated", which is a different question. Those two only ever
+// agreed by coincidence of construction order, and the coincidence is exactly
+// what this field exists to stop anyone relying on. A producer that records
+// each value's LENGTH but deliberately skips copying its bytes (a column the
+// planner proved is read only through length-answerable operations) sets this
+// to 1; every ordinary producer leaves it 0.
+//
+// Polarity is deliberate: 0 == "payloads are present", so a construction site
+// that forgets this field degrades to correct-but-unoptimised, never to
+// silently dropping real data. It is NOT self-zeroing — sites that allocate
+// without memset MUST set it (see the static_assert below pinning the layout).
+typedef struct {
+    DrakenStringSlot* slots;       // [length] slot array
+    uint8_t*      arena;       // long-form byte arena (may be NULL when all rows inline)
+    size_t        length;      // number of slots
+    size_t        arena_used;  // bytes consumed in arena
+    size_t        arena_cap;   // arena allocation size
+    uint8_t*      null_bitmap; // optional, 1 bit per row
+    uint8_t       owns_buffers;// free slots/arena/null_bitmap on free?
+    uint8_t       payloads_elided; // 1 = long-form payload bytes were never materialized
+    DrakenType    type;        // DRAKEN_VARCHAR | DRAKEN_NVARCHAR | DRAKEN_VARBINARY
+} DrakenStringArena;
+
+typedef struct {
+    int32_t* offsets;         // [length + 1] entries
+    void* values;             // pointer to another column's data (DrakenFixedColumn*, DrakenVarColumn*, etc.)
+    uint8_t* null_bitmap;     // optional, 1 bit per row
+    size_t length;            // number of array entries (rows)
+    DrakenType value_type;    // type of the child values
+} DrakenArrayBuffer;
+
+// Unified vector view — one shape, one access pattern.
+//
+// Access is always: data[selection[i]]  for i in [0, length).
+//
+// `selection` is never NULL. For dense vectors it points at the lazy-grown
+// global identity permutation; for constant vectors at the lazy-grown global
+// zero vector; for dict-encoded vectors at owned uint32 codes. The choice of
+// pointer is owned by the C constructors in vector_alloc.h.
+//
+// Default posture: uniform data[selection[i]] — no shape discrimination.
+// Shape-specialized fast paths (constant, dict) require explicit architect
+// approval (CLAUDE.md §11). Approved exceptions: compare kernels
+// (int64_compare.h, fixed_int_ops.h, string_compare.h, float_ops.h), predicate
+// kernels (int64_predicates.h, fixed_int_ops.h, string_predicates.h,
+// float_ops.h), and arithmetic kernels (int64_arithmetic.h — constant-operand
+// folding + dict/constant-preserving scalar/unary ops). float_ops.h compare/
+// between gained constant/dict/identity paths; approved 2026-06-11.
+//
+// Memory-layout hints (informational only — never used in hot loops):
+//   former-dense    => selection points at draken_identity_sel,  data_length == length
+//   former-constant => selection points at draken_zero_sel,      data_length == 1
+//   former-dict     => selection is owned codes,                 data_length <  length
+typedef struct {
+    void*             data;        // typed payload (cast at Cython typed-wrapper level)
+    const uint32_t*   selection;   // always valid; indices into data
+    uint32_t          data_length; // size of the data array (physical value count).
+                                   // Uniqueness is guaranteed only by the *compress*
+                                   // builders; other dict constructors may admit
+                                   // duplicates, so do NOT assume data values are
+                                   // distinct (kernels read data[selection[i]] regardless).
+    uint32_t          length;      // logical row count
+    uint8_t*          validity;    // 1-bit-per-logical-row null mask; NULL = all valid
+    DrakenType        type;
+    uint8_t           flags;       // Category-A layout hints (below); 0 = "don't know". Lands in tail padding → sizeof unchanged.
+} DrakenVector;
+
+// Category-A layout hint bits (00_data_model.md). Default 0 = conservative
+// "don't know" → uniform data[selection[i]] path. A bit may be set ONLY when
+// certain; a missed update loses a fast-path (slower, still correct), never
+// changes the answer. Containment: IDENTITY ⟹ PERMUTATION ⟹ data_length==length.
+#define DRAKEN_SEL_IDENTITY     (1u << 0)  // selection[i] == i (true dense)
+#define DRAKEN_SEL_PERMUTATION  (1u << 1)  // bijection, data_length == length
+#define DRAKEN_DICT_KEYS_SORTED (1u << 2)  // dict `data` ascending by engine order:
+                                           // code_a < code_b ⟹ data[code_a] ≤ data[code_b].
+                                           // Lets range/eq predicates collapse to a code
+                                           // interval. Pure hint; set ONLY when certain.
+#define DRAKEN_DICT_CODES_DENSE (1u << 3)  // every code in [0,data_length) is referenced by
+                                           // at least one VALID row (no dead entries). Set by
+                                           // the compacting take/mask. With KEYS_SORTED this
+                                           // means data[0] / data[data_length-1] ARE the column
+                                           // min / max (the "ends" shortcut). Pure hint.
+#define DRAKEN_ROW_SORTED       (1u << 4)  // data[selection[i]] is non-decreasing (or
+                                           // non-increasing, see DESC) over i in [0,length) —
+                                           // this VECTOR's logical row order, not a dict's value
+                                           // array (unrelated to DICT_KEYS_SORTED). Meaningful
+                                           // for ANY shape (dense/dict/constant alike). Set by
+                                           // the parquet scan (an unverified hint, trusted only
+                                           // from a rugo-written file's sorting_columns) or by
+                                           // the sort operator on its own output (a proven fact,
+                                           // not a hint). Pure hint either way: a consumer must
+                                           // NEVER treat it as a correctness guarantee on its
+                                           // own — a fast path built on it must self-verify or
+                                           // fall back on the first observed violation.
+#define DRAKEN_ROW_SORTED_DESC  (1u << 5)  // direction; meaningful only with ROW_SORTED set.
+                                           // Implies NULLS FIRST under ascending, NULLS LAST
+                                           // under descending; a sort with the other null
+                                           // placement never sets ROW_SORTED (sort_morsels,
+                                           // draken/morsels/sort.hpp).
+// bits 6..7 reserved for future layout hints
+
+// Shape predicates — canonical tests for the encoding shapes.
+// Use these instead of open-coding data_length comparisons at call sites.
+//
+// Partition by data_length vs length:
+//   is_dense      data_length == length   — every row its own value
+//   is_compressed data_length <  length   — value array smaller than row count;
+//                                            per-unique-value work is possible
+// Within compressed:
+//   is_constant   data_length == 1        — one value broadcast to all rows
+//   is_dict       1 < data_length < length — true dictionary with repeats
+static inline int draken_is_dense(const DrakenVector* v) {
+    return v->data_length == v->length;
+}
+static inline int draken_is_compressed(const DrakenVector* v) {
+    return v->data_length < v->length;
+}
+static inline int draken_is_constant(const DrakenVector* v) {
+    return v->data_length == 1;
+}
+static inline int draken_is_dict(const DrakenVector* v) {
+    return v->data_length > 1 && v->data_length < v->length;
+}
+// True iff this is a dict whose `data` is known-ascending (DRAKEN_DICT_KEYS_SORTED).
+// A false result never means "unsorted" — only "not known sorted": fall back to
+// the uniform path, which is always correct.
+static inline int draken_dict_is_sorted(const DrakenVector* v) {
+    return draken_is_dict(v) && (v->flags & DRAKEN_DICT_KEYS_SORTED);
+}
+// True iff this is a compressed (dict/constant) vector whose value array is both
+// ascending AND fully referenced by valid rows — so data[0] is the column min and
+// data[data_length-1] the column max (no dead entries can bracket the live ones).
+static inline int draken_dict_sorted_dense(const DrakenVector* v) {
+    return draken_is_compressed(v)
+        && (v->flags & DRAKEN_DICT_KEYS_SORTED)
+        && (v->flags & DRAKEN_DICT_CODES_DENSE);
+}
+// True iff this vector's logical row order is known-sorted (DRAKEN_ROW_SORTED).
+// A false result never means "unsorted" — only "not known sorted". Applies to
+// any shape; unlike draken_dict_is_sorted this is NOT gated on draken_is_dict.
+static inline int draken_vector_is_row_sorted(const DrakenVector* v) {
+    return (v->flags & DRAKEN_ROW_SORTED) != 0;
+}
+// Direction of the known-sorted row order. Meaningless (0) unless
+// draken_vector_is_row_sorted(v) is also true.
+static inline int draken_vector_row_sorted_descending(const DrakenVector* v) {
+    return (v->flags & DRAKEN_ROW_SORTED_DESC) != 0;
+}
+
+// Is `t` stored as a DrakenStringArena (slots + byte arena)? This is a PHYSICAL
+// STORAGE question, not a semantic one — VARIANT holds JSON text in exactly the
+// same German-string layout as the VARCHAR family (see draken_vector_nbytes
+// below, which already groups all four), so anything that MOVES values (row
+// gather, join payload materialization, concat) must treat it as string-shaped.
+//
+// Deliberately NOT the same set as "may be an ORDER BY / GROUP BY key": VARIANT
+// has no defined collation, so key paths keep their own narrower predicate and
+// must not be switched to this one. Storage layout and key eligibility are
+// different questions that happened to share a predicate before.
+static inline int draken_type_is_string_storage(DrakenType t) {
+    return t == DRAKEN_VARCHAR || t == DRAKEN_NVARCHAR
+        || t == DRAKEN_VARBINARY || t == DRAKEN_VARIANT;
+}
+
+// Physical width (bytes) of one element of a fixed-width type's `data` array.
+// This is the SOLE canonical source for this width — every consumer (join
+// build-side row-store, sort/group-by row-gather, vector concat) calls this
+// instead of hand-copying the switch; they had drifted out of sync with each
+// other and with this table before consolidation (each independently missing
+// a different subset of UINT8/16/32/64, TIME32/64, INTERVAL). Returns 0 for
+// the non-fixed families (bool is bit-packed; string/variant use a string
+// arena; array/fp16/null/non-native have no flat per-element width) — those
+// are handled out-of-band by draken_vector_nbytes below, and by each
+// consumer's own pre-dispatch for bool/string. INTERVAL is 16
+// (== sizeof(DrakenIntervalSlot), pinned by a static_assert in
+// interval_slot.h — expressed as a literal here, not a sizeof, to keep this
+// header C-compatible and dependency-light).
+static inline size_t draken_type_fixed_itemsize(DrakenType t) {
+    switch (t) {
+        case DRAKEN_INT8:
+        case DRAKEN_UINT8:       return 1u;
+        case DRAKEN_INT16:
+        case DRAKEN_UINT16:      return 2u;
+        case DRAKEN_INT32:
+        case DRAKEN_UINT32:
+        case DRAKEN_FLOAT32:
+        case DRAKEN_DATE32:
+        case DRAKEN_TIME32:      return 4u;
+        case DRAKEN_INT64:
+        case DRAKEN_UINT64:
+        case DRAKEN_FLOAT64:
+        case DRAKEN_TIMESTAMP64:
+        case DRAKEN_TIME64:
+        case DRAKEN_DECIMAL:     return 8u;
+        case DRAKEN_DECIMAL128:
+        case DRAKEN_INTERVAL:
+        case DRAKEN_UUID:        return 16u;
+        default:                 return 0u;
+    }
+}
+
+// Approximate in-memory footprint (bytes) of ONE vector's owned payload: the
+// data buffer (dedup-aware — sized by data_length, the physical value count, so
+// dict/constant vectors are not counted at their logical row count), the string
+// arena for the string family, the validity bitmap, and — for dict vectors — the
+// owned uint32 code array. Intended as an honest memory-pressure signal (e.g. a
+// result-buffer flush threshold), replacing the old flat rows×8 guess that
+// grossly undercounted variable-length strings.
+//
+// The `selection` array is counted ONLY for dict vectors, whose codes are
+// per-vector-owned (length×4). Dense/constant vectors point `selection` at a
+// shared global (draken_identity_sel / draken_zero_sel — not owned), so counting
+// it there would over-count shared memory; draken_is_dict excludes both cleanly.
+// Counting dict codes is not optional cosmetic precision: for fan-out dict
+// results the codes DOMINATE the data/arena terms (a 10%-NDV int64 result is
+// ~0.84MB data vs ~4.19MB codes), so omitting them undercounted footprint ~5x
+// and deferred spill/flush past the safe point.
+//
+// KNOWN LIMITATION — DRAKEN_ARRAY: an array's CHILD values hang off the owning
+// VectorOwner, not off this DrakenVector, so they are unreachable from this
+// pointer alone and are NOT counted here (this function only counts the array
+// vector's own offsets buffer, below). Callers that hold the owning VectorOwner
+// (or a shared_ptr thereof, e.g. CxxColumn::own) should additionally recurse
+// into child_owner — see draken_vector_owner_nbytes in vector_owner.h — rather
+// than trust this function alone for array-typed columns.
+static inline size_t draken_vector_nbytes(const DrakenVector* v) {
+    if (v == NULL) return 0u;
+    size_t bytes = 0u;
+    const size_t n = (size_t)v->data_length;  // physical value count (dedup-aware)
+    switch (v->type) {
+        case DRAKEN_VARCHAR:
+        case DRAKEN_NVARCHAR:
+        case DRAKEN_VARBINARY:
+        case DRAKEN_VARIANT: {
+            // `data` is a DrakenStringArena: a slot array (16 bytes/slot) plus a
+            // byte arena for long-form (>12 byte) payloads. Both are O(1) header
+            // reads — no per-string walk.
+            const DrakenStringArena* sa = (const DrakenStringArena*)v->data;
+            if (sa != NULL)
+                bytes += sa->length * sizeof(DrakenStringSlot) + sa->arena_used;
+            break;
+        }
+        case DRAKEN_BOOL:
+            bytes += (n + 7u) >> 3;  // 1 bit per physical value
+            break;
+        case DRAKEN_ARRAY:
+            // Own payload: int32_t offsets[length+1] (see draken_native.cpp's
+            // D.13 layout comment) -- sized off the LOGICAL row count, not
+            // data_length/n, since arrays are always stored dense (identity
+            // selection, per the same comment). Child subtree bytes are NOT
+            // included (see KNOWN LIMITATION above).
+            bytes += ((size_t)v->length + 1u) * sizeof(int32_t);
+            break;
+        default:
+            // Fixed-width families; 0 for fp16/null/non-native (see notes).
+            bytes += n * draken_type_fixed_itemsize(v->type);
+            break;
+    }
+    if (v->validity != NULL)
+        bytes += ((size_t)v->length + 7u) >> 3;  // 1 bit per logical row
+    // Owned dict codes: a dict vector's `selection` is a per-vector-owned
+    // uint32 code array (length entries). Dense/constant vectors instead point
+    // `selection` at a shared global (draken_identity_sel / draken_zero_sel),
+    // which is NOT owned and must not be counted — draken_is_dict excludes both
+    // (data_length == length and data_length == 1 respectively). Counting the
+    // codes matters: for fan-out dict results the codes DOMINATE (e.g. a 10%-NDV
+    // int64 result is ~0.84MB data vs ~4.19MB codes), so omitting them undercounts
+    // real footprint ~5x and defers spill/flush past the safe point.
+    if (draken_is_dict(v))
+        bytes += (size_t)v->length * sizeof(uint32_t);
+    return bytes;
+}
+
+// EXACT arena bytes this vector would contribute to a concat: the sum of the
+// long-form (> STR_INLINE_MAX) payload lengths of its VALID, REFERENCED rows.
+// Zero for every non-string-storage type — the 4 GB ceiling that makes this
+// number interesting is the string arena's uint32 offset, and nothing else
+// allocates against it.
+//
+// This is deliberately NOT draken_vector_nbytes. That reports OWNED payload,
+// which is the right answer for memory pressure and the WRONG answer for
+// "how much will concat copy": a slice is a view, so a one-row slice of a
+// 1 GB morsel owns ~1 GB while contributing a few bytes. Budgeting a write
+// coalescer on owned bytes therefore flushes after nearly every filtered or
+// sliced morsel and produces exactly the small-file storm the coalescer
+// exists to prevent.
+//
+// The walk mirrors concat_string's first counting pass in draken_native.cpp
+// byte for byte (same validity test, same inline test, same elided-payload
+// skip) — the two MUST agree, or a batcher sized by this function will hand
+// concat a batch that concat then refuses. Inline slots carry their bytes in
+// the slot itself and cost the arena nothing; an elided payload has no bytes
+// to copy.
+//
+// O(rows) for a string column, O(1) otherwise. Callers that need a cheap,
+// conservative bound should accumulate draken_vector_nbytes and only fall
+// back to this when that bound says the budget is at risk.
+static inline uint64_t draken_vector_projected_arena_bytes(const DrakenVector* v) {
+    if (v == NULL) return 0u;
+    if (!draken_type_is_string_storage(v->type)) return 0u;
+    const DrakenStringArena* sa = (const DrakenStringArena*)v->data;
+    if (sa == NULL) return 0u;
+    uint64_t total = 0u;
+    const uint32_t n = v->length;
+    const uint8_t* validity = v->validity;
+    const uint32_t* sel = v->selection;
+    uint32_t i;
+    for (i = 0u; i < n; ++i) {
+        if (validity != NULL && !((validity[i >> 3] >> (i & 7u)) & 1u)) continue;
+        const DrakenStringSlot* s = &sa->slots[sel[i]];
+        if (str_is_inline(s)) continue;
+        if (s->ext.arena_offset == STR_ELIDED_PAYLOAD_OFFSET) continue;
+        total += (uint64_t)s->ext.length;
+    }
+    return total;
+}
+
+// =============================================================================
+// ABI guard — frozen layout (CLAUDE.md §11, 09_delivery.md risk #1).
+// sizeof alone won't catch a field reorder, and a renumbered enum is as fatal
+// as a layout shift, so every shared field offset and a few tag values are
+// pinned here.
+// =============================================================================
+DRAKEN_STATIC_ASSERT(sizeof(DrakenVector) == 40, "DrakenVector must be 40 bytes on LP64");
+DRAKEN_STATIC_ASSERT(offsetof(DrakenVector, data)        == 0,  "DrakenVector.data offset drift");
+DRAKEN_STATIC_ASSERT(offsetof(DrakenVector, selection)   == 8,  "DrakenVector.selection offset drift");
+DRAKEN_STATIC_ASSERT(offsetof(DrakenVector, data_length) == 16, "DrakenVector.data_length offset drift");
+DRAKEN_STATIC_ASSERT(offsetof(DrakenVector, length)      == 20, "DrakenVector.length offset drift");
+DRAKEN_STATIC_ASSERT(offsetof(DrakenVector, validity)    == 24, "DrakenVector.validity offset drift");
+DRAKEN_STATIC_ASSERT(offsetof(DrakenVector, type)        == 32, "DrakenVector.type offset drift");
+DRAKEN_STATIC_ASSERT(offsetof(DrakenVector, flags)       == 36, "DrakenVector.flags must land in tail padding at offset 36");
+
+// Pin the DrakenType underlying integer width and representative tag values.
+// A renumber silently breaks the runtime dispatch key for every cimport site.
+// DrakenStringArena: payloads_elided occupies what was tail padding after
+// owns_buffers, so adding it did NOT grow the struct. Pinned so a future field
+// has to be a deliberate decision (and so this one cannot silently drift into
+// the DrakenType slot on a platform that packs differently).
+DRAKEN_STATIC_ASSERT(sizeof(DrakenStringArena) == 56, "DrakenStringArena size drift");
+DRAKEN_STATIC_ASSERT(offsetof(DrakenStringArena, owns_buffers)    == 48, "DrakenStringArena.owns_buffers offset drift");
+DRAKEN_STATIC_ASSERT(offsetof(DrakenStringArena, payloads_elided) == 49, "DrakenStringArena.payloads_elided must land in the padding after owns_buffers");
+DRAKEN_STATIC_ASSERT(offsetof(DrakenStringArena, type)            == 52, "DrakenStringArena.type offset drift");
+
+DRAKEN_STATIC_ASSERT(sizeof(DrakenType) == 4, "DrakenType underlying type must be 4 bytes");
+DRAKEN_STATIC_ASSERT(DRAKEN_INT64  == 4,   "DrakenType tag renumbered: DRAKEN_INT64");
+DRAKEN_STATIC_ASSERT(DRAKEN_BOOL   == 50,  "DrakenType tag renumbered: DRAKEN_BOOL");
+DRAKEN_STATIC_ASSERT(DRAKEN_VARCHAR == 60, "DrakenType tag renumbered: DRAKEN_VARCHAR");
+DRAKEN_STATIC_ASSERT(DRAKEN_DECIMAL128 == 103, "DrakenType tag renumbered: DRAKEN_DECIMAL128");
+DRAKEN_STATIC_ASSERT(DRAKEN_UINT8  == 104, "DrakenType tag renumbered: DRAKEN_UINT8");
+DRAKEN_STATIC_ASSERT(DRAKEN_UINT64 == 107, "DrakenType tag renumbered: DRAKEN_UINT64");
+DRAKEN_STATIC_ASSERT(DRAKEN_UUID   == 108, "DrakenType tag renumbered: DRAKEN_UUID");
