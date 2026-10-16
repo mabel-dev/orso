@@ -9,6 +9,9 @@ orso.egg-info/**
 .coverage
 **.c
 **.cpp
+# ...but native/ is hand-written and vendored source, not Cython output
+!native/**/*.c
+!native/**/*.cpp
 ascii-display-fix.txt
 display-fix.txt
 
