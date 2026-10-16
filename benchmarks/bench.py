@@ -119,8 +119,13 @@ def print_table(results: dict, baseline: dict | None, threshold: float):
             if base:
                 base_min = base["min_ms"]
                 delta = (res["min_ms"] - base_min) / base_min * 100.0
-                ratios.append(res["min_ms"] / base_min)
                 marker = ""
+                if res["group"] == "control":
+                    # the machine, not orso: reported below, kept out of the scoring
+                    line += f" {base_min:>9.2f} {fmt_delta(res['min_ms'], base_min)}"
+                    print(line)
+                    continue
+                ratios.append(res["min_ms"] / base_min)
                 if delta <= -threshold:
                     marker = " faster"
                     faster.append(case_id)

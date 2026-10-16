@@ -103,7 +103,10 @@ df.append(entry: dict | tuple | list) -> None
   stored as-is. The row is stored in **schema column order** regardless of dict key
   order. Tuples are rejected (`TypeError` from validate).
 - Schema is a list of names: `entry` may be a dict (fields pulled by name, missing →
-  `None`) or a tuple/list (stored positionally, no length check).
+  `None`) or a tuple/list (stored positionally). v1 did no length check; v2 raises
+  `ValueError` when a row appended to an empty frame has the wrong number of values,
+  because the record store has a fixed width. Appending to a frame that was given Python
+  rows keeps v1's behaviour.
 - After `append`, the fetch cursor is invalid: any `fetchone/fetchmany/fetchall` raises
   `Exception("Cannot use fetchone and append on the same DataFrame")`.
 - Appending does not size the row; `nbytes()` picks it up later.
@@ -173,8 +176,10 @@ is the schema object as passed in.
 
 ## 3. `orso.Row` (tier 1)
 
-A `tuple` subclass. Rows compare, hash, index, slice, unpack and pickle exactly like
-tuples. `Row` objects have no `__dict__` (`__slots__ = ()`).
+A `tuple` subclass. Rows compare, hash, index, slice, unpack and copy exactly like
+tuples. In v2 rows have no `__dict__` (`__slots__ = ()` on every subclass); v1's
+`create_class` subclasses accidentally carried one, which `nbytes()` and `as_map` used
+as a cache. Nothing outside orso set attributes on rows.
 
 ```python
 Row.create_class(schema: RelationSchema | tuple[str] | list[str], tuples_only=False) -> type[Row]
@@ -195,7 +200,7 @@ Instances are made by calling the subclass:
 | member | kind | contract |
 |---|---|---|
 | `as_dict` | **property** | `{field: value}` in field order |
-| `as_map` | property (cached) | `tuple((field, value), ...)` |
+| `as_map` | property | `tuple((field, value), ...)` (v1 cached it per row; v2 rows have nowhere to cache) |
 | `as_json` | property | `bytes`; `json.dumps(as_dict, default=str, separators=(",", ":"))` → compact, no spaces, non-JSON values stringified |
 | `as_bytes` | property | the record format in §3.1; raises `DataError` if the payload exceeds 16 MiB |
 | `from_bytes(data)` | classmethod | inverse of `as_bytes`; `DataError("Data malformed")` on a bad header, `DataError("Data malformed - incorrect length")` on a length mismatch |

@@ -166,7 +166,7 @@ def ascii_table(
     from orso import DataFrame
 
     lazy_length = 0
-    is_lazy = not isinstance(table._rows, list)
+    is_lazy = table._is_lazy
 
     # get the width of the display
     if isinstance(display_width, bool):

@@ -185,6 +185,9 @@ def _native_extension():
         language="c++",
         depends=[
             os.path.join(NATIVE_DIR, "record.h"),
+            os.path.join(NATIVE_DIR, "row.h"),
+            os.path.join(NATIVE_DIR, "store.h"),
+            os.path.join(NATIVE_DIR, "width.h"),
             DRAKEN_SOURCE_RECORD,
         ],
     )

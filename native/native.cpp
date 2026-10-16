@@ -1,9 +1,9 @@
 // orso/native/native.cpp — the one nanobind translation unit for `orso._native`.
 //
-// Phase 1 (DESIGN.md §10): the module exists, the vendored draken headers compile under
-// orso's flags, and the record layout arithmetic (record.h) is exposed so the tests can
-// pin it. Everything below `abi_report` is a probe that proves a header links; the real
-// store, encoders and parsers arrive in phases 2 to 5 and replace them.
+// Phase 2 (DESIGN.md §10): the C base of Row (row.h), the msgpack size estimate
+// (width.h), and the record store with its validation plan (store.h). The phase 1
+// probes (`parse_timestamp_us`, `format_double`, `append_buffer_probe`) stay until the
+// phase 4 parsers and phase 5 renderers replace them.
 //
 // Binding rules (draken docs/design/03_binding.md): this file owns C++ objects, marshals
 // at the Python edge, calls C++ free functions. No row loops, no dispatch, no Python
@@ -19,6 +19,9 @@
 #include <string>
 
 #include "record.h"
+#include "row.h"
+#include "store.h"
+#include "width.h"
 #include "core/alloc.h"
 #include "core/append_buffer.h"
 #include "core/buffers.h"
@@ -72,7 +75,79 @@ int64_t append_buffer_probe(int64_t count) {
 }  // namespace
 
 NB_MODULE(_native, m) {
-    m.doc() = "orso native layer (phase 1 skeleton)";
+    m.doc() = "orso native layer: Row base type, record store, size estimates";
+
+    // nanobind's exit-time leak report fires for any Frame still referenced by a module
+    // global when the interpreter shuts down, which is every script that holds a
+    // DataFrame at exit. Real leaks are caught by tests/test_native_rows.py instead.
+    nb::set_leak_warnings(false);
+
+    PyDateTime_IMPORT;
+    if (PyDateTimeAPI == nullptr) throw nb::python_error();
+    PyTypeObject* row_base = orso::make_row_base();
+    if (row_base == nullptr) throw nb::python_error();
+    m.attr("RowBase") = nb::borrow(reinterpret_cast<PyObject*>(row_base));
+
+    m.def("set_value_sizer", [](nb::handle fn) {
+        Py_XINCREF(fn.ptr());
+        Py_XSETREF(orso::g_value_sizer, fn.ptr());
+    }, nb::arg("fn"), "Install the Python fallback that sizes one value the way v1 did.");
+
+    m.def("rows_from_dicts", [](nb::handle row_type, nb::handle keys, nb::handle first, nb::handle rest) {
+        if (!PyType_Check(row_type.ptr()) || !PyTuple_Check(keys.ptr())) throw nb::type_error("rows_from_dicts(type, tuple, dict, iterator)");
+        PyObject* out = orso::rows_from_dicts(reinterpret_cast<PyTypeObject*>(row_type.ptr()), keys.ptr(), first.ptr(), rest.ptr());
+        if (out == nullptr) throw nb::python_error();
+        return nb::steal(out);
+    }, nb::arg("row_type"), nb::arg("keys"), nb::arg("first").none(), nb::arg("rest"),
+       "Build the Row list for DataFrame(dictionaries) in one pass.");
+
+    m.def("rows_nbytes", [](nb::handle rows, Py_ssize_t start, Py_ssize_t stop) {
+        if (!PyList_Check(rows.ptr())) throw nb::type_error("rows_nbytes: rows must be a list");
+        const Py_ssize_t n = PyList_GET_SIZE(rows.ptr());
+        if (stop < 0 || stop > n) stop = n;
+        if (start < 0) start = 0;
+        int64_t total = 0;
+        for (Py_ssize_t i = start; i < stop; ++i) {
+            const int64_t w = orso::py_row_width(PyList_GET_ITEM(rows.ptr(), i));
+            if (w < 0) throw nb::python_error();
+            total += w;
+        }
+        return total;
+    }, nb::arg("rows"), nb::arg("start") = 0, nb::arg("stop") = -1,
+       "Sum of Row.nbytes() over rows[start:stop], for any tuples.");
+
+    m.def("value_nbytes", [](nb::handle v) {
+        const int64_t w = orso::py_value_width(v.ptr());
+        if (w < 0) throw nb::python_error();
+        return w;
+    }, nb::arg("value").none(), "msgpack size of one value, as v1's serialiser would write it.");
+
+    nb::class_<orso::Plan>(m, "Plan")
+        .def(nb::init<nb::handle, nb::handle, nb::handle, nb::handle>(), nb::arg("row_type"),
+             nb::arg("columns").none(), nb::arg("validate").none(), nb::arg("dumps").none())
+        .def("row", &orso::Plan::build_row, nb::arg("entry").none(), "A validated Row for `entry`, v1 append() semantics.")
+        .def_prop_ro("typed", [](const orso::Plan& p) { return p.typed; })
+        .def_prop_ro("nfields", [](const orso::Plan& p) { return p.nfields; });
+
+    nb::class_<orso::Frame>(m, "Frame")
+        .def(nb::init<nb::handle>(), nb::arg("plan"))
+        .def("append", &orso::Frame::append, nb::arg("entry").none())
+        .def("__len__", &orso::Frame::length)
+        .def("row", &orso::Frame::row, nb::arg("i"))
+        .def("rows", &orso::Frame::rows, nb::arg("start") = 0, nb::arg("stop") = -1)
+        .def("view", &orso::Frame::view, nb::arg("start"), nb::arg("count"))
+        .def("nbytes", &orso::Frame::nbytes)
+        .def("stats", &orso::Frame::stats)
+        .def("cursor", [](const orso::Frame& f) { return orso::FrameCursor(f); },
+             "A DB-API cursor over the rows this frame holds now.");
+
+    nb::class_<orso::FrameCursor>(m, "FrameCursor")
+        .def("__iter__", [](nb::handle self) { return nb::borrow(self); })
+        .def("__next__", &orso::FrameCursor::next)
+        .def("__length_hint__", &orso::FrameCursor::remaining)
+        .def("take", &orso::FrameCursor::take, nb::arg("n"), "The next `n` rows as a list.")
+        .def("rest", &orso::FrameCursor::rest, "Every remaining row as a list.")
+        .def_ro("position", &orso::FrameCursor::pos, "Rows fetched so far.");
 
     m.def("draken_source", []() { return std::string(ORSO_DRAKEN_SOURCE); },
           "Commit of opteryx-core the vendored draken headers were copied from.");

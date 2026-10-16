@@ -122,7 +122,7 @@ Slot contents by tag:
 | `BLOB`, `JSONB`, `STRUCT` without fields | `DRAKEN_VARBINARY` | string slot over bytes (JSON bytes for the last two) |
 | `ARRAY<T>`, `VECTOR` | `DRAKEN_ARRAY` | length + arena offset of a nested slot sequence (§4.4) |
 | `STRUCT` with fields | `DRAKEN_ARRAY` with struct marker in the high byte | arena offset of a nested record |
-| anything else | `DRAKEN_VARIANT` (object) | `PyObject*` in bytes 0..7, index into the object table in 8..15 |
+| anything else | `TAG_OBJECT` (0xFF, orso-private, never a `DrakenType`) | `PyObject*` in bytes 0..7; one strong reference held in the store's object list |
 
 Every field carries its own tag whether or not the frame has a `RelationSchema`. With a
 schema the tag is what the plan allowed; without one it is whatever the value was. One
@@ -164,6 +164,17 @@ struct Frame {
 `Frame`s over the same `Store` (`filter`/`take`/`query` materialise an index list as a
 gather window). A child's `length` is fixed when it is made, so appending to the parent
 does not change what the child sees.
+
+**Where rows live (phase 2 amendment).** A `DataFrame` keeps its rows in the form they
+arrived in until an operation needs the other form. Rows handed to the constructor
+(a list, a tuple, a generator) or built by `DataFrame(dictionaries)` stay Python `Row`
+objects in a list, exactly as v1 kept them, so passing rows through costs what it always
+did. Rows appended to an empty frame go into the record store, validated and encoded in
+C, sized in O(1) and sliced as views. Reading `_rows` on a store frame decodes it once
+and it becomes a list frame; that is the bridge for the v1 code paths (arrow, display,
+collect, group_by) until phases 3 and 5 give them native routes. A store frame's DB-API
+cursor is a native `FrameCursor` that iterates like v1's list iterator, so `fetchone()`
+is `next(cursor)` for both kinds.
 
 A row is decoded by walking its record once, left to right, into a freshly allocated
 `Row` tuple. Decoded rows are kept in `row_cache`, so the second pass is one pointer per
@@ -448,3 +459,70 @@ modules, with `record.h` pinning the §4.1 stride arithmetic and probe functions
 `iso_datetime.h`, `AppendBuffer`, and ryu compile and link under orso's flags;
 `tests/test_native_skeleton.py` (11 tests). The v1 suite is unchanged (422 passed).
 Not yet verified: Linux (manylinux_2_28 image) and free-threaded builds, which CI covers.
+
+The phase 1 commit as first made could not build from a clean checkout: orso's
+`.gitignore` rules for Cython output (`**.c`, `**.cpp`) also hid `native/native.cpp` and
+the vendored `.c`/`.cpp` sources. Fixed by un-ignoring `native/**` in a follow-up commit,
+verified by building that commit in a fresh worktree.
+
+## 13. Phase 2 status (2026-10-16)
+
+Done, on macOS arm64 / CPython 3.14:
+
+- `native/row.h`: the C base of `Row` (`RowBase`). Construction from a dict or any
+  iterable, `as_dict`, `as_map`, `values`, `get`, `keys`, `nbytes` in C. Row subclasses
+  have `__slots__ = ()`, so a row is exactly a tuple in memory; 3.14's cached tuple hash
+  is reset on allocation. `as_map` is a plain property (it was a `cached_property`, which
+  needed the per-row `__dict__` v1 rows carried by accident).
+- `native/width.h`: `nbytes()` without serialising. Widths match ormsgpack exactly for
+  every value type in `tests/test_native_rows.py`; anything not sized natively is sized
+  by v1's own expression for that one value, so v1's numbers and v1's errors are kept.
+- `native/store.h`: `Plan` (v1's validation, compiled: names, nullability, `isinstance`,
+  JSONB serialisation, and v1's exact errors via `RelationSchema.validate` on the slow
+  path), `Store` (fixed-stride records, arena, object list), `Frame` (owner or view,
+  copy-on-write on append to a view), `FrameCursor`.
+- Encoded natively: None, bool, int64, float, str, bytes, naive datetime / date / time,
+  timedelta. Held as objects for now: Decimal, lists, dicts, tuples, sets, aware
+  temporals, subclasses, ints outside 64 bits. Native decimals and nested values move to
+  phase 3, where the Arrow export is what they pay off for.
+- Fixes landed: a store frame rejects a row of the wrong width at `append` (§8 #14);
+  `nbytes()` works on frames of plain tuples (#4); the validation plan is built on first
+  append instead of per `DataFrame()` (#8); `column_names` is cached per frame instead of
+  in one process-wide slot that also pinned the last frame in memory.
+- Tests: `tests/test_native_rows.py` (106) pins sizes against ormsgpack, store frames
+  against list frames for every read path, v1's validation errors, and reference counts.
+  Full suite: 539 passed, 6 skipped (opteryx-dependent, not installed here).
+
+Measured against v1 (0.0.246) built and run back to back on the same machine, control
+case drift +3.0%, 5 rounds, minimum times: **22 cases faster, 0 slower, 35 unchanged
+within ±5%; geometric mean 22.2% faster.** The cases phase 2 targets:
+
+| case | v1 ns/op | v2 ns/op | speedup |
+|---|---|---|---|
+| append/dict_with_relation_schema | 492 | 83 | 5.9x |
+| construct/dataframe_from_dicts | 258 | 65 | 4.0x |
+| row/nbytes_first_call | 367 | 94 | 3.9x |
+| iterate/head_5_repeated | 1,676 | 438 | 3.8x |
+| append/dict_with_column_names | 258 | 82 | 3.1x |
+| append/append_then_nbytes_then_arrow | 932 | 302 | 3.1x |
+| append/tuple_with_column_names | 190 | 72 | 2.6x |
+| row/create_from_dict | 223 | 93 | 2.4x |
+| row/get_by_name | 36 | 16 | 2.2x |
+| row/as_dict | 240 | 116 | 2.1x |
+| row/create_from_tuple | 154 | 79 | 2.0x |
+| append/dict_with_jsonb_column | 1,249 | 708 | 1.8x |
+
+Untouched groups (arrow conversion, display, schema, types) are within noise, as they
+should be: their code has not moved yet. `append/dict_with_jsonb_column` is now bound by
+the stdlib JSON encoder; `append/schema_validate` is `RelationSchema.validate` itself,
+which is phase 4.
+
+Known gaps carried into phase 3:
+
+- The store does not take part in garbage collection. A value held as an object that
+  refers back to its own frame is a cycle the collector cannot see. The fix is to make
+  `Store` its own Python object that frames reference and that traverses its objects
+  (frames cannot traverse a shared store: two views would each report the same
+  reference). No consumer stores such values today.
+- Free-threaded builds compile but the store has no locking yet (§6).
+- `arrow()` on a store frame decodes to Python rows first; phase 3 replaces that.
