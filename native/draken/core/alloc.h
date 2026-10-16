@@ -1,0 +1,212 @@
+// Draken allocation surface.
+//
+// Single entry point for every transferable buffer the new draken vector model
+// owns. The per-vector RAII ownership layer (unique_ptr + stateless deleter,
+// Milestone B) frees through draken_free; everything that allocates an owned
+// buffer goes through draken_malloc / draken_calloc / draken_aligned_malloc.
+//
+// Allocator: the system allocator (malloc/free). draken buffers cross extension
+// boundaries (e.g. column_deserializer allocates, a draken Vector frees on GC),
+// so the allocator MUST be a single process-wide instance shared by every
+// extension. The system allocator is exactly that, and — unlike a bundled
+// mimalloc — it coexists with foreign native libraries (pandas/pyarrow/…)
+// loaded into the same process at any point. mimalloc may return later as an
+// opt-in, measured prod build behind a flag.
+#ifndef DRAKEN_CORE_ALLOC_H
+#define DRAKEN_CORE_ALLOC_H
+
+#include <stddef.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <execinfo.h>
+#include <unistd.h>
+
+#if defined(__APPLE__)
+#include <malloc/malloc.h>   // malloc_size
+#define DRAKEN_USABLE_SIZE(p) malloc_size(p)
+#elif defined(__linux__)
+#include <malloc.h>          // malloc_usable_size
+#define DRAKEN_USABLE_SIZE(p) malloc_usable_size(p)
+#else
+#define DRAKEN_USABLE_SIZE(p) ((size_t)0)
+#endif
+
+#include "mem_account.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// Process memory account (mem_account.h): blocks of at least
+// DRAKEN_MEM_ACCOUNT_MIN usable bytes are charged when allocated and
+// uncharged when freed. Both sides use the allocator's usable size, so the
+// pair is exact without the free side knowing the request.
+static inline void draken_mem_note_alloc(void* p) {
+    if (p == nullptr) return;
+    const int64_t n = (int64_t)DRAKEN_USABLE_SIZE(p);
+    if (n >= DRAKEN_MEM_ACCOUNT_MIN) draken_mem_charge(n);
+}
+
+static inline void draken_mem_note_free(void* p) {
+    if (p == nullptr) return;
+    const int64_t n = (int64_t)DRAKEN_USABLE_SIZE(p);
+    if (n >= DRAKEN_MEM_ACCOUNT_MIN) draken_mem_uncharge(n);
+}
+
+// Diagnostic-trace configuration, resolved from the environment EXACTLY ONCE
+// per process (magic-static init is thread-safe). getenv is a linear scan of
+// `environ`; calling it on every malloc/free — the hottest allocation path in
+// the engine — cost 2–6 environ scans per vector op. Mid-process toggling of
+// OPTERYX_FREE_TRACE* is no longer honoured (it never needed to be); the vars
+// must be set at process start.
+struct DrakenTraceConfig {
+    int    enabled;
+    size_t min_sz;
+    size_t max_sz;
+};
+
+static inline const DrakenTraceConfig* draken_trace_config(void) {
+    static const DrakenTraceConfig cfg = []() {
+        DrakenTraceConfig c;
+        const char* trace_env = getenv("OPTERYX_FREE_TRACE");
+        c.enabled = (trace_env && trace_env[0]) ? 1 : 0;
+        const char* min_env = getenv("OPTERYX_FREE_TRACE_MIN");
+        const char* max_env = getenv("OPTERYX_FREE_TRACE_MAX");
+        c.min_sz = min_env ? (size_t)strtoull(min_env, NULL, 10) : (size_t)0;
+        c.max_sz = max_env ? (size_t)strtoull(max_env, NULL, 10) : (size_t)-1;
+        return c;
+    }();
+    return &cfg;
+}
+
+static inline void* draken_malloc(size_t size) {
+    void* p = malloc(size);
+    draken_mem_note_alloc(p);
+    const DrakenTraceConfig* tc = draken_trace_config();
+    if (tc->enabled && p != nullptr) {
+        size_t asize = DRAKEN_USABLE_SIZE(p);
+        size_t min_sz = tc->min_sz;
+        size_t max_sz = tc->max_sz;
+        if (asize >= min_sz && asize <= max_sz) {
+            fprintf(stderr, "DRAKEN_MALLOC TRACE: ptr=%p req=%zu size=%zu\n", p, size, asize);
+            void* bt[32];
+            int bt_sz = backtrace(bt, 32);
+            backtrace_symbols_fd(bt, bt_sz, STDERR_FILENO);
+            fprintf(stderr, "-- end DRAKEN_MALLOC TRACE --\n");
+            fflush(stderr);
+        }
+    }
+    return p;
+}
+
+// Zero-initialised allocation. Delegates to calloc rather than
+// draken_malloc + memset on purpose: for large blocks the allocator can hand
+// back fresh zero pages from the OS, so the zeroing costs nothing and is not an
+// eager write over the whole buffer. Callers that need a zeroed buffer on a hot
+// path (per-morsel hash scratch, partition bin counts) depend on that.
+// Returns NULL on failure, like draken_malloc — it does not throw. Pairs with
+// draken_free.
+static inline void* draken_calloc(size_t count, size_t size) {
+    void* p = calloc(count, size);
+    draken_mem_note_alloc(p);
+    const DrakenTraceConfig* tc = draken_trace_config();
+    if (tc->enabled && p != nullptr) {
+        size_t asize = DRAKEN_USABLE_SIZE(p);
+        size_t min_sz = tc->min_sz;
+        size_t max_sz = tc->max_sz;
+        if (asize >= min_sz && asize <= max_sz) {
+            fprintf(stderr, "DRAKEN_CALLOC TRACE: ptr=%p req=%zux%zu size=%zu\n", p, count, size, asize);
+            void* bt[32];
+            int bt_sz = backtrace(bt, 32);
+            backtrace_symbols_fd(bt, bt_sz, STDERR_FILENO);
+            fprintf(stderr, "-- end DRAKEN_CALLOC TRACE --\n");
+            fflush(stderr);
+        }
+    }
+    return p;
+}
+
+// Resize a draken_malloc'd block, preserving its contents up to the smaller
+// size; new bytes are uninitialised. Unlike malloc + memcpy + free, the
+// allocator may grow the block in place or remap its pages rather than copy.
+// Returns NULL on failure with the original block untouched, like realloc.
+// Pairs with draken_free.
+static inline void* draken_realloc(void* ptr, size_t size) {
+    draken_mem_note_free(ptr);
+    void* p = realloc(ptr, size);
+    // On failure realloc leaves the original block untouched: re-charge it.
+    // realloc(ptr, 0) may free ptr and return NULL — then there is nothing left.
+    draken_mem_note_alloc(p != nullptr ? p : (size != 0 ? ptr : nullptr));
+    const DrakenTraceConfig* tc = draken_trace_config();
+    if (tc->enabled && p != nullptr) {
+        size_t asize = DRAKEN_USABLE_SIZE(p);
+        if (asize >= tc->min_sz && asize <= tc->max_sz) {
+            fprintf(stderr, "DRAKEN_REALLOC TRACE: old=%p ptr=%p req=%zu size=%zu\n", ptr, p, size, asize);
+            void* bt[32];
+            int bt_sz = backtrace(bt, 32);
+            backtrace_symbols_fd(bt, bt_sz, STDERR_FILENO);
+            fprintf(stderr, "-- end DRAKEN_REALLOC TRACE --\n");
+            fflush(stderr);
+        }
+    }
+    return p;
+}
+
+static inline void* draken_aligned_malloc(size_t size, size_t alignment) {
+    // posix_memalign requires alignment to be a power of two and a multiple of
+    // sizeof(void*); clamp small alignments up (over-alignment is harmless).
+    if (alignment < sizeof(void*)) alignment = sizeof(void*);
+    void* p = nullptr;
+    if (posix_memalign(&p, alignment, size) != 0) p = nullptr;
+    draken_mem_note_alloc(p);
+    const DrakenTraceConfig* tc = draken_trace_config();
+    if (tc->enabled && p != nullptr) {
+        size_t asize = DRAKEN_USABLE_SIZE(p);
+        size_t min_sz = tc->min_sz;
+        size_t max_sz = tc->max_sz;
+        if (asize >= min_sz && asize <= max_sz) {
+            fprintf(stderr, "DRAKEN_ALIGNED_MALLOC TRACE: ptr=%p req=%zu align=%zu size=%zu\n", p, size, alignment, asize);
+            void* bt[32];
+            int bt_sz = backtrace(bt, 32);
+            backtrace_symbols_fd(bt, bt_sz, STDERR_FILENO);
+            fprintf(stderr, "-- end DRAKEN_ALIGNED_MALLOC TRACE --\n");
+            fflush(stderr);
+        }
+    }
+    return p;
+}
+
+static inline void draken_free(void* ptr) {
+    if (ptr == nullptr) {
+        return;
+    }
+
+    /* Optional diagnostic tracing: set OPTERYX_FREE_TRACE=1 to enable.
+     * Further filtering is supported via OPTERYX_FREE_TRACE_MIN / _MAX (bytes).
+     * Config is resolved once at process start (see draken_trace_config).
+     */
+    const DrakenTraceConfig* tc = draken_trace_config();
+    if (tc->enabled) {
+        size_t asize = DRAKEN_USABLE_SIZE(ptr);
+        size_t min_sz = tc->min_sz;
+        size_t max_sz = tc->max_sz;
+
+        if (asize >= min_sz && asize <= max_sz) {
+            fprintf(stderr, "DRAKEN_FREE TRACE: ptr=%p size=%zu\n", ptr, asize);
+            void* bt[32];
+            int bt_sz = backtrace(bt, 32);
+            backtrace_symbols_fd(bt, bt_sz, STDERR_FILENO);
+            fprintf(stderr, "-- end DRAKEN_FREE TRACE --\n");
+            fflush(stderr);
+        }
+    }
+
+    draken_mem_note_free(ptr);
+    free(ptr);
+}
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
+
+#endif  // DRAKEN_CORE_ALLOC_H

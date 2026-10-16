@@ -1,6 +1,10 @@
 # testing tools
 pytest
 
+# oracles and optional features the tests exercise
+numpy
+xxhash
+
 # integrations
 pandas
 polars

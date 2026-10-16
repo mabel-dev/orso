@@ -16,6 +16,8 @@ from collections import deque
 from itertools import islice
 from typing import Union
 
+from orso._native import trunc_printable as _native_trunc_printable  # noqa: E402
+
 # Background		#282a36	40 42 54	231° 15% 18%
 # Current Line		#44475a	68 71 90	232° 14% 31%
 # Foreground		#f8f8f2	248 248 242	60° 30% 96%
@@ -126,7 +128,7 @@ def html_table(dictset, limit: int = 5):  # pragma: no cover
 
         yield "</tbody></table>"
 
-    footer = f"\n<p>{dictset.rowcount} rows x {dictset.columncount} columns</p>"  # type:ignore
+    footer = f"\n<p>{dictset.rowcount} rows x {dictset.columncount} columns</p>"  # type: ignore
 
     return "".join(_to_html_table(dictset.head(limit), dictset.column_names)) + footer
 
@@ -159,14 +161,16 @@ def ascii_table(
     Returns:
         string (ASCII table)
     """
+    import sys
     from math import isnan
 
-    import numpy
+    # numpy is optional (v2): if a value is a numpy one, numpy is already imported
+    numpy = sys.modules.get("numpy")
 
     from orso import DataFrame
 
     lazy_length = 0
-    is_lazy = not isinstance(table._rows, list)
+    is_lazy = table._is_lazy
 
     # get the width of the display
     if isinstance(display_width, bool):
@@ -230,7 +234,7 @@ def ascii_table(
                 return str(value).ljust(width)[:width]
             return str(value).rjust(width)[:width]
 
-        if isinstance(value, (numpy.generic, numpy.ndarray)):
+        if numpy is not None and isinstance(value, (numpy.generic, numpy.ndarray)):
             value = numpy_type_mapper(value)
 
         if value is None or (isinstance(value, float) and isnan(value)):
@@ -369,6 +373,12 @@ def ascii_table(
         return 2 if unicodedata.east_asian_width(symbol) in ("F", "W") else 1
 
     def trunc_printable(value, width=None, full_line: bool = True):
+        # v2: the per-character walk is native (orso/native/render.h), same output
+        if type(value) is str:
+            return _native_trunc_printable(value, width, full_line)
+        return _trunc_printable_python(value, width, full_line)
+
+    def _trunc_printable_python(value, width=None, full_line: bool = True):
         simple = (
             ("\n" not in value)
             and ("\r" not in value)
@@ -414,8 +424,8 @@ def ascii_table(
         # Calculate width
         col_width = list(map(len, t.column_names))
 
-        # Use optimized Cython function to calculate widths for all columns at once
-        from orso.compute.compiled import calculate_column_widths
+        # widths for every column in one native pass
+        from orso._native import column_widths as calculate_column_widths
 
         data_width = calculate_column_widths(t._rows)
         from orso.schema import RelationSchema

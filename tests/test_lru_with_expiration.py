@@ -1,7 +1,6 @@
 import os
 import sys
 
-
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
 import pytest
@@ -11,9 +10,11 @@ import time
 from orso.tools import lru_cache_with_expiry
 from orso.tools import random_string
 
+
 @lru_cache_with_expiry(max_size=3, valid_for_seconds=1)
 def sample_function(x, y):
     return random_string()
+
 
 def test_cache_basic_functionality():
     # Initial call, should not be cached
@@ -22,6 +23,7 @@ def test_cache_basic_functionality():
     # Call with same arguments, should be cached
     result2 = sample_function(1, 2)
     assert result2 == result1
+
 
 def test_cache_expiry():
     # Initial call, should not be cached
@@ -33,6 +35,7 @@ def test_cache_expiry():
     # Call with same arguments, cache should have expired
     result2 = sample_function(2, 3)
     assert result2 != result1
+
 
 def test_cache_lru_eviction():
     # Fill the cache with three different items
@@ -64,11 +67,14 @@ def test_cache_lru_access_order():
     assert result1_again == result1
 
     # Add a new item to the cache, causing the LRU item to be evicted
-    result4 = sample_function(8, 9)  # Should be cached, (6, 7) should be evicted as it is now the LRU
+    result4 = sample_function(
+        8, 9
+    )  # Should be cached, (6, 7) should be evicted as it is now the LRU
 
     # Accessing the evicted item should result in a cache miss and recalculation
     result2_again = sample_function(6, 7)
     assert result2_again != result2  # New result as the old one should have been evicted
+
 
 if __name__ == "__main__":  # prgama: nocover
     from tests import run_tests

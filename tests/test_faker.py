@@ -2,7 +2,6 @@ import os
 import sys
 import pytest
 
-
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
 
@@ -116,8 +115,10 @@ def test_fakeable_types():
 
 def test_unfakeable_types():
     # Create a schema with an unfakeable type (OrsoTypes.STRUCT)
+    # not nullable: the faker returns None for 1% of nullable values before it reaches the
+    # type check, which made this test fail about 2% of the time
     columns = [
-        FlatColumn(name="StructCol", type=OrsoTypes.STRUCT),
+        FlatColumn(name="StructCol", type=OrsoTypes.STRUCT, nullable=False),
     ]
     schema = RelationSchema(name="TestUnfakeableTypesSchema", columns=columns)
 

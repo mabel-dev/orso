@@ -10,8 +10,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# ---------------------------------------------------------------------------------
+# v2 (DESIGN.md §4.3): a DataFrame's rows live in one of two places, and stay in the
+# form they arrived in until an operation needs the other form.
+#
+#   list frame    rows handed to the constructor (a list, a tuple, a generator) or built
+#                 by DataFrame(dictionaries) are kept as Python objects in `_py_rows`,
+#                 exactly as v1 kept them. Nothing is encoded, so passing rows through
+#                 costs what it always did.
+#   store frame   rows appended to an empty frame go into a native record store
+#                 (`_frame`, orso._native.Frame): validated and encoded in C, sized in
+#                 O(1), sliced as views, decoded to Row objects only when read.
+#
+# Reading `_rows` on a store frame decodes it once and turns it into a list frame, so the
+# v1 code paths that still want a Python list (arrow, display, collect, group_by...) see
+# one. Phase 3 and 5 give those paths native routes and the conversion goes away.
+# ---------------------------------------------------------------------------------
+
+import threading
 import typing
 from collections.abc import MutableMapping
+from itertools import islice
 from typing import Generator
 from typing import Iterable
 from typing import List
@@ -19,13 +38,32 @@ from typing import Optional
 from typing import Tuple
 from typing import Union
 
-import numpy
-
 from orso import Row
 from orso._json import dumps_bytes as json_dumps_bytes
+from orso._native import Frame
+from orso._native import FrameCursor
+from orso._native import Plan
+from orso._native import collect_rows_into
+from orso._native import rows_from_dicts
+from orso._native import rows_nbytes
+from orso._native import xxh64 as _xxh64
+from orso.exceptions import MissingDependencyError
 from orso.group_by import GroupBy
 from orso.schema import RelationSchema
-from orso.tools import single_item_cache
+from orso.types import ORSO_TO_PYTHON_MAP
+from orso.types import OrsoTypes
+
+# Taken only for the one-time move of an empty frame into the native store (append()).
+_STORE_SWITCH = threading.Lock()
+
+
+def _numpy():
+    """numpy, which collect() returns arrays of; no longer a hard requirement (v2)."""
+    try:
+        import numpy
+    except ImportError as import_error:  # pragma: no cover
+        raise MissingDependencyError(import_error.name) from import_error
+    return numpy
 
 
 class DataFrame:
@@ -35,15 +73,16 @@ class DataFrame:
 
     __slots__ = (
         "_schema",
-        "_rows",
+        "_py_rows",
+        "_frame",
+        "_decoded",
+        "_plan",
         "_cursor",
-        "_row_factory",
+        "_rf",
+        "_colnames",
         "arraysize",
         "_nbytes",
         "_nbytes_upto",
-        "_jsonb_column_names",
-        "_append_validation_plan",
-        "_append_expected_column_count",
     )
 
     _LIST_ITERATOR_TYPE = type(iter([]))
@@ -76,73 +115,187 @@ class DataFrame:
                 'dictionaries'
 
         """
-        # `_nbytes` is the summed size of rows[:_nbytes_upto]; nbytes() tops it up
-        # with any rows appended since. Starting both at zero is correct whether or
-        # not `rows` was supplied, because nothing has been counted yet.
+        # `_nbytes` is the summed size of rows[:_nbytes_upto] for list frames; nbytes()
+        # tops it up with rows appended since. Store frames keep their own watermark.
         self._nbytes = 0
         self._nbytes_upto = 0
+        self._frame = None
+        self._decoded = None
+        self._plan = None
+        self._rf = None
+        self._colnames = None
         if dictionaries is not None:
             if schema is not None or rows is not None:
                 raise ValueError(
                     "Can't implicitly and explicitly define a DataFrame at the same time"
                 )
 
-            from itertools import chain
-
             # make the list of dicts iterable
             dicts = iter(dictionaries)
-            # extract the first of the list, and get the types from it
+            # extract the first of the list, and get the column names from it
             first_dict = next(dicts)
 
-            # if we have an explicit schema, use that, otherwise guess from the first entry
             self._schema = [str(k) for k in first_dict]
-            self._row_factory = Row.create_class(self._schema)
-            keys = list(first_dict.keys())
-
-            # create a list of tuples
-            self._rows = [
-                self._row_factory([row.get(k, None) for k in keys])
-                for row in chain([first_dict], dicts)
-            ]
+            row_factory = Row.create_class(self._schema)
+            self._rf = row_factory
+            # one native pass: every dict read by the first dict's keys, missing -> None
+            self._py_rows = rows_from_dicts(
+                row_factory, tuple(first_dict.keys()), first_dict, dicts
+            )
         else:
-            self._schema = schema  # type:ignore
-            self._rows = rows or []  # type:ignore
-            self._row_factory = Row.create_class(self._schema)
-        self._jsonb_column_names = ()
-        self._append_validation_plan = ()
-        self._append_expected_column_count = 0
-        if isinstance(self._schema, RelationSchema):
-            from orso.types import ORSO_TO_PYTHON_MAP
-            from orso.types import OrsoTypes
-
-            self._jsonb_column_names = tuple(
-                col.name for col in self._schema.columns if col.type == OrsoTypes.JSONB
-            )
-            self._append_validation_plan = tuple(
-                (
-                    col.name,
-                    col.nullable,
-                    None if col.type == OrsoTypes._MISSING_TYPE else ORSO_TO_PYTHON_MAP[col.type],
-                )
-                for col in self._schema.columns
-            )
-            self._append_expected_column_count = len(self._append_validation_plan)
+            if not isinstance(schema, (RelationSchema, list, tuple)):
+                raise ValueError("Row requires either a list of field names or a RelationSchema")
+            self._schema = schema  # type: ignore
+            self._py_rows = rows or []  # type: ignore
         self.arraysize = 100
-        self._cursor = iter(self._rows or [])
+        self._cursor = iter(self._py_rows or [])
 
     def __new__(cls, *args, **kwargs):
         return super().__new__(cls)
+
+    @staticmethod
+    def _from_frame(frame, parent: "DataFrame") -> "DataFrame":
+        """A store frame over `frame` (a view) that shares `parent`'s schema and plan."""
+        df = DataFrame.__new__(DataFrame)
+        df._schema = parent._schema
+        df._py_rows = None
+        df._frame = frame
+        df._decoded = None
+        df._plan = parent._plan
+        df._rf = parent._rf
+        df._colnames = parent._colnames
+        df.arraysize = 100
+        df._nbytes = 0
+        df._nbytes_upto = 0
+        df._cursor = frame.cursor()
+        return df
+
+    # ------------------------------------------------------------------------------
+    # storage plumbing
+    # ------------------------------------------------------------------------------
+
+    @property
+    def _rows(self):
+        """
+        The rows as a Python sequence (list, tuple or iterator), as v1 exposed them.
+        On a store frame this decodes every row once and the frame becomes a list frame.
+        """
+        if self._frame is not None:
+            self._to_list_frame()
+        return self._py_rows
+
+    @_rows.setter
+    def _rows(self, value):
+        self._frame = None
+        self._decoded = None
+        self._py_rows = value
+
+    def _to_list_frame(self):
+        frame = self._frame
+        rows = self._decoded if self._decoded is not None else frame.rows()
+        cursor = self._cursor
+        position = cursor.position if type(cursor) is FrameCursor else None
+        self._frame = None
+        self._decoded = None
+        self._py_rows = rows
+        self._nbytes = 0
+        self._nbytes_upto = 0
+        if position is not None:
+            cursor = iter(rows)
+            if position:
+                next(islice(cursor, position, position), None)  # skip what was fetched
+            self._cursor = cursor
+        elif cursor is not None:
+            self._cursor = None  # only store frames reach here, and theirs is a FrameCursor
+
+    @property
+    def _is_lazy(self) -> bool:
+        """True when rows are an unconsumed iterator rather than a materialised list."""
+        return self._frame is None and not isinstance(self._py_rows, list)
+
+    @property
+    def _row_factory(self):
+        row_factory = self._rf
+        if row_factory is None:
+            row_factory = self._rf = Row.create_class(self._schema)
+        return row_factory
+
+    def _get_plan(self):
+        """The native validation plan, built on first append (v1 rebuilt it per frame)."""
+        plan = self._plan
+        if plan is None:
+            schema = self._schema
+            if isinstance(schema, RelationSchema):
+                columns = [
+                    (
+                        str(col.name),
+                        col.nullable,
+                        (
+                            None
+                            if col.type == OrsoTypes._MISSING_TYPE
+                            else ORSO_TO_PYTHON_MAP[col.type]
+                        ),
+                        col.type == OrsoTypes.JSONB,
+                    )
+                    for col in schema.columns
+                ]
+                plan = Plan(self._row_factory, columns, schema.validate, json_dumps_bytes)
+            else:
+                plan = Plan(self._row_factory, None, None, None)
+            self._plan = plan
+        return plan
+
+    # ------------------------------------------------------------------------------
 
     def group_by(self, columns: List[str]) -> GroupBy:
         return GroupBy(self, columns)
 
     @classmethod
     def from_arrow(cls, tables):
-        """Convert a PyArrow Table, or list of Tables, to an Orso DataFrame."""
-        from orso.converters import from_arrow
+        """
+        Convert a PyArrow Table, or list of Tables, to an Orso DataFrame.
 
-        rows, schema = from_arrow(tables)
+        A Table, RecordBatch, or list of them is imported natively into a store frame:
+        no Python objects are made until rows are read. A generator of tables stays a
+        lazy frame, read one table at a time, as in v1.
+        """
+        from orso import converters
+
+        eager = converters.eager_tables(tables)
+        if eager:
+            schema = converters.schema_from_arrow(eager[0])
+            df = cls(rows=[], schema=schema)
+            frame = Frame(df._get_plan())
+            try:
+                converters.import_tables(frame, eager)
+            except ValueError:
+                eager = None  # tables of different widths: they cannot share a store
+            else:
+                df._frame = frame
+                df._py_rows = None
+                df._cursor = frame.cursor()
+                return df
+        rows, schema = converters.from_arrow(tables)
         return cls(rows=rows, schema=schema)
+
+    def to_draken(self, size=None):
+        """
+        Convert the DataFrame to a draken Morsel, optionally limiting the number of rows.
+        Needs draken (opteryx-core); raises MissingDependencyError without it.
+        """
+        from orso._draken import to_draken
+
+        return to_draken(self, size=size)
+
+    @classmethod
+    def from_draken(cls, morsels):
+        """
+        Convert a draken Morsel, or a list of Morsels with the same columns, to a
+        DataFrame. Needs draken (opteryx-core); raises MissingDependencyError without it.
+        """
+        from orso._draken import from_draken
+
+        return from_draken(cls, morsels)
 
     def arrow(self, size=None):
         """
@@ -165,73 +318,64 @@ class DataFrame:
 
     def nbytes(self) -> int:
         """Approximate the number of bytes used by the DataFrame"""
+        frame = self._frame
+        if frame is not None:
+            return frame.nbytes()
         self.materialize()
-        rows = self._rows
+        rows = self._py_rows
         total_rows = len(rows)
         counted = self._nbytes_upto
         if counted != total_rows:
             if counted > total_rows:
                 # rows were replaced with a shorter sequence - recount from scratch
-                self._nbytes = sum(row.nbytes() for row in rows)
+                self._nbytes = rows_nbytes(rows)
             else:
                 # only size the rows appended since the last call, so repeatedly
                 # polling nbytes() while building a frame stays linear overall
-                self._nbytes += sum(rows[i].nbytes() for i in range(counted, total_rows))
+                self._nbytes += rows_nbytes(rows, counted, total_rows)
             self._nbytes_upto = total_rows
         return self._nbytes
 
-    def _fast_validate_and_extract_append_record(self, record: dict):
-        """
-        Fast-path validation and extraction for append() when records are valid dicts.
-        Falls back to RelationSchema.validate() on mismatch to preserve errors.
-        """
-        if len(record) != self._append_expected_column_count:
-            return None
-
-        row_values = [None] * self._append_expected_column_count
-        for i, (name, nullable, expected_type) in enumerate(self._append_validation_plan):
-            try:
-                value = record[name]
-            except KeyError:
-                return None
-            if value is None:
-                if not nullable:
-                    return None
-            elif expected_type is not None and not isinstance(value, expected_type):
-                return None
-            row_values[i] = value
-        return tuple(row_values)
-
     def append(self, entry):
-        # If we have an explicit RelationSchema, validate and normalize JSONB values.
-        if isinstance(self._schema, RelationSchema):
-            record = entry
-            if self._jsonb_column_names and isinstance(entry, MutableMapping):
-                # Copy only when we actually need to mutate JSONB values.
-                for jsonb_column_name in self._jsonb_column_names:
-                    value = entry.get(jsonb_column_name)
-                    if isinstance(value, (dict, list, tuple, set)):
-                        if record is entry:
-                            record = dict(entry)
-                        record[jsonb_column_name] = json_dumps_bytes(value)
-
-            row_values = None
-            if isinstance(record, dict):
-                row_values = self._fast_validate_and_extract_append_record(record)
-
-            if row_values is None:
-                self._schema.validate(record)
-                new_row = self._row_factory(record)
+        frame = self._frame
+        if frame is not None:
+            frame.append(entry)  # the store frame's own lock covers concurrent appends
+            self._decoded = None
+            # Appending invalidates the cursor (v1). Rows are not sized here; nbytes()
+            # picks them up from the store when it is next called.
+            self._cursor = None
+            return
+        rows = self._py_rows
+        if rows is None:
+            # another thread moved this frame into the native store since we looked
+            return self.append(entry)
+        if not isinstance(rows, list):
+            self.materialize()
+            rows = self._py_rows
+        if rows:
+            # the frame already holds Python rows: keep them that way, validated
+            # natively when there is a RelationSchema
+            if isinstance(self._schema, RelationSchema):
+                rows.append(self._get_plan().row(entry))
             else:
-                new_row = self._row_factory(row_values)
-        else:
-            new_row = self._row_factory(entry)
-        self._rows.append(new_row)
-        # Deliberately do NOT size the row here. Row.nbytes() msgpack-serialises the
-        # whole row and throws the bytes away, so doing it per append taxed every
-        # writer whether or not it ever asked for nbytes(). The watermark in nbytes()
-        # picks these rows up on the next call instead.
-        self._cursor = None
+                rows.append(self._row_factory(entry))
+            self._cursor = None
+            return
+        # An empty frame: rows from here on go into the native record store. Threads that
+        # all find it empty must agree on one store (free-threaded builds), so the switch
+        # is made once, under a lock, and everyone else appends to the store it made. The
+        # first record is written before the switch so a rejected record leaves the frame
+        # exactly as it was.
+        with _STORE_SWITCH:
+            if self._frame is None and self._py_rows is rows and not rows:
+                frame = Frame(self._get_plan())
+                frame.append(entry)
+                self._frame = frame
+                self._py_rows = None
+                self._decoded = None
+                self._cursor = None
+                return
+        return self.append(entry)
 
     def head(self, size: int = 5) -> "DataFrame":
         return self.slice(0, size)
@@ -252,7 +396,7 @@ class DataFrame:
         Returns:
             DataFrame
         """
-        return DataFrame(rows=[r for r in self._rows if predicate(r)], schema=self._schema)
+        return DataFrame(rows=[r for r in self if predicate(r)], schema=self._schema)
 
     def select(self, attributes) -> "DataFrame":
         """
@@ -267,7 +411,7 @@ class DataFrame:
                 attribute_indices.append(index)
 
         def _inner_projection():
-            for tup in self._rows:
+            for tup in self:
                 yield tuple([tup[indice] for indice in attribute_indices])
 
         return DataFrame(rows=_inner_projection(), schema=new_header)
@@ -276,16 +420,14 @@ class DataFrame:
         """
         Convert a Lazy DataFrame to an Eager DataFrame
         """
-        # Only convert to list if not already a list
-        if not isinstance(self._rows, list):
-            self._rows = list(self._rows or [])
+        # store frames are always materialised; list frames only when not a list already
+        if self._frame is None and not isinstance(self._py_rows, list):
+            self._py_rows = list(self._py_rows or [])
 
     def distinct(self) -> "DataFrame":
         seen = set()
         unique_rows = [
-            x
-            for x in self._rows
-            if hash(x) not in seen and not seen.add(hash(x))  # type:ignore
+            x for x in self if hash(x) not in seen and not seen.add(hash(x))  # type: ignore
         ]
         return DataFrame(rows=unique_rows, schema=self._schema)
 
@@ -305,7 +447,7 @@ class DataFrame:
             Union[list, tuple]:
                 A tuple containing lists of the column data, or a single list if only one column is specified.
         """
-        from orso.compute.compiled import collect_cython
+        numpy = _numpy()
 
         self.materialize()
 
@@ -324,9 +466,22 @@ class DataFrame:
             if not isinstance(c, int):
                 column_indicies[i] = self.column_names.index(c)
 
-        collected = collect_cython(
-            self._rows, numpy.array(column_indicies, dtype=numpy.int32), limit
-        )
+        # the values are written straight into the object array's buffer, natively (v1
+        # did the same through a Cython memoryview); store frames decode only these fields
+        frame = self._frame
+        if frame is not None:
+            total = len(frame)
+        else:
+            rows = self._py_rows
+            total = len(rows)
+        n = total if limit < 0 else min(limit, total)
+        collected = numpy.empty((len(column_indicies), n), dtype=object)
+        if n and column_indicies:
+            address = collected.__array_interface__["data"][0]
+            if frame is not None:
+                frame.collect_into(address, column_indicies, n)
+            else:
+                collect_rows_into(address, rows, column_indicies, n)
         if single:
             return collected[0]
         return collected
@@ -335,33 +490,51 @@ class DataFrame:
         return self.collect(columns=items, limit=None)
 
     def slice(self, offset: int = 0, length: int = None) -> "DataFrame":
+        frame = self._frame
+        if frame is not None:
+            n = len(frame)
+            if offset < 0:
+                offset = n + offset
+            if length == 0:
+                return DataFrame._from_frame(frame.view(0, 0), self)
+            # the same window list slicing gives, negative bounds included
+            window = range(n)[offset:] if length is None else range(n)[offset : offset + length]
+            return DataFrame._from_frame(frame.view(window.start, len(window)), self)
         self.materialize()
+        rows = self._py_rows
         if offset < 0:
-            offset = len(self._rows) + offset
+            offset = len(rows) + offset
         if length is None:
-            return DataFrame(schema=self._schema, rows=self._rows[offset:])
+            return DataFrame(schema=self._schema, rows=rows[offset:])
         if length == 0:
             return DataFrame(schema=self._schema, rows=[])
-        return DataFrame(schema=self._schema, rows=self._rows[offset : offset + length])
+        return DataFrame(schema=self._schema, rows=rows[offset : offset + length])
 
     def filter(self, mask) -> "DataFrame":
         """
         Select rows from the DataFRame. The DataFrame is filtered based on boolean array.
         """
-        return DataFrame(schema=self._schema, rows=(t for t, m in zip(self._rows, mask) if m))
+        return DataFrame(schema=self._schema, rows=(t for t, m in zip(self, mask) if m))
 
     def take(self, indexes) -> "DataFrame":
         """
         Select rows from the DataFrame. Rows are selected based on their appearance in the indexes
         list
         """
-        return DataFrame(
-            schema=self._schema, rows=(m for i, m in enumerate(self._rows) if i in indexes)
-        )
+        return DataFrame(schema=self._schema, rows=(m for i, m in enumerate(self) if i in indexes))
 
     def row(self, i) -> Row:
+        frame = self._frame
+        if frame is not None:
+            decoded = self._decoded
+            return decoded[i] if decoded is not None else frame.row(i)
         self.materialize()
-        return self._rows[i]
+        return self._py_rows[i]
+
+    # ------------------------------------------------------------------------------
+    # DB-API cursor. List frames keep v1's iterator; store frames have a FrameCursor,
+    # which iterates the same way, so fetchone() is `next(cursor)` for both.
+    # ------------------------------------------------------------------------------
 
     def fetchone(self) -> Row:
         if self._cursor is None:
@@ -372,23 +545,26 @@ class DataFrame:
             return None
 
     def fetchmany(self, size=None) -> List[Row]:
-        if self._cursor is None:
+        cursor = self._cursor
+        if cursor is None:
             raise Exception("Cannot use fetchmany and append on the same DataFrame")
         fetch_size = self.arraysize if size is None else size
+        if type(cursor) is FrameCursor:
+            return cursor.take(fetch_size)
         entries = []
         for i in range(fetch_size):
             try:
-                entry = next(self._cursor)
+                entry = next(cursor)
                 entries.append(entry)
             except StopIteration:
                 break
         return entries
 
     def fetchall(self) -> List[Row]:
-        if self._cursor is None:
-            raise Exception("Cannot use fetchall and append on the same DataFrame")
         cursor = self._cursor
-        rows = self._rows
+        if cursor is None:
+            raise Exception("Cannot use fetchall and append on the same DataFrame")
+        rows = self._py_rows
 
         # Fast-path for materialized rows by slicing instead of iterating element-by-element.
         if isinstance(rows, list) and isinstance(cursor, self._LIST_ITERATOR_TYPE):
@@ -416,6 +592,9 @@ class DataFrame:
                 result = list(rows[consumed:])
             self._cursor = iter(())
             return result
+
+        if type(cursor) is FrameCursor:
+            return cursor.rest()
 
         result = list(cursor)
         self._cursor = iter(())
@@ -457,9 +636,15 @@ class DataFrame:
         Yields:
             DataFrames
         """
+        frame = self._frame
+        if frame is not None:
+            for i in range(0, len(frame), batch_size):
+                yield DataFrame._from_frame(frame.view(i, batch_size), self)
+            return
         self.materialize()
-        for i in range(0, self.rowcount, batch_size):
-            yield DataFrame(rows=self._rows[i : i + batch_size], schema=self._schema)
+        rows = self._py_rows
+        for i in range(0, len(rows), batch_size):
+            yield DataFrame(rows=rows[i : i + batch_size], schema=self._schema)
 
     @property
     def description(
@@ -513,21 +698,26 @@ class DataFrame:
                     nullable,
                 )
             )
-        return result  # type:ignore
+        return result  # type: ignore
 
     @property
-    @single_item_cache
     def column_names(self) -> Tuple[str]:
-        if isinstance(self._schema, (tuple, list)):
-            return tuple(str(c) for c in self._schema)  # type:ignore
-        return tuple(str(col.name) for col in self._schema.columns)
+        names = self._colnames
+        if names is None:
+            schema = self._schema
+            if isinstance(schema, (tuple, list)):
+                names = tuple(str(c) for c in schema)  # type: ignore
+            else:
+                names = tuple(str(col.name) for col in schema.columns)
+            self._colnames = names
+        return names
 
     @property
-    @single_item_cache
     def columncount(self) -> int:
-        if isinstance(self._schema, (tuple, list)):
-            return len(self._schema)
-        return len(self._schema.columns)
+        schema = self._schema
+        if isinstance(schema, (tuple, list)):
+            return len(schema)
+        return len(schema.columns)
 
     @property
     def shape(self) -> typing.Tuple[int, int]:
@@ -535,31 +725,41 @@ class DataFrame:
 
     @property
     def rowcount(self) -> int:
+        frame = self._frame
+        if frame is not None:
+            return len(frame)
         self.materialize()
-        return len(self._rows)
+        return len(self._py_rows)
 
     @property
     def schema(self) -> RelationSchema:
         return self._schema
 
     def __hash__(self):
-        from xxhash import xxh64
-
         _hash = 0
-        for i, row in enumerate(self._rows):
-            row_hash = xxh64(str(row).encode()).intdigest()
+        for i, row in enumerate(self):
+            row_hash = _xxh64(str(row).encode())
             _hash = i ^ _hash ^ row_hash
         return _hash
 
     def __iter__(self):
-        rows = self._rows
+        frame = self._frame
+        if frame is not None:
+            decoded = self._decoded
+            if decoded is None:
+                decoded = self._decoded = frame.rows()
+            return decoded.__iter__()
+        rows = self._py_rows
         if isinstance(rows, list):
             return rows.__iter__()
         return iter(rows)
 
     def __len__(self) -> int:
+        frame = self._frame
+        if frame is not None:
+            return len(frame)
         self.materialize()
-        return len(self._rows)
+        return len(self._py_rows)
 
     def __repr__(self) -> str:
         """

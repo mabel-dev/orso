@@ -37,7 +37,7 @@ if [ -z "$PYBIN" ]; then
 fi
 
 # Install necessary packages
-"${PYBIN}/python" -m pip install -U setuptools wheel numpy cython auditwheel
+"${PYBIN}/python" -m pip install -U setuptools wheel nanobind auditwheel
 
 # Build the wheel
 "${PYBIN}/python" setup.py bdist_wheel

@@ -60,9 +60,9 @@ def test_validate_with_valid_data():
 
 
 def test_struct_to_blob():
-    import pyarrow 
+    import pyarrow
 
-    struct_type = pyarrow.struct([pyarrow.field('subfield', pyarrow.int32())])
+    struct_type = pyarrow.struct([pyarrow.field("subfield", pyarrow.int32())])
     arrow_col = pyarrow.field(name="column", type=struct_type)
 
     assert arrow_col.type == struct_type, arrow_col.type
@@ -75,6 +75,7 @@ def test_struct_to_blob():
 
     orso_struct_as_blob_col = FlatColumn.from_arrow(arrow_col, mappable_as_binary=True)
     assert orso_struct_as_blob_col.type == OrsoTypes.BLOB, orso_struct_as_blob_col.type
+
 
 def test_validate_with_missing_column():
     # Test with missing column
@@ -338,6 +339,7 @@ def test_parsers():
     assert isinstance(parsed, str), type(parsed)
     assert parsed == "1718530754", parsed
 
+
 def test_type_name_parsing():
     _type = FlatColumn(name="col", type="INTEGER")
     assert _type.type == OrsoTypes.INTEGER, _type.type
@@ -380,37 +382,122 @@ def test_type_name_parsing():
     _type = FlatColumn(name="col", type="BLOB[12]")
     assert _type.type == OrsoTypes.BLOB, _type.type
     assert _type.length == 12, _type.length
- 
+
 
 def test_type_name_parser():
-    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("INTEGER")
-    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.INTEGER, None, None, None, None)
-    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("VARCHAR")
-    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.VARCHAR, None, None, None, None)
-    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("BLOB")
-    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.BLOB, None, None, None, None)
-    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("DOUBLE")
-    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.DOUBLE, None, None, None, None)
-    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("DECIMAL")
-    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.DECIMAL, None, None, None, None)
-    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("BOOLEAN")
-    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.BOOLEAN, None, None, None, None)
-    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("TIMESTAMP")
-    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.TIMESTAMP, None, None, None, None)
-    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("ARRAY")
-    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.ARRAY, None, None, None, OrsoTypes.VARCHAR)
-    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("ARRAY<INTEGER>")
-    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.ARRAY, None, None, None, OrsoTypes.INTEGER)
-    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("ARRAY<VARCHAR>")
-    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.ARRAY, None, None, None, OrsoTypes.VARCHAR)
-    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("DECIMAL(10,2)")
-    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.DECIMAL, None, 10, 2, None), (_type, _length, _scale, _precision, _element_type)
-    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("VARCHAR[12]")
-    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.VARCHAR, 12, None, None, None)
-    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("BLOB[12]")
-    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.BLOB, 12, None, None, None)
-    (_type, _length, _scale, _precision, _element_type) = OrsoTypes.from_name("ARRAY<TIMESTAMP>")
-    assert (_type, _length, _scale, _precision, _element_type) == (OrsoTypes.ARRAY, None, None, None, OrsoTypes.TIMESTAMP)
+    _type, _length, _scale, _precision, _element_type = OrsoTypes.from_name("INTEGER")
+    assert (_type, _length, _scale, _precision, _element_type) == (
+        OrsoTypes.INTEGER,
+        None,
+        None,
+        None,
+        None,
+    )
+    _type, _length, _scale, _precision, _element_type = OrsoTypes.from_name("VARCHAR")
+    assert (_type, _length, _scale, _precision, _element_type) == (
+        OrsoTypes.VARCHAR,
+        None,
+        None,
+        None,
+        None,
+    )
+    _type, _length, _scale, _precision, _element_type = OrsoTypes.from_name("BLOB")
+    assert (_type, _length, _scale, _precision, _element_type) == (
+        OrsoTypes.BLOB,
+        None,
+        None,
+        None,
+        None,
+    )
+    _type, _length, _scale, _precision, _element_type = OrsoTypes.from_name("DOUBLE")
+    assert (_type, _length, _scale, _precision, _element_type) == (
+        OrsoTypes.DOUBLE,
+        None,
+        None,
+        None,
+        None,
+    )
+    _type, _length, _scale, _precision, _element_type = OrsoTypes.from_name("DECIMAL")
+    assert (_type, _length, _scale, _precision, _element_type) == (
+        OrsoTypes.DECIMAL,
+        None,
+        None,
+        None,
+        None,
+    )
+    _type, _length, _scale, _precision, _element_type = OrsoTypes.from_name("BOOLEAN")
+    assert (_type, _length, _scale, _precision, _element_type) == (
+        OrsoTypes.BOOLEAN,
+        None,
+        None,
+        None,
+        None,
+    )
+    _type, _length, _scale, _precision, _element_type = OrsoTypes.from_name("TIMESTAMP")
+    assert (_type, _length, _scale, _precision, _element_type) == (
+        OrsoTypes.TIMESTAMP,
+        None,
+        None,
+        None,
+        None,
+    )
+    _type, _length, _scale, _precision, _element_type = OrsoTypes.from_name("ARRAY")
+    assert (_type, _length, _scale, _precision, _element_type) == (
+        OrsoTypes.ARRAY,
+        None,
+        None,
+        None,
+        OrsoTypes.VARCHAR,
+    )
+    _type, _length, _scale, _precision, _element_type = OrsoTypes.from_name("ARRAY<INTEGER>")
+    assert (_type, _length, _scale, _precision, _element_type) == (
+        OrsoTypes.ARRAY,
+        None,
+        None,
+        None,
+        OrsoTypes.INTEGER,
+    )
+    _type, _length, _scale, _precision, _element_type = OrsoTypes.from_name("ARRAY<VARCHAR>")
+    assert (_type, _length, _scale, _precision, _element_type) == (
+        OrsoTypes.ARRAY,
+        None,
+        None,
+        None,
+        OrsoTypes.VARCHAR,
+    )
+    _type, _length, _scale, _precision, _element_type = OrsoTypes.from_name("DECIMAL(10,2)")
+    assert (_type, _length, _scale, _precision, _element_type) == (
+        OrsoTypes.DECIMAL,
+        None,
+        10,
+        2,
+        None,
+    ), (_type, _length, _scale, _precision, _element_type)
+    _type, _length, _scale, _precision, _element_type = OrsoTypes.from_name("VARCHAR[12]")
+    assert (_type, _length, _scale, _precision, _element_type) == (
+        OrsoTypes.VARCHAR,
+        12,
+        None,
+        None,
+        None,
+    )
+    _type, _length, _scale, _precision, _element_type = OrsoTypes.from_name("BLOB[12]")
+    assert (_type, _length, _scale, _precision, _element_type) == (
+        OrsoTypes.BLOB,
+        12,
+        None,
+        None,
+        None,
+    )
+    _type, _length, _scale, _precision, _element_type = OrsoTypes.from_name("ARRAY<TIMESTAMP>")
+    assert (_type, _length, _scale, _precision, _element_type) == (
+        OrsoTypes.ARRAY,
+        None,
+        None,
+        None,
+        OrsoTypes.TIMESTAMP,
+    )
+
 
 def test_type_combinations():
 
@@ -449,8 +536,11 @@ def test_type_combinations():
     assert find_compatible_type([OrsoTypes.STRUCT, OrsoTypes.STRUCT]) == OrsoTypes.STRUCT
     assert find_compatible_type([OrsoTypes.INTEGER, OrsoTypes.JSONB]) == OrsoTypes.VARCHAR
 
+
 def test_type_to_numpy_dtype():
+    pytest.importorskip("numpy")  # collect() and array-backed columns return numpy arrays
     import numpy
+
     assert OrsoTypes.INTEGER.numpy_dtype == numpy.dtype("int64")
 
 

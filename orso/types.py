@@ -180,13 +180,16 @@ class OrsoTypes(str, Enum):
         return self.value
 
     def parse(self, value: Any, **kwargs) -> Any:
+        if value is None:
+            return None
+        # v2: most parsers take no parameters, so skip building the keyword set for them
+        simple = _PARAMETERLESS_PARSERS.get(self)
+        if simple is not None:
+            return simple(value)
         kwargs["length"] = kwargs.get("length", self._length)
         kwargs["precision"] = kwargs.get("precision", self._precision)
         kwargs["scale"] = kwargs.get("scale", self._scale)
         kwargs["element_type"] = kwargs.get("element_type", self._element_type)
-
-        if value is None:
-            return None
         return ORSO_TO_PYTHON_PARSER[self.value](value, **kwargs)
 
     @property
@@ -264,6 +267,25 @@ class OrsoTypes(str, Enum):
 
     @staticmethod
     def from_name(name: str) -> tuple:
+        """
+        (type, length, precision, scale, element_type) for a type name. Results are
+        memoised per name (v2); names that warn (deprecated spellings) are not, so the
+        warning is raised every time, and invalid names raise every time.
+        """
+        try:
+            key = (type(name), name)
+            cached = _FROM_NAME_CACHE.get(key)
+        except TypeError:  # unhashable: parse it, uncached
+            return OrsoTypes._from_name_uncached(name)
+        if cached is not None:
+            return cached
+        result = OrsoTypes._from_name_uncached(name)
+        if str(name).upper() not in _WARNING_TYPE_NAMES and len(_FROM_NAME_CACHE) < 4096:
+            _FROM_NAME_CACHE[key] = result
+        return result
+
+    @staticmethod
+    def _from_name_uncached(name: str) -> tuple:
         _length = None
         _precision = None
         _scale = None
@@ -573,6 +595,9 @@ def parse_interval(x, **kwargs):
     return datetime.timedelta(x)
 
 
+_FROM_NAME_CACHE: dict = {}
+_WARNING_TYPE_NAMES = frozenset(("ARRAY", "LIST", "NUMERIC", "BSON"))
+
 ORSO_TO_PYTHON_PARSER: dict = {
     OrsoTypes.BOOLEAN: parse_boolean,
     OrsoTypes.BLOB: parse_bytes,
@@ -587,6 +612,19 @@ ORSO_TO_PYTHON_PARSER: dict = {
     OrsoTypes.ARRAY: parse_array,
     OrsoTypes.VARCHAR: parse_varchar,
     OrsoTypes.JSONB: parse_bytes,
+    OrsoTypes.NULL: parse_null,
+    OrsoTypes.VECTOR: parse_vector,
+}
+
+# parsers that ignore length / precision / scale / element_type (OrsoTypes.parse fast path)
+_PARAMETERLESS_PARSERS: dict = {
+    OrsoTypes.BOOLEAN: parse_boolean,
+    OrsoTypes.DATE: parse_date,
+    OrsoTypes.TIMESTAMP: parse_timestamp,
+    OrsoTypes.TIME: parse_time,
+    OrsoTypes.INTERVAL: parse_interval,
+    OrsoTypes.DOUBLE: parse_double,
+    OrsoTypes.INTEGER: parse_integer,
     OrsoTypes.NULL: parse_null,
     OrsoTypes.VECTOR: parse_vector,
 }

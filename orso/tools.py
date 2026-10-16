@@ -16,6 +16,7 @@ import logging
 import math
 import os
 import random
+import sys
 import threading
 import time
 import uuid
@@ -30,8 +31,7 @@ from typing import Tuple
 from typing import Type
 from typing import Union
 
-import numpy
-
+from orso._native import parse_iso_text as _parse_iso_text
 from orso.exceptions import MissingDependencyError
 
 logger = logging.getLogger(__name__)
@@ -235,17 +235,17 @@ def counter(func: Callable) -> Callable:
         Returns:
             str: The formatted report string.
         """
-        stats = f"\nExecution Statistics for `{self.__name__}`\n  Count   : {self.count}\n"  # type:ignore
-        if self.count > 0:  # type:ignore
-            stats += f"  Average : {sum(self._run_times) / self.count} seconds\n"  # type:ignore
-            stats += f"  Slowest : {min(self._run_times)} seconds\n"  # type:ignore
-            stats += f"  Fastest : {max(self._run_times)} seconds\n"  # type:ignore
+        stats = f"\nExecution Statistics for `{self.__name__}`\n  Count   : {self.count}\n"  # type: ignore
+        if self.count > 0:  # type: ignore
+            stats += f"  Average : {sum(self._run_times) / self.count} seconds\n"  # type: ignore
+            stats += f"  Slowest : {min(self._run_times)} seconds\n"  # type: ignore
+            stats += f"  Fastest : {max(self._run_times)} seconds\n"  # type: ignore
         return stats
 
     @wraps(func)
     def wrapper(*args, **kwargs) -> Any:
         # Increment the counter for function execution
-        wrapper.count += 1  # type:ignore
+        wrapper.count += 1  # type: ignore
 
         # Record the starting time
         start_time = time.monotonic()
@@ -254,16 +254,16 @@ def counter(func: Callable) -> Callable:
         result = func(*args, **kwargs)
 
         # Record and store the elapsed time
-        wrapper._run_times.append(time.monotonic() - start_time)  # type:ignore
+        wrapper._run_times.append(time.monotonic() - start_time)  # type: ignore
 
         return result
 
     # Initialize counter and run_times attributes
-    wrapper.count = 0  # type:ignore
-    wrapper._run_times = []  # type:ignore
+    wrapper.count = 0  # type: ignore
+    wrapper._run_times = []  # type: ignore
 
     # Attach the reporting function
-    wrapper.stats = lambda: report(wrapper)  # type:ignore
+    wrapper.stats = lambda: report(wrapper)  # type: ignore
 
     return wrapper
 
@@ -531,10 +531,7 @@ class DecimalFactory(decimal.Decimal):
         Returns:
             decimal.Decimal: The quantized decimal.
         """
-        context = decimal.Context(
-            prec=self.precision,
-            rounding=decimal.ROUND_HALF_EVEN,
-        )
+        context, factor = _decimal_context(self.precision, self.scale)
 
         if isinstance(value, float):
             value = format(value, ".99g")
@@ -548,9 +545,6 @@ class DecimalFactory(decimal.Decimal):
             value += "." + "0"  # minimal fractional part to allow quantize
 
         decimal_value = context.create_decimal(value)
-
-        safe_scale = min(self.scale, 28)
-        factor = decimal.Decimal("10") ** -safe_scale
 
         # Perform quantization with proper error handling
         try:
@@ -584,27 +578,39 @@ class DecimalFactory(decimal.Decimal):
             DecimalFactory instance with .__call__ behavior
         """
         # Create an inert Decimal (value doesn't matter, won't be used)
-        instance = decimal.Decimal.__new__(cls, "0")
-        object.__setattr__(instance, "scale", scale)
-        object.__setattr__(instance, "precision", precision)
+        key = (cls, precision, scale)
+        instance = _DECIMAL_FACTORIES.get(key)
+        if instance is None:
+            instance = decimal.Decimal.__new__(cls, "0")
+            object.__setattr__(instance, "scale", scale)
+            object.__setattr__(instance, "precision", precision)
+            if len(_DECIMAL_FACTORIES) < 1024:
+                _DECIMAL_FACTORIES[key] = instance
         return instance
 
 
-def arrow_type_map(parquet_type) -> Union[Type, None]:
-    """
-    Maps PyArrow types to corresponding Python types.
+# v2: a factory per (precision, scale), and the quantize context and factor it needs, are
+# built once rather than on every value parsed
+_DECIMAL_FACTORIES: dict = {}
+_DECIMAL_CONTEXTS: dict = {}
 
-    Parameters:
-        parquet_type: lib.DataType
-            PyArrow DataType object.
 
-    Returns:
-        Type or None: Corresponding Python type for the PyArrow DataType or None if not recognized.
+def _decimal_context(precision, scale):
+    key = (precision, scale)
+    found = _DECIMAL_CONTEXTS.get(key)
+    if found is None:
+        context = decimal.Context(prec=precision, rounding=decimal.ROUND_HALF_EVEN)
+        factor = decimal.Decimal("10") ** -min(scale, 28)
+        found = (context, factor)
+        if len(_DECIMAL_CONTEXTS) < 1024:
+            _DECIMAL_CONTEXTS[key] = found
+    return found
 
-    Raises:
-        ValueError: If the PyArrow DataType is not recognized.
-    """
 
+_ARROW_TYPE_MAP = None
+
+
+def _build_arrow_type_map():
     try:
         import pyarrow.lib as lib
     except ImportError as import_error:
@@ -627,7 +633,7 @@ def arrow_type_map(parquet_type) -> Union[Type, None]:
         lib.Type_STRING: str,
         lib.Type_LARGE_STRING: str,
         lib.Type_DATE32: datetime.date,
-        lib.Type_DATE64: datetime.datetime,
+        lib.Type_DATE64: datetime.date,  # v2: pyarrow yields dates for date64 (was datetime)
         lib.Type_TIME32: datetime.time,
         lib.Type_TIME64: datetime.time,
         lib.Type_INTERVAL_MONTH_DAY_NANO: datetime.timedelta,
@@ -636,12 +642,37 @@ def arrow_type_map(parquet_type) -> Union[Type, None]:
         lib.Type_LARGE_LIST: list,
         lib.Type_FIXED_SIZE_LIST: list,
         lib.Type_STRUCT: dict,
-        lib.Type_MAP: dict,
+        lib.Type_MAP: list,  # v2: to_pylist() gives a list of (key, value) tuples (v1: dict, which crashed from_arrow)
         lib.Type_BINARY: bytes,
         lib.Type_LARGE_BINARY: bytes,
         lib.Type_STRING_VIEW: str,
     }
+    return lib, type_map
 
+
+def arrow_type_map(parquet_type) -> Union[Type, None]:
+    """
+    Maps PyArrow types to corresponding Python types.
+
+    Parameters:
+        parquet_type: lib.DataType
+            PyArrow DataType object.
+
+    Returns:
+        Type or None: Corresponding Python type for the PyArrow DataType or None if not recognized.
+
+    Raises:
+        ValueError: If the PyArrow DataType is not recognized.
+    """
+
+    global _ARROW_TYPE_MAP
+    if _ARROW_TYPE_MAP is None:
+        _ARROW_TYPE_MAP = _build_arrow_type_map()  # v2: built once, not on every call
+    lib, type_map = _ARROW_TYPE_MAP
+
+    if parquet_type.id == lib.Type_DICTIONARY:
+        # v2: a dictionary-encoded column holds values of its value type (v1 raised)
+        return arrow_type_map(parquet_type.value_type)
     if parquet_type.id in type_map:
         return type_map[parquet_type.id]
     elif parquet_type.id in {lib.Type_DECIMAL128, lib.Type_DECIMAL256}:
@@ -678,10 +709,11 @@ def random_string(width: int = 16) -> str:
         desired width into the number of random bits needed, and then
         formatting it as a hexadecimal string.
     """
-    num_chars = ((width + 1) >> 1) << 3  # Convert length to number of bits
-    rand_bytes = getrandbits(num_chars)  # Generate random bits
-    # Convert to hex string, clip '0x' prefix, and zero-fill as needed
-    return ("000000" + hex(rand_bytes)[2:])[-width:]
+    # v2: exactly `width` hex digits, zero-padded. v1 padded with only six zeros, so a
+    # small enough random value came back shorter than `width`.
+    if width == 16:
+        return f"{getrandbits(64):016x}"
+    return format(getrandbits(4 * width), f"0{width}x") if width > 0 else ""
 
 
 def parse_iso(value):
@@ -701,6 +733,12 @@ def parse_iso(value):
 
     # If the last character is a Z, we ignore it.
     # If we can't parse as a date we return None rather than error
+    #
+    # v2: well-formed ISO-8601 text goes through draken's parser first, which keeps
+    # fractional seconds and applies a time-zone offset (the result is naive UTC). Text it
+    # refuses falls through to the v1 parser below, except text with an offset: that is
+    # refused (None), never parsed with the offset dropped. The result matches draken's
+    # parser and opteryx-core's CAST.
     try:
         input_type = type(value)
 
@@ -711,15 +749,23 @@ def parse_iso(value):
         if input_type == str and value.isdigit():
             value = int(value)
             input_type = int
+        elif input_type == str:
+            parsed = _parse_iso_text(value)
+            if parsed is not None:
+                return parsed
 
-        if input_type == numpy.datetime64:
+        numpy = sys.modules.get("numpy")  # v2: optional; a numpy value means it is imported
+
+        if numpy is not None and input_type == numpy.datetime64:
             # this can create dates rather than datetimes, so don't return yet
             value = value.astype(datetime.datetime)
             input_type = type(value)
             if input_type is int:
                 value /= 1000000000
 
-        if input_type in (int, numpy.int64, float, numpy.float64):
+        if input_type in (int, float) or (
+            numpy is not None and input_type in (numpy.int64, numpy.float64)
+        ):
             return datetime.datetime.fromtimestamp(int(value), tz=datetime.timezone.utc).replace(
                 tzinfo=None
             )
@@ -728,7 +774,7 @@ def parse_iso(value):
             return value.to_pydatetime()
 
         if input_type == datetime.datetime:
-            return value.replace(microsecond=0)
+            return value  # v1 dropped the microseconds here
         if input_type == datetime.date:
             return datetime.datetime.combine(value, datetime.time.min)
 
@@ -736,17 +782,19 @@ def parse_iso(value):
         if input_type == str and 10 <= len(value) <= 33:
             if value[-1] == "Z":
                 value = value[:-1]
-            if "+" in value:
-                value = value.split("+")[0]
-                if not 10 <= len(value) <= 28:
-                    return None
+            # v2: draken's parser above applies every offset it accepts. One it refused
+            # (hours only, "+01") cannot be applied here either, and v1 dropped it, which
+            # shifts the value by the offset. Refuse it instead, as draken and
+            # opteryx-core do. Past the date, a '+' or '-' can only start an offset.
+            if "+" in value or "-" in value[10:]:
+                return None
             val_len = len(value)
             if value[4] != "-" or value[7] != "-":
                 return None
             if val_len == 10:
                 # YYYY-MM-DD
                 return datetime.datetime(
-                    *map(int, [value[:4], value[5:7], value[8:10]])  # type:ignore
+                    *map(int, [value[:4], value[5:7], value[8:10]])  # type: ignore
                 )
             if val_len >= 16:
                 if value[10] not in ("T", " ") and value[13] != ":":
@@ -754,7 +802,7 @@ def parse_iso(value):
                 if val_len >= 19 and value[16] == ":":
                     # YYYY-MM-DD HH:MM:SS
                     return datetime.datetime(
-                        *map(  # type:ignore
+                        *map(  # type: ignore
                             int,
                             [
                                 value[:4],  # YYYY
@@ -769,7 +817,7 @@ def parse_iso(value):
                 if val_len == 16:
                     # YYYY-MM-DD HH:MM
                     return datetime.datetime(
-                        *map(  # type:ignore
+                        *map(  # type: ignore
                             int,
                             [
                                 value[:4],

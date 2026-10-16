@@ -25,7 +25,6 @@ lengths = {
 }
 
 
-
 def find_all_substrings(s: str, sub: str) -> List[int]:
     """
     Finds all instances of a substring within a string and returns their start indices.
@@ -38,6 +37,7 @@ def find_all_substrings(s: str, sub: str) -> List[int]:
         List[int]: A list of start indices where the substring is found.
     """
     return [m.start() for m in re.finditer(re.escape(sub), s)]
+
 
 def test_display_ascii_lazy():
 
@@ -88,7 +88,7 @@ def test_row_count_footer_lazy_dataframe():
     output = df.display(limit=5)
     # With top_and_tail enabled, display shows 5 head + 5 tail = 10 rows
     # So the footer should show [ 10 rows x 2 columns ] for the displayed subset
-    # NOT the original 50 rows  
+    # NOT the original 50 rows
     assert "[ 10 rows x 2 columns ]" in output
 
 
@@ -97,12 +97,12 @@ def test_row_indices_consistency():
     data = [{"a": i, "b": i * 2} for i in range(20)]
     df = DataFrame(data)
     output = df.display(limit=5)
-    
+
     # Extract row indices from the display
     # Remove ANSI color codes for easier parsing
-    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-    clean_output = ansi_escape.sub('', output)
-    
+    ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+    clean_output = ansi_escape.sub("", output)
+
     lines = clean_output.split("\n")
     row_indices = []
     for line in lines:
@@ -116,7 +116,7 @@ def test_row_indices_consistency():
                     row_indices.append(idx)
                 except (ValueError, IndexError):
                     pass
-    
+
     # With top_and_tail, should display head (1-5) + tail (6-10)
     # Note: The tail rows show indices 6-10 from enumeration, not the actual row numbers
     assert len(row_indices) >= 10, f"Expected at least 10 row indices, got {len(row_indices)}"
@@ -132,7 +132,7 @@ def test_interval_formatting_from_array():
     data = [{"interval": ["0", "36000000000"]}]
     df = DataFrame(data)
     output = df.display()
-    
+
     # The interval heuristic checks for ARRAY<INTEGER> with 2 elements,
     # but raw data will default to unknown types. The display should still work,
     # it just may not format as an interval.
@@ -191,7 +191,7 @@ def test_display_with_mixed_data_types():
     ]
     df = DataFrame(data)
     output = df.display()
-    
+
     # All columns should be present in output
     assert "int_col" in output
     assert "float_col" in output
@@ -212,7 +212,7 @@ def test_display_with_null_values():
     ]
     df = DataFrame(data)
     output = df.display()
-    
+
     # Should show "null" for None values
     assert "null" in output
     assert "2 rows" in output
@@ -223,13 +223,12 @@ def test_display_footer_rows_columns_format():
     data = [{"x": i, "y": i * 2, "z": i * 3} for i in range(5)]
     df = DataFrame(data)
     output = df.display()
-    
+
     # Should end with footer in format "[ N rows x M columns ]"
     assert "[ 5 rows x 3 columns ]" in output
     # Verify it's in the last line
     last_line = output.split("\n")[-1]
     assert "[ 5 rows x 3 columns ]" in last_line
-
 
 
 if __name__ == "__main__":  # prgama: nocover

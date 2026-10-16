@@ -21,11 +21,14 @@
 #
 # Row object looks and acts like a Tuple where possible, but has additional features
 # such as as_dict() to render as a dictionary.
+#
+# v2: the per-row work (construction from a dict or a sequence, as_dict, as_map, values,
+# get, keys, nbytes) lives in the C base type orso._native.RowBase. Row subclasses have
+# no __dict__, so a row is exactly a tuple in memory.
 
 import datetime
 import json
-import time
-from functools import cached_property
+import sys
 from threading import RLock
 from typing import Any
 from typing import Dict
@@ -34,12 +37,17 @@ from typing import Tuple
 from typing import Union
 from weakref import WeakValueDictionary
 
-import numpy
 from ormsgpack import OPT_SERIALIZE_NUMPY
 from ormsgpack import packb
+from ormsgpack import unpackb
 
-from orso.compute.compiled import extract_dict_columns
-from orso.compute.compiled import from_bytes_cython
+from orso._native import RowBase
+from orso._native import row_as_bytes as _row_as_bytes
+from orso._native import row_as_json as _row_as_json
+from orso._native import row_from_bytes as _row_from_bytes
+from orso._native import row_packed as _row_packed
+from orso._native import set_serializers
+from orso._native import set_value_sizer
 from orso.exceptions import DataError
 from orso.schema import RelationSchema
 
@@ -67,76 +75,70 @@ def extract_columns(table: List[Dict[str, Any]], columns: List[str]) -> Tuple[Li
     n_rows = len(table)
     result = [None] * len(columns)
     for i in range(len(columns)):
-        result[i] = [None] * n_rows  # type:ignore
+        result[i] = [None] * n_rows  # type: ignore
 
     for i, row in enumerate(table):
         for j, column in enumerate(columns):
-            result[j][i] = row[column]  # type:ignore
+            result[j][i] = row[column]  # type: ignore
 
     return tuple(result)
 
 
 def make_as_dict(fields):
+    """Kept for compatibility: RowBase provides `as_dict` for every Row subclass."""
+
     def _as_dict(self):
         return {field: self[i] for i, field in enumerate(fields)}
 
     return property(_as_dict)
 
 
-class Row(tuple):
+def _serialize(value):
+    """ormsgpack `default` for values it cannot encode natively (v1 behaviour)."""
+    numpy = sys.modules.get("numpy")  # v2: optional; a numpy value means it is imported
+    if numpy is not None and isinstance(value, numpy.datetime64):
+        if numpy.isnat(value):
+            return None
+        return ("__datetime__", value.astype("datetime64[s]").astype("int"))
+    if isinstance(value, datetime.datetime):
+        return ("__datetime__", value.timestamp())
+    if numpy is not None and isinstance(value, numpy.ndarray):
+        return value.tolist()
+    return str(value)
+
+
+def _value_size(value) -> int:
+    """
+    The msgpack size of one value as v1's serialiser writes it. The native size estimate
+    (orso/native/width.h) handles the common types itself and calls this for the rest,
+    so Row.nbytes() and DataFrame.nbytes() give v1's numbers without serialising rows.
+    """
+    return len(packb(value, option=OPT_SERIALIZE_NUMPY, default=_serialize))
+
+
+def _pack_value(value) -> bytes:
+    """One value as v1 packed it; the native writer uses this for types it leaves to
+    ormsgpack (numpy, enums, UUIDs, dataclasses, aware datetimes and the like)."""
+    return packb(value, option=OPT_SERIALIZE_NUMPY, default=_serialize)
+
+
+set_value_sizer(_value_size)
+set_serializers(_pack_value, unpackb, DataError, datetime.datetime.fromtimestamp)
+
+
+class Row(RowBase):
+    """
+    A tuple with named fields. Use `Row.create_class(fields)` to get a Row type for a
+    schema; instances are built from a dict (by field name, missing fields are None) or
+    from any iterable (positionally).
+
+    Provided by the native base: `as_dict`, `as_map`, `values` (properties), `get`,
+    `keys`, `nbytes` (methods).
+    """
+
     __slots__ = ()  # must be empty because we're inheriting from tuple
     _fields: Tuple[str, ...] = None
-    _cached_byte_size: int = None
     _key: Tuple[int, int] = None
-
-    def __new__(cls, data: Union[Dict[str, Any], Tuple[Any, ...]]):
-        """
-        Creates a new Row instance.
-
-        Parameters:
-            data: Either a dictionary or a tuple.
-        Returns:
-            A new Row instance.
-        """
-        if isinstance(data, dict):
-            # data = tuple([data.get(field) for field in cls._fields])
-            # previous comments on the below line suggested it had a bug, but didn't
-            # say what the bug was - this is about 25% faster than the pure Python version
-            # There is a lot of testing on this function and it hasn't found any bugs.
-            data = extract_dict_columns(data, cls._fields)  # type:ignore
-        instance = super().__new__(cls, data)  # type:ignore
-        return instance
-
-    def get(self, item, default=None):
-        # Use _field_map for O(1) lookup instead of O(n) list.index
-        try:
-            idx = self._field_map.get(item)
-            if idx is not None:
-                return self[idx]
-            return default
-        except AttributeError:
-            # Fallback for compatibility (shouldn't happen with create_class)
-            try:
-                return self[self._fields.index(item)]
-            except ValueError:
-                return default
-
-    @cached_property
-    def as_map(self) -> Tuple[Tuple[str, Any], ...]:
-        """
-        Returns the Row as a tuple of key-value pair tuples (a 'map').
-
-        Returns:
-            A tuple of key-value pair tuples.
-        """
-        return tuple(zip(self._fields, self))
-
-    @property
-    def values(self) -> Tuple[Any, ...]:
-        return tuple(self)
-
-    def keys(self) -> Tuple[str, ...]:
-        return self._fields
 
     @classmethod
     def from_bytes(cls, data: bytes) -> "Row":
@@ -148,66 +150,36 @@ class Row(tuple):
         Returns:
             A new Row instance.
         """
-        return cls(from_bytes_cython(data))
+        return cls(_row_from_bytes(data))
 
     def _packed(self) -> bytes:
         """msgpack payload for this Row, without the record header."""
-
-        def serialize(value):
-            if isinstance(value, numpy.datetime64):
-                if numpy.isnat(value):
-                    return None
-                return ("__datetime__", value.astype("datetime64[s]").astype("int"))
-            if isinstance(value, datetime.datetime):
-                return ("__datetime__", value.timestamp())
-            if isinstance(value, numpy.ndarray):
-                return value.tolist()
-            return str(value)
-
-        return packb(tuple(self), option=OPT_SERIALIZE_NUMPY, default=serialize)
-
-    def nbytes(self) -> int:
-        if self._cached_byte_size is None:
-            # Deliberately not routed through as_bytes: this is a size estimate, and
-            # the 16Mb cap belongs to the record format. Sizing a frame must not fail
-            # just because one row is too big to serialise - callers size frames to
-            # decide when to flush, and arrow() handles such rows fine.
-            self._cached_byte_size = len(self._packed()) + RECORD_HEADER_SIZE
-        return self._cached_byte_size
+        return _row_packed(self)
 
     @property
     def as_bytes(self) -> bytes:
         """
-        Converts the Row to bytes.
+        Converts the Row to bytes: a 2-byte prefix, the payload length, a nanosecond
+        timestamp, and the msgpack payload (byte-identical to v1's).
 
         Returns:
             The byte representation of the Row.
         """
-        record_bytes = self._packed()
-        record_size = len(record_bytes)
-        timestamp = time.time_ns()
-
-        if record_size > MAXIMUM_RECORD_SIZE:
-            raise DataError("Record length cannot exceed 16Mb")
-
-        return (
-            HEADER_PREFIX
-            + record_size.to_bytes(4, "big")
-            + timestamp.to_bytes(8, "big")
-            + record_bytes
-        )
+        return _row_as_bytes(self)
 
     @property
     def as_json(self) -> bytes:
         """
-        Converts the Row to JSON bytes.
+        Converts the Row to JSON bytes, exactly as
+        `json.dumps(self.as_dict, default=str, separators=(",", ":")).encode()`.
 
         Returns:
             The JSON byte representation of the Row.
         """
-        # `separators` keeps this byte-identical to the orjson output this method
-        # produced before 0.0.233; stdlib json defaults to ", "/": " padding.
-        return json.dumps(self.as_dict, default=str, separators=(",", ":")).encode()
+        out = _row_as_json(self)
+        if out is None:  # rows the native writer leaves to Python's json
+            out = json.dumps(self.as_dict, default=str, separators=(",", ":")).encode()
+        return out
 
     @classmethod
     def create_class(
@@ -218,6 +190,8 @@ class Row(tuple):
 
         Parameters:
             schema: Either a RelationSchema or a list/tuple of field names.
+            tuples_only: Retained for compatibility. v2 rows are built natively from a
+                dict or a sequence either way; the flag only keeps a separate cache entry.
         Returns:
             A new Row subclass.
         """
@@ -227,6 +201,7 @@ class Row(tuple):
             raise ValueError("Row requires either a list of field names or a RelationSchema")
         else:
             fields = tuple(str(s) for s in schema)
+        fields = tuple(sys.intern(f) if type(f) is str else f for f in fields)
 
         cache_key = (fields, tuples_only)
         cached_factory = _ROW_CLASS_CACHE.get(cache_key)
@@ -238,31 +213,19 @@ class Row(tuple):
             if cached_factory is not None:
                 return cached_factory
 
-            # Create field map for O(1) lookups in .get() method
+            # Field map for O(1) lookups in .get()
             field_map = {field: i for i, field in enumerate(fields)}
 
-            if tuples_only:
-                # if we're only handling tuples, we can delegate to super, which is faster
-                row_factory = type(
-                    "RowFactory",
-                    (Row,),
-                    {
-                        "_fields": fields,
-                        "_field_map": field_map,
-                        "__new__": super().__new__,
-                        "as_dict": make_as_dict(fields),
-                    },
-                )
-            else:
-                row_factory = type(
-                    "RowFactory",
-                    (Row,),
-                    {
-                        "_fields": fields,
-                        "_field_map": field_map,
-                        "as_dict": make_as_dict(fields),
-                    },
-                )
+            row_factory = type(
+                "RowFactory",
+                (Row,),
+                {
+                    "__slots__": (),
+                    "_fields": fields,
+                    "_field_map": field_map,
+                    "_tuples_only": tuples_only,
+                },
+            )
 
             _ROW_CLASS_CACHE[cache_key] = row_factory
             return row_factory

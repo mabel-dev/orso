@@ -22,118 +22,145 @@ def test_integer_type():
     """Test parsing INTEGER type"""
     assert get_orso_type("INTEGER") == OrsoTypes.INTEGER
 
+
 def test_varchar_type():
     """Test parsing VARCHAR type"""
     assert get_orso_type("VARCHAR") == OrsoTypes.VARCHAR
+
 
 def test_double_type():
     """Test parsing DOUBLE type"""
     assert get_orso_type("DOUBLE") == OrsoTypes.DOUBLE
 
+
 def test_boolean_type():
     """Test parsing BOOLEAN type"""
     assert get_orso_type("BOOLEAN") == OrsoTypes.BOOLEAN
+
 
 def test_date_type():
     """Test parsing DATE type"""
     assert get_orso_type("DATE") == OrsoTypes.DATE
 
+
 def test_time_type():
     """Test parsing TIME type"""
     assert get_orso_type("TIME") == OrsoTypes.TIME
+
 
 def test_timestamp_type():
     """Test parsing TIMESTAMP type"""
     assert get_orso_type("TIMESTAMP") == OrsoTypes.TIMESTAMP
 
+
 def test_interval_type():
     """Test parsing INTERVAL type"""
     assert get_orso_type("INTERVAL") == OrsoTypes.INTERVAL
+
 
 def test_blob_type():
     """Test parsing BLOB type"""
     assert get_orso_type("BLOB") == OrsoTypes.BLOB
 
+
 def test_struct_type():
     """Test parsing STRUCT type"""
     assert get_orso_type("STRUCT") == OrsoTypes.STRUCT
+
 
 def test_jsonb_type():
     """Test parsing JSONB type"""
     assert get_orso_type("JSONB") == OrsoTypes.JSONB
 
+
 def test_decimal_type():
     """Test parsing simple DECIMAL type"""
     assert get_orso_type("DECIMAL") == OrsoTypes.DECIMAL
+
 
 def test_array_integer():
     """Test parsing ARRAY<INTEGER>"""
     result = get_orso_type("ARRAY<INTEGER>")
     assert result == OrsoTypes.ARRAY
 
+
 def test_array_varchar():
     """Test parsing ARRAY<VARCHAR>"""
     result = get_orso_type("ARRAY<VARCHAR>")
     assert result == OrsoTypes.ARRAY
+
 
 def test_array_double():
     """Test parsing ARRAY<DOUBLE>"""
     result = get_orso_type("ARRAY<DOUBLE>")
     assert result == OrsoTypes.ARRAY
 
+
 def test_decimal_with_precision_scale():
     """Test parsing DECIMAL(10,2)"""
     result = get_orso_type("DECIMAL(10,2)")
     assert result == OrsoTypes.DECIMAL
+
 
 def test_decimal_with_different_scale():
     """Test parsing DECIMAL(18,4)"""
     result = get_orso_type("DECIMAL(18,4)")
     assert result == OrsoTypes.DECIMAL
 
+
 def test_varchar_with_length():
     """Test parsing VARCHAR[255]"""
     result = get_orso_type("VARCHAR[255]")
     assert result == OrsoTypes.VARCHAR
+
 
 def test_varchar_with_large_length():
     """Test parsing VARCHAR[1024]"""
     result = get_orso_type("VARCHAR[1024]")
     assert result == OrsoTypes.VARCHAR
 
+
 def test_blob_with_size():
     """Test parsing BLOB[1024]"""
     result = get_orso_type("BLOB[1024]")
     assert result == OrsoTypes.BLOB
+
 
 def test_blob_with_large_size():
     """Test parsing BLOB[8192]"""
     result = get_orso_type("BLOB[8192]")
     assert result == OrsoTypes.BLOB
 
+
 def test_lowercase_integer():
     """Test parsing lowercase 'integer'"""
     assert get_orso_type("integer") == OrsoTypes.INTEGER
+
 
 def test_mixedcase_integer():
     """Test parsing mixed case 'InTeGeR'"""
     assert get_orso_type("InTeGeR") == OrsoTypes.INTEGER
 
+
 def test_lowercase_array():
     """Test parsing lowercase 'array<integer>'"""
     assert get_orso_type("array<integer>") == OrsoTypes.ARRAY
+
 
 def test_uppercase_array():
     """Test parsing uppercase 'ARRAY<INTEGER>'"""
     assert get_orso_type("ARRAY<INTEGER>") == OrsoTypes.ARRAY
 
+
 def test_mixedcase_array():
     """Test parsing mixed case 'Array<Integer>'"""
     assert get_orso_type("Array<Integer>") == OrsoTypes.ARRAY
 
+
 def test_lowercase_varchar_with_length():
     """Test parsing lowercase 'varchar[255]'"""
     assert get_orso_type("varchar[255]") == OrsoTypes.VARCHAR
+
 
 def test_lowercase_decimal():
     """Test parsing lowercase 'decimal(10,2)'"""
@@ -148,6 +175,7 @@ def test_invalid_type_raises_error():
     except ValueError as e:
         assert "Unknown" in str(e)
 
+
 def test_empty_array_raises_error():
     """Test that empty ARRAY type raises ValueError"""
     try:
@@ -155,6 +183,7 @@ def test_empty_array_raises_error():
         assert False, "Should have raised ValueError"
     except ValueError:
         pass  # Expected
+
 
 def test_nonexistent_array_element_type():
     """Test that invalid element type in ARRAY might raise ValueError or be accepted"""
@@ -172,11 +201,13 @@ def test_decimal_precision_scale_attached():
     assert result._precision == 10
     assert result._scale == 2
 
+
 def test_varchar_length_attached():
     """Test that VARCHAR type has length attached"""
     result = get_orso_type("VARCHAR[255]")
     assert result == OrsoTypes.VARCHAR
     assert result._length == 255
+
 
 def test_varchar_large_length_attached():
     """Test that VARCHAR with large length has length attached"""
@@ -184,11 +215,13 @@ def test_varchar_large_length_attached():
     assert result == OrsoTypes.VARCHAR
     assert result._length == 4096
 
+
 def test_blob_length_attached():
     """Test that BLOB type has length attached"""
     result = get_orso_type("BLOB[1024]")
     assert result == OrsoTypes.BLOB
     assert result._length == 1024
+
 
 def test_array_element_type_attached():
     """Test that ARRAY type has element_type attached"""
@@ -196,11 +229,13 @@ def test_array_element_type_attached():
     assert result == OrsoTypes.ARRAY
     assert result._element_type == OrsoTypes.INTEGER
 
+
 def test_array_varchar_element_type_attached():
     """Test that ARRAY<VARCHAR> has element_type attached"""
     result = get_orso_type("ARRAY<VARCHAR>")
     assert result == OrsoTypes.ARRAY
     assert result._element_type == OrsoTypes.VARCHAR
+
 
 def test_simple_type_has_none_metadata():
     """Test that simple types like INTEGER have None metadata"""
@@ -210,6 +245,7 @@ def test_simple_type_has_none_metadata():
     assert result._scale is None
     assert result._length is None
     assert result._element_type is None
+
 
 def test_type_string_representation_with_metadata():
     """Test that __str__ correctly uses attached metadata"""
@@ -237,10 +273,12 @@ def test_type_string_with_whitespace():
     result = get_orso_type("DECIMAL(10,2)")
     assert result == OrsoTypes.DECIMAL
 
+
 def test_multiple_nested_arrays_not_supported():
     """Test that nested arrays raise appropriate error"""
     with suppress(ValueError):
         get_orso_type("ARRAY<ARRAY<INTEGER>>")
+
 
 def test_all_orso_types_are_parseable():
     """Test that all OrsoTypes enum values can be parsed as strings"""

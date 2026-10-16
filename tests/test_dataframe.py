@@ -50,6 +50,7 @@ def test_dataframe_materialize():
 
 
 def test_dataframe_collect():
+    pytest.importorskip("numpy")  # collect() and array-backed columns return numpy arrays
     dataframe = create_dataframe()
     result = dataframe.collect(["A", "C"])
     assert result.tolist() == [[1, 2, 3, 4, 5], [1.1, 2.2, 3.3, 4.4, 5.5]], result
@@ -59,6 +60,7 @@ def test_dataframe_collect():
 
 
 def test_dataframe_get_item():
+    pytest.importorskip("numpy")  # collect() and array-backed columns return numpy arrays
     dataframe = create_dataframe()
     result = dataframe["A", "C"]
     assert result.tolist() == [[1, 2, 3, 4, 5], [1.1, 2.2, 3.3, 4.4, 5.5]], result
@@ -127,6 +129,7 @@ def test_dataframe_tail():
 
 
 def test_dataframe_filter():
+    pytest.importorskip("numpy")  # collect() and array-backed columns return numpy arrays
     # Filter rows where column A is greater than 2
     dataframe = create_dataframe()
     mask = [row[0] > 2 for row in dataframe]
@@ -364,6 +367,7 @@ def test_group_by():
 
 
 def test_adding_dicts_in_wrong_order():
+    pytest.importorskip("numpy")  # collect() and array-backed columns return numpy arrays
     df = orso.DataFrame(
         schema=RelationSchema(
             name="test",
