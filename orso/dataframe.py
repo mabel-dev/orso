@@ -37,19 +37,29 @@ from typing import Optional
 from typing import Tuple
 from typing import Union
 
-import numpy
-
 from orso import Row
 from orso._json import dumps_bytes as json_dumps_bytes
 from orso._native import Frame
+from orso._native import collect_rows_into
+from orso._native import xxh64 as _xxh64
 from orso._native import FrameCursor
 from orso._native import Plan
 from orso._native import rows_from_dicts
 from orso._native import rows_nbytes
+from orso.exceptions import MissingDependencyError
 from orso.group_by import GroupBy
 from orso.schema import RelationSchema
 from orso.types import ORSO_TO_PYTHON_MAP
 from orso.types import OrsoTypes
+
+
+def _numpy():
+    """numpy, which collect() returns arrays of; no longer a hard requirement (v2)."""
+    try:
+        import numpy
+    except ImportError as import_error:  # pragma: no cover
+        raise MissingDependencyError(import_error.name) from import_error
+    return numpy
 
 
 class DataFrame:
@@ -403,7 +413,7 @@ class DataFrame:
             Union[list, tuple]:
                 A tuple containing lists of the column data, or a single list if only one column is specified.
         """
-        from orso.compute.compiled import collect_cython
+        numpy = _numpy()
 
         self.materialize()
 
@@ -422,22 +432,22 @@ class DataFrame:
             if not isinstance(c, int):
                 column_indicies[i] = self.column_names.index(c)
 
+        # the values are written straight into the object array's buffer, natively (v1
+        # did the same through a Cython memoryview); store frames decode only these fields
         frame = self._frame
         if frame is not None:
-            # v2: decode only the requested fields; same object array v1 returned
-            n = len(frame) if limit < 0 else min(limit, len(frame))
-            collected = numpy.empty((len(column_indicies), n), dtype=object)
-            if n:
-                width = self.columncount
-                for i, j in enumerate(column_indicies):
-                    if j < 0 or j >= width:
-                        raise IndexError(f"Column index out of bounds (0 <= {j} < {width})")
-                    collected[i] = numpy.fromiter(frame.column_values(j, n), dtype=object, count=n)
-            return collected[0] if single else collected
-
-        collected = collect_cython(
-            self._rows, numpy.array(column_indicies, dtype=numpy.int32), limit
-        )
+            total = len(frame)
+        else:
+            rows = self._py_rows
+            total = len(rows)
+        n = total if limit < 0 else min(limit, total)
+        collected = numpy.empty((len(column_indicies), n), dtype=object)
+        if n and column_indicies:
+            address = collected.__array_interface__["data"][0]
+            if frame is not None:
+                frame.collect_into(address, column_indicies, n)
+            else:
+                collect_rows_into(address, rows, column_indicies, n)
         if single:
             return collected[0]
         return collected
@@ -692,11 +702,9 @@ class DataFrame:
         return self._schema
 
     def __hash__(self):
-        from xxhash import xxh64
-
         _hash = 0
         for i, row in enumerate(self):
-            row_hash = xxh64(str(row).encode()).intdigest()
+            row_hash = _xxh64(str(row).encode())
             _hash = i ^ _hash ^ row_hash
         return _hash
 

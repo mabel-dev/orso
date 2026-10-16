@@ -533,12 +533,12 @@ MissingDependencyError(Exception)(dependency) .dependency
 
 Messages are free text; the class hierarchy and constructor arguments are the contract.
 
-## 14. `orso.compute` (not a contract)
+## 14. `orso.compute` (removed in v2)
 
-`compiled.pyx` and `column_encodings.pyx` are implementation. The names exported today
-(`from_bytes_cython`, `extract_dict_columns`, `collect_cython`, `calculate_data_width`,
-`process_table`, `extract_columns_to_lists`, `rle_*`, `dict_*`) are imported only by
-orso's own tests. A rewrite may drop the package entirely and move those tests.
+v1's Cython modules (`compiled.pyx`, `column_encodings.pyx`) were implementation, and
+only orso's own tests imported them. v2 deleted the package: their work is native
+(`orso._native`), and the RLE/dictionary encoders, which nothing used, are gone. The
+`RLEColumn`, `DictionaryColumn` and `SparseColumn` classes remain (pure Python + numpy).
 
 ---
 
@@ -555,8 +555,8 @@ orso's own tests. A rewrite may drop the package entirely and move those tests.
 3. **`from_arrow(size=n)` converts the whole table** before honouring the limit.
 4. **`DataFrame.nbytes()` raises `AttributeError`** when the frame holds plain tuples
    rather than `Row`s (every `DataFrame(rows=[...tuples...])`). Size any tuple.
-5. **Two record-size caps:** `orso.row` says 16 MiB, `orso.compute.compiled` says 8 MiB.
-   Only the 16 MiB one is enforced. Keep 16.
+5. **Two record-size caps:** `orso.row` said 16 MiB, `orso.compute.compiled` 8 MiB; only 16 was
+   enforced. v2 has one, 16 MiB.
 6. **`RelationSchema.to_json()` returns a dict** while `FlatColumn.to_json()` returns a
    string. Keep both as they are; renaming is an API change.
 7. **`select()` returns a list-of-names schema** even when the source had a

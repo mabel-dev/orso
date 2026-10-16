@@ -31,8 +31,7 @@ import typing
 
 from orso._native import Frame
 from orso._native import Plan
-from orso.compute.compiled import extract_columns_to_lists
-from orso.compute.compiled import process_table
+from orso._native import extract_columns as extract_columns_to_lists
 from orso.exceptions import MissingDependencyError
 from orso.row import Row
 from orso.schema import FlatColumn
@@ -68,6 +67,21 @@ class _Capsules:
 
     def __arrow_c_array__(self, requested_schema=None):
         return self.pair
+
+
+def process_table(table, row_factory, max_chunksize: int) -> list:
+    """Rows of a pyarrow Table through to_pylist(), batch by batch (v1's Cython helper,
+    kept for tables of a different width than the first, which cannot share a store)."""
+    rows = []
+    for batch in table.to_batches(max_chunksize):
+        if batch.num_rows == 0:
+            continue
+        if batch.num_columns == 0:
+            rows.extend(row_factory(()) for _ in range(batch.num_rows))
+            continue
+        columns = [batch.column(i).to_pylist() for i in range(batch.num_columns)]
+        rows.extend(row_factory(values) for values in zip(*columns))
+    return rows
 
 
 class _RowsIterator:
@@ -391,10 +405,6 @@ def to_pandas(dataset, size=None):
     return dataset.arrow(size).to_pandas()
 
 
-def from_pandas(pandas):
-    raise NotImplementedError()
-
-
 def to_polars(dataset, size=None):
     global _polars
     if _polars is None:
@@ -405,31 +415,3 @@ def to_polars(dataset, size=None):
         except ImportError as import_error:
             raise MissingDependencyError(import_error.name) from import_error
     return _polars.DataFrame(r.as_dict for r in dataset.slice(0, size))
-
-
-def from_polars(polars):
-    raise NotImplementedError()
-
-
-def to_csv(dataset):
-    raise NotImplementedError()
-
-
-def from_csv(values):
-    raise NotImplementedError()
-
-
-def to_parquet(dataset):
-    raise NotImplementedError()
-
-
-def from_parquet(values):
-    raise NotImplementedError()
-
-
-def to_jsonl(dataset):
-    raise NotImplementedError()
-
-
-def from_jsonl(values):
-    raise NotImplementedError()

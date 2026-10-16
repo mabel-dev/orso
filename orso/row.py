@@ -37,7 +37,6 @@ from typing import Tuple
 from typing import Union
 from weakref import WeakValueDictionary
 
-import numpy
 from ormsgpack import OPT_SERIALIZE_NUMPY
 from ormsgpack import packb
 
@@ -97,13 +96,14 @@ def make_as_dict(fields):
 
 def _serialize(value):
     """ormsgpack `default` for values it cannot encode natively (v1 behaviour)."""
-    if isinstance(value, numpy.datetime64):
+    numpy = sys.modules.get("numpy")  # v2: optional; a numpy value means it is imported
+    if numpy is not None and isinstance(value, numpy.datetime64):
         if numpy.isnat(value):
             return None
         return ("__datetime__", value.astype("datetime64[s]").astype("int"))
     if isinstance(value, datetime.datetime):
         return ("__datetime__", value.timestamp())
-    if isinstance(value, numpy.ndarray):
+    if numpy is not None and isinstance(value, numpy.ndarray):
         return value.tolist()
     return str(value)
 

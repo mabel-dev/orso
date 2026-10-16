@@ -3,7 +3,15 @@ import sys
 
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
-from orso.compute.compiled import extract_dict_columns
+from orso._native import rows_from_dicts
+from orso.row import Row
+
+
+def extract_dict_columns(data, fields):
+    """v1's Cython helper, now the native one behind DataFrame(dictionaries) and
+    Row(dict): values of `fields` from `data`, None where missing."""
+    factory = Row.create_class([str(f) for f in fields])
+    return tuple(rows_from_dicts(factory, tuple(fields), data, iter(()))[0])
 import random
 
 def test_extract_dict_columns_basic():

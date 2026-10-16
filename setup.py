@@ -2,8 +2,6 @@ import os
 import platform
 import sysconfig
 
-import numpy
-from Cython.Build import cythonize
 from setuptools import Extension
 from setuptools import find_packages
 from setuptools import setup
@@ -69,29 +67,7 @@ def _read_requirements() -> list:
 
 required = _read_requirements()
 
-# ---------------------------------------------------------------------------------
-# v1 Cython extensions. These stay until phase 6 of the v2 rewrite deletes
-# orso/compute (DESIGN.md §10); nothing in v1 changes while the native layer is
-# being built beside it.
-# ---------------------------------------------------------------------------------
-extensions = [
-    Extension(
-        name="orso.compute.compiled",
-        sources=["orso/compute/compiled.pyx"],
-        include_dirs=[numpy.get_include()],
-        extra_compile_args=COMPILE_FLAGS,
-        extra_link_args=LINK_FLAGS,
-    ),
-    Extension(
-        name="orso.compute.column_encodings",
-        sources=["orso/compute/column_encodings.pyx"],
-        include_dirs=[numpy.get_include(), "orso/compute"],
-        extra_compile_args=COMPILE_FLAGS,
-        extra_link_args=LINK_FLAGS,
-        language="c++",
-    ),
-]
-ext_modules = cythonize(extensions)
+ext_modules = []
 
 
 # ---------------------------------------------------------------------------------
@@ -194,6 +170,7 @@ def _native_extension():
             os.path.join(NATIVE_DIR, "schema_slots.h"),
             os.path.join(NATIVE_DIR, "serialize.h"),
             os.path.join(NATIVE_DIR, "render.h"),
+            os.path.join(NATIVE_DIR, "columns.h"),
             DRAKEN_SOURCE_RECORD,
         ],
     )
@@ -238,9 +215,8 @@ setup_config = {
     "extras_require": {
         # pysimdjson provides the `simdjson` Python module used as an optional accelerator.
         "simdjson": ["pysimdjson"],
-    },
-    "package_data": {
-        "": ["*.pyx", "*.pxd"],
+        # collect() and the virtual columns' materialize() return numpy arrays
+        "numpy": ["numpy"],
     },
 }
 

@@ -3,7 +3,7 @@ Phase 5 of the v2 rewrite (DESIGN.md §10): Row.as_bytes, Row.from_bytes and Row
 written natively, byte-identical to v1.
 
 v1's definitions are the oracle: ormsgpack.packb(tuple(row), option=OPT_SERIALIZE_NUMPY,
-default=serialize) for the payload, orso.compute.compiled.from_bytes_cython for reading,
+default=serialize) for the payload, v1's from_bytes_cython (reproduced below) for reading,
 and json.dumps(row.as_dict, default=str, separators=(",", ":")) for JSON.
 """
 
@@ -25,7 +25,22 @@ import numpy
 from ormsgpack import OPT_SERIALIZE_NUMPY
 from ormsgpack import packb
 
-from orso.compute.compiled import from_bytes_cython
+from ormsgpack import unpackb
+
+
+def from_bytes_cython(data: bytes) -> tuple:
+    """v1's orso.compute.compiled.from_bytes_cython, in Python (the module is gone)."""
+    if len(data) < 14 or (data[0] & 0xF0) != 0x10:
+        raise DataError("Data malformed")
+    if int.from_bytes(data[2:6], "big") != len(data) - 14:
+        raise DataError("Data malformed - incorrect length")
+    items = unpackb(data[14:])
+    return tuple(
+        datetime.datetime.fromtimestamp(item[1])
+        if isinstance(item, list) and len(item) == 2 and item[0] == "__datetime__"
+        else item
+        for item in items
+    )
 from orso.exceptions import DataError
 from orso.row import Row
 from orso.row import _serialize

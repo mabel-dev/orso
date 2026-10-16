@@ -73,7 +73,6 @@ from typing import Type
 from typing import Union
 from warnings import warn
 
-import numpy
 from data_expectations import Expectation
 
 from orso._native import TrackedSlot
@@ -81,6 +80,7 @@ from orso._native import schema_epoch
 from orso.exceptions import ColumnDefinitionError
 from orso.exceptions import DataValidationError
 from orso.exceptions import ExcessColumnsInDataError
+from orso.exceptions import MissingDependencyError
 from orso.tools import arrow_type_map
 from orso.tools import random_string
 from orso.types import ORSO_TO_PYTHON_MAP
@@ -185,6 +185,15 @@ _COLUMN_CACHE_FIELDS = frozenset(
 )
 _COLUMN_SLOTS = tuple("_" + f for f in _COLUMN_FIELDS)
 _NOTSET = object()
+
+
+def _numpy():
+    """numpy for the columns whose materialize() returns arrays (v2: optional)."""
+    try:
+        import numpy
+    except ImportError as import_error:  # pragma: no cover
+        raise MissingDependencyError(import_error.name) from import_error
+    return numpy
 
 
 def _install_tracked_slots(cls, field_names, bump_fields):
@@ -573,6 +582,7 @@ class FunctionColumn(FlatColumn):
         Turn this virtual column into a list
         """
         value = self.binding(*self.configuration)
+        numpy = _numpy()
         return numpy.array([value] * self.length)
 
 
@@ -593,6 +603,7 @@ class ConstantColumn(FlatColumn):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        numpy = _numpy()
         self.values = numpy.array([self.value])
 
     def materialize(self):
@@ -600,6 +611,7 @@ class ConstantColumn(FlatColumn):
         Turn this virtual column into a list.
         When performing element-wise operations, use value_array for broadcasting.
         """
+        numpy = _numpy()
         return numpy.full(self.length, self.values)
 
 
@@ -610,11 +622,12 @@ class SparseColumn(FlatColumn):
     Only the non-default values and their indices are stored.
     """
 
-    values: numpy.ndarray = None
+    values: "numpy.ndarray" = None
     default_value: Any = None
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        numpy = _numpy()
         (self.indices,) = numpy.where(numpy.array(self.values) != self.default_value)
         self.values = numpy.array(self.values)[self.indices]
         self.total_length = len(kwargs.get("values", []))  # Store the total length
@@ -623,6 +636,7 @@ class SparseColumn(FlatColumn):
         """
         Materialize the sparse column into a full numpy array.
         """
+        numpy = _numpy()
         materialized = numpy.full(
             self.total_length, self.default_value
         )  # Initialize with default values
@@ -636,10 +650,11 @@ class RLEColumn(FlatColumn):
     This is a column type optimized for sequences of repeated values.
     """
 
-    values: numpy.ndarray = None
+    values: "numpy.ndarray" = None
     lengths: List[int] = field(default_factory=list)
 
     def __init__(self, **kwargs):
+        numpy = _numpy()
         super().__init__(**kwargs)
         run_values = []
         run_lengths = []
@@ -674,6 +689,7 @@ class RLEColumn(FlatColumn):
         materialized = []
         for value, length in zip(self.values, self.lengths):
             materialized.extend([value] * length)
+        numpy = _numpy()
         return numpy.array(materialized)
 
 
@@ -692,6 +708,7 @@ class DictionaryColumn(FlatColumn):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+        numpy = _numpy()
         values = numpy.asarray(self.values)
         self.values, self.encoding = numpy.unique(values, return_inverse=True)
 

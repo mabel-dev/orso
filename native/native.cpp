@@ -12,6 +12,7 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
 
 #include <cstdint>
 #include <cstring>
@@ -27,6 +28,7 @@
 #include "schema_slots.h"
 #include "serialize.h"
 #include "render.h"
+#include "columns.h"
 #include "width.h"
 #include "core/alloc.h"
 #include "core/append_buffer.h"
@@ -172,6 +174,32 @@ NB_MODULE(_native, m) {
     }, nb::arg("rows"), nb::arg("start") = 0, nb::arg("stop") = -1,
        "Sum of Row.nbytes() over rows[start:stop], for any tuples.");
 
+    m.def("collect_rows_into", [](uintptr_t address, nb::handle rows, std::vector<Py_ssize_t> cols, Py_ssize_t n) {
+        if (!PyList_Check(rows.ptr())) throw nb::type_error("collect_rows_into: rows must be a list");
+        if (n < 0 || n > PyList_GET_SIZE(rows.ptr())) throw nb::index_error("collect window out of range");
+        if (orso::collect_rows_into(reinterpret_cast<PyObject**>(address), rows.ptr(), cols, n) < 0) throw nb::python_error();
+    }, nb::arg("address"), nb::arg("rows"), nb::arg("cols"), nb::arg("n"),
+       "Fill a C-contiguous (len(cols), n) numpy object array at `address` from Python rows.");
+
+    m.def("extract_columns", [](nb::handle rows, Py_ssize_t limit) {
+        if (!PyList_Check(rows.ptr())) throw nb::type_error("extract_columns: rows must be a list");
+        PyObject* out = orso::extract_columns(rows.ptr(), limit);
+        if (out == nullptr) throw nb::python_error();
+        return nb::steal(out);
+    }, nb::arg("rows"), nb::arg("limit") = -1, "Rows to one list per column (v1's extract_columns_to_lists).");
+
+    m.def("column_widths", [](nb::handle rows) {
+        if (!PyList_Check(rows.ptr())) throw nb::type_error("column_widths: rows must be a list");
+        PyObject* out = orso::column_widths(rows.ptr());
+        if (out == nullptr) throw nb::python_error();
+        return nb::steal(out);
+    }, nb::arg("rows"), "Display width per column (v1's calculate_column_widths).");
+
+    m.def("xxh64", [](nb::bytes data, uint64_t seed) { return static_cast<uint64_t>(XXH64(data.c_str(), data.size(), seed)); },
+          nb::arg("data"), nb::arg("seed") = 0, "xxHash64 of bytes, as xxhash.xxh64(data).intdigest().");
+    m.def("xxh32", [](nb::bytes data, uint32_t seed) { return static_cast<uint32_t>(XXH32(data.c_str(), data.size(), seed)); },
+          nb::arg("data"), nb::arg("seed") = 0, "xxHash32 of bytes, as xxhash.xxh32(data).intdigest().");
+
     m.def("value_nbytes", [](nb::handle v) {
         const int64_t w = orso::py_value_width(v.ptr());
         if (w < 0) throw nb::python_error();
@@ -202,6 +230,13 @@ NB_MODULE(_native, m) {
         .def("view", &orso::Frame::view, nb::arg("start"), nb::arg("count"))
         .def("nbytes", &orso::Frame::nbytes)
         .def("stats", &orso::Frame::stats)
+        .def("collect_into", [](const orso::Frame& f, uintptr_t address, std::vector<Py_ssize_t> cols, Py_ssize_t n) {
+            if (n < 0 || static_cast<uint64_t>(n) > f.length()) throw nb::index_error("collect window out of range");
+            if (orso::collect_frame_into(reinterpret_cast<PyObject**>(address), *f.store, f.offset, cols, n) < 0) {
+                throw nb::python_error();
+            }
+        }, nb::arg("address"), nb::arg("cols"), nb::arg("n"),
+           "Fill a C-contiguous (len(cols), n) numpy object array at `address` with these fields.")
         .def("cursor", [](const orso::Frame& f) { return orso::FrameCursor(f); },
              "A DB-API cursor over the rows this frame holds now.")
         .def("extend", &orso::Frame::extend, nb::arg("rows"), nb::arg("limit") = -1,

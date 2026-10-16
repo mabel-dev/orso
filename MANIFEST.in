@@ -4,4 +4,5 @@ include LICENSE
 include README.md
 include requirements.txt
 include pyproject.toml
-recursive-include orso *.pyx *.h
+# the native layer and the draken headers it is built on (setup.py refuses to build without them)
+recursive-include native *.h *.hpp *.c *.cpp *.txt SOURCE

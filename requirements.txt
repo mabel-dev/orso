@@ -1,17 +1,16 @@
 # Runtime requirements. setup.py reads this file; comment lines are skipped.
 #
 # data-expectations: column `expectations` are built on it (mabel uses them).
-# numpy: v1's Cython modules in orso/compute and a few isinstance checks; goes in phase 6.
 # ormsgpack: the encoder of last resort for values the native msgpack writer leaves to it
 #   (numpy, enums, UUIDs, dataclasses), which keeps records byte-identical to v1.
 # pyarrow: arrow() / from_arrow(). mabel relies on orso to install it. 14 is the first
 #   release with the C Data Interface capsules the native Arrow path uses.
-# xxhash: DataFrame.__hash__ and orso.cityhash, until they move to the vendored header.
 #
-# pandas is not a requirement: orso never imports it. DataFrame.pandas() reaches it
-# through pyarrow, so whoever calls that installs pandas.
+# Not requirements:
+#   pandas  orso never imports it; DataFrame.pandas() reaches it through pyarrow.
+#   numpy   only collect() and the virtual columns' materialize() return numpy arrays;
+#           they raise MissingDependencyError without it (`pip install orso[numpy]`).
+#   xxhash  hashing uses the vendored xxhash.h natively, with the same values.
 data-expectations>=1.6.0
-numpy
 ormsgpack
 pyarrow>=14
-xxhash

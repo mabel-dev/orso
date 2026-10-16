@@ -162,9 +162,11 @@ def ascii_table(
     Returns:
         string (ASCII table)
     """
+    import sys
     from math import isnan
 
-    import numpy
+    # numpy is optional (v2): if a value is a numpy one, numpy is already imported
+    numpy = sys.modules.get("numpy")
 
     from orso import DataFrame
 
@@ -233,7 +235,7 @@ def ascii_table(
                 return str(value).ljust(width)[:width]
             return str(value).rjust(width)[:width]
 
-        if isinstance(value, (numpy.generic, numpy.ndarray)):
+        if numpy is not None and isinstance(value, (numpy.generic, numpy.ndarray)):
             value = numpy_type_mapper(value)
 
         if value is None or (isinstance(value, float) and isnan(value)):
@@ -423,8 +425,8 @@ def ascii_table(
         # Calculate width
         col_width = list(map(len, t.column_names))
 
-        # Use optimized Cython function to calculate widths for all columns at once
-        from orso.compute.compiled import calculate_column_widths
+        # widths for every column in one native pass
+        from orso._native import column_widths as calculate_column_widths
 
         data_width = calculate_column_widths(t._rows)
         from orso.schema import RelationSchema

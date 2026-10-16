@@ -714,3 +714,40 @@ Short of §9: `as_json` (696 ns against ≤ 300; float and datetime reprs still 
 Python's formatters) and `display` (16 µs a row against ≤ 3 µs; the rest of the per-cell
 formatting is still Python). Both are interactive or occasional paths.
 
+## 17. Phase 6 status (2026-10-16)
+
+Done:
+
+- **v1's Cython layer is gone.** `orso/compute` (compiled.pyx, column_encodings.pyx,
+  their C++ header and docs) is deleted. Its remaining jobs are native
+  (`native/columns.h`): `collect()` writes straight into the numpy object array's buffer,
+  as v1's typed memoryview did, with a one-column fast path (8–13% faster than v1);
+  `extract_columns` and `column_widths` replace v1's helpers for the v1 export fallback and
+  `display()`. `process_table` (tables of a different width than the first) is Python.
+  The RLE/dictionary encoders nothing used are gone; `RLEColumn`, `DictionaryColumn` and
+  `SparseColumn` remain.
+- **No Cython or numpy at build time.** The build needs setuptools, wheel and nanobind.
+  `setup.py`, `pyproject.toml`, `build.sh`, the Makefile and both workflows are updated.
+- **Runtime requirements are data-expectations, ormsgpack and pyarrow.** numpy is
+  optional (`orso[numpy]`): only `collect()` and the virtual columns' `materialize()`
+  return arrays, and they raise `MissingDependencyError` without it; everywhere else orso
+  only looks for numpy values when numpy is already imported. mabel's own numpy import is
+  guarded and pyarrow 26 does not need numpy. xxhash is replaced by the vendored
+  `xxhash.h` (`CityHash64`, `CityHash32` and `DataFrame.__hash__` give the same values,
+  checked on 5,000 inputs). Verified end to end with numpy, xxhash and pandas blocked.
+- **The sdist was broken and is fixed.** `MANIFEST.in` shipped `orso/*.pyx` but not
+  `native/`, so building from the sdist would have failed. It now carries all 55 native
+  files; an sdist was built, extracted, compiled and imported.
+- **Removed**: the converters that only raised `NotImplementedError` (`from_pandas`,
+  `from_polars`, `to_csv`, `from_csv`, `to_parquet`, `from_parquet`, `to_jsonl`,
+  `from_jsonl`); `tests/test_benchmark_suite.py`, `examples/` (both drove the old
+  benchmark suite or the deleted encoders) and `compare_versions.sh` (it pip-installed
+  other orso releases into the current environment), all superseded by `benchmarks/`.
+- **Tests**: the Cython-facing tests were ported onto the public paths
+  (`tests/test_collect.py`, both frame kinds; `tests/test_field_extractor.py` through the
+  native dict reader; v1's record reader reproduced in Python as the oracle);
+  `tests/test_native_hash.py` pins hash values. Full suite 736 passed, 6 skipped.
+
+Measured against v1 (0.0.246) built and run back to back, control drift +4.4%:
+**51 cases faster, 0 slower, 7 unchanged; geometric mean 64.4% faster.**
+

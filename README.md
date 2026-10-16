@@ -123,7 +123,7 @@ cd orso
 pip install -r requirements.txt
 pip install -r tests/requirements.txt
 
-# Build Cython extensions
+# Build the native extension (needs a C++20 compiler; nanobind comes from pip)
 make compile
 
 # Run tests
@@ -159,8 +159,8 @@ python benchmarks/bench.py -c benchmarks/baseline_0.0.246.json
 
 ### Building from source
 
-`make compile` builds the Cython extensions and the native layer (`orso._native`, a
-nanobind extension over draken headers vendored into `native/`). The vendored headers
+`make compile` builds the native layer (`orso._native`, a nanobind extension over
+draken headers vendored into `native/`). There is no Cython any more. The vendored headers
 are copied from an `opteryx-core` checkout beside this one with `make sync-draken` and
 verified with `make check-draken`; never edit them in place. See `DESIGN.md`.
 

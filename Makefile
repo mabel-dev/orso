@@ -1,8 +1,7 @@
 lint:
 	python -m pip install --upgrade pip uv
-	python -m uv pip install --quiet --upgrade pycln isort ruff yamllint cython-lint
+	python -m uv pip install --quiet --upgrade pycln isort ruff yamllint
 #	python -m yamllint .
-#	cython-lint orso/compute/*.pyx
 	python -m ruff check --fix --exit-zero
 	python -m pycln .
 	python -m isort .
@@ -24,7 +23,7 @@ ci:
 
 compile:
 	python -m pip install --upgrade pip uv
-	python -m uv pip install --upgrade numpy cython setuptools nanobind
+	python -m uv pip install --upgrade setuptools nanobind
 	python setup.py build_ext --inplace
 
 # Vendored draken headers (DESIGN.md §2, §3). `sync-draken` copies them from an

@@ -18,6 +18,7 @@ import os
 import random
 import threading
 import time
+import sys
 import uuid
 from collections import OrderedDict
 from functools import wraps
@@ -32,7 +33,6 @@ from typing import Tuple
 from typing import Type
 from typing import Union
 
-import numpy
 
 from orso.exceptions import MissingDependencyError
 
@@ -754,14 +754,18 @@ def parse_iso(value):
             if parsed is not None:
                 return parsed
 
-        if input_type == numpy.datetime64:
+        numpy = sys.modules.get("numpy")  # v2: optional; a numpy value means it is imported
+
+        if numpy is not None and input_type == numpy.datetime64:
             # this can create dates rather than datetimes, so don't return yet
             value = value.astype(datetime.datetime)
             input_type = type(value)
             if input_type is int:
                 value /= 1000000000
 
-        if input_type in (int, numpy.int64, float, numpy.float64):
+        if input_type in (int, float) or (
+            numpy is not None and input_type in (numpy.int64, numpy.float64)
+        ):
             return datetime.datetime.fromtimestamp(int(value), tz=datetime.timezone.utc).replace(
                 tzinfo=None
             )
