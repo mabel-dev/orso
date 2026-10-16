@@ -855,9 +855,7 @@ Conversion), built as §4.8 describes, in `native/draken_bridge.h` and `orso/_dr
   own `to_pylist()` gives UTC-aware datetimes and `(months, us)` tuples. Intervals with
   months have no `timedelta`, so those columns keep draken's tuples.
 - **Not done:** zero-copy export (decision 4, copy first, still stands); STRUCT columns
-  (draken has none); a Linux 3.14 run of the bridge itself. The x86 box's
-  opteryx-core is a July build without the bridge symbols, so only the refusal path ran
-  there.
+  (draken has none).
 
 Tests: `tests/test_draken_bridge.py` (18), skipped without draken. Oracles are the
 Morsel's own `to_arrow()` for export and orso's Arrow import of that table for import,
@@ -876,3 +874,21 @@ string), macOS arm64, best of 7:
 | `DataFrame.from_arrow(table)` | 3.35 |
 | `DataFrame.from_draken(morsel)` | 1.54 |
 | `from_arrow(morsel.to_arrow())` | 3.94 |
+
+**Linux x86-64, Python 3.14 (2026-10-16).** On the x86 box, draken was built alone from
+opteryx-core 6c3da721 (the commit orso's headers are vendored from), using opteryx-core's
+own extension definition and `build_ext`, outside its checkout. Results: bridge tests 18
+of 18, full suite with draken 765 passed, 6 skipped. The same timing script on the box
+(load about 0.5, three runs agreeing within 2%):
+
+| path | ms |
+|---|---|
+| `df.arrow()` | 8.5 |
+| `df.to_draken()` | 10.2 |
+| draken's `vector_from_sequence` per column | 47.6 |
+| `DataFrame.from_arrow(table)` | 11.0 |
+| `DataFrame.from_draken(morsel)` | 7.5 |
+| `from_arrow(morsel.to_arrow())` | 12.5 |
+
+**Open finding:** on x86 Linux, `to_draken()` is about 20% slower than `arrow()`; on macOS
+arm64 it is about 28% faster. Import is faster than Arrow's on both. Not investigated yet.
