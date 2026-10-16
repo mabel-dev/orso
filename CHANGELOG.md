@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased (v2)
+## 0.1.0 (unreleased)
 
-The full list of v2 changes is assembled at release; entries here so far:
+v2: the native rewrite (DESIGN.md). The full list of changes is assembled at release; entries here so far:
 
 - **Timestamps: UTC offsets are applied, never dropped.** `parse_iso`, and with it every
   `DATE`, `TIME` and `TIMESTAMP` parse, now normalises an offset to naive UTC:
