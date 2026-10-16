@@ -821,3 +821,56 @@ Verified on the x86 Linux box (Debian 12, clang 22 Pythons from uv) as well as m
 This is the first Linux build of v2. CI gains a 3.14t job. On the GIL build the change
 costs nothing measurable: against the previous commit built back to back, every case is
 within ±5% on reruns.
+
+## 20. Phase 7 status: the draken bridge (2026-10-16)
+
+`DataFrame.to_draken(size=None)` and `DataFrame.from_draken(morsels)` (API.md §2,
+Conversion), built as §4.8 describes, in `native/draken_bridge.h` and `orso/_draken.py`.
+
+- **Runtime-resolved, never linked.** `import orso` does not import draken. The first
+  bridge call imports draken (which loads `draken_native` with `RTLD_GLOBAL`) and binds
+  the bridge with `dlopen(path, RTLD_NOLOAD)` + `dlsym`, so it can only ever find the copy
+  already loaded. A draken missing a needed symbol is refused by name ("older than the
+  bridge expects"), as seen against the x86 box's July build. Without draken:
+  `MissingDependencyError("draken")`.
+- **Export is one gather per column** into buffers draken then owns: fixed-width slots
+  strided into a dense buffer, BOOL bit-packed, tags into the validity bitmap. Strings
+  become draken's `[DrakenStringArena | slots]` block plus a compact arena of only that
+  column's long payloads, not a copy of the store's shared arena, which holds every
+  column's strings and nested blocks. Timestamps, times and decimals carry their logical
+  type (`draken_vector_own_raw_logical`). Decimals of mixed scale are rescaled to the
+  column's scale, or fall back if a value has more places than the column holds.
+- **Memory accounting is draken's.** draken frees what it is handed with `draken_free`,
+  which uncharges draken's process-wide account. orso's vendored `mem_account.cpp` is a
+  private copy, so the bridge allocates as `draken_malloc` does and charges draken's
+  account through its exported `draken_mem_charge`. Verified: after exporting and freeing
+  a 200,000-row frame (14 MB charged), draken's account returns exactly to where it was.
+- **Import is one scatter per column** reading `data[selection[i]]` under the logical-row
+  validity bit, so dense, dictionary and constant vectors need no special case. Types
+  with no orso slot fall back per column to draken's own `to_pylist()` values.
+- **Decision taken here:** from_draken gives orso's values, which are the Arrow path's
+  (`from_arrow(morsel.to_arrow())`): naive timestamps, `timedelta` intervals. draken's
+  own `to_pylist()` gives UTC-aware datetimes and `(months, us)` tuples. Intervals with
+  months have no `timedelta`, so those columns keep draken's tuples.
+- **Not done:** zero-copy export (decision 4, copy first, still stands); STRUCT columns
+  (draken has none); Linux and 3.14t runs of the bridge itself. The x86 box's
+  opteryx-core is a July build without the bridge symbols, so only the refusal path ran
+  there.
+
+Tests: `tests/test_draken_bridge.py` (18), skipped without draken. Oracles are the
+Morsel's own `to_arrow()` for export and orso's Arrow import of that table for import,
+plus explicit cases for dictionary and constant vectors, fallback types, multiple
+morsels, views, lifetime after the frame is freed, and the memory account. Full suite with
+draken: 765 passed, 6 skipped. Without: 747 passed, 7 skipped.
+
+Speed, 100,000 rows × 6 columns (int, short string, float, bool, timestamp, long
+string), macOS arm64, best of 7:
+
+| path | ms |
+|---|---|
+| `df.arrow()` | 2.45 |
+| `df.to_draken()` | 1.76 |
+| draken's `vector_from_sequence` per column, rows already decoded | 11.89 |
+| `DataFrame.from_arrow(table)` | 3.35 |
+| `DataFrame.from_draken(morsel)` | 1.54 |
+| `from_arrow(morsel.to_arrow())` | 3.94 |

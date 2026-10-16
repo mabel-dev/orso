@@ -1,4 +1,5 @@
 import os
+import sys
 import platform
 import sysconfig
 
@@ -158,6 +159,9 @@ def _native_extension():
         define_macros=define_macros,
         extra_compile_args=cpp_flags,
         extra_link_args=LINK_FLAGS,
+        # the draken bridge resolves its symbols with dlopen/dlsym (native/draken_bridge.h);
+        # glibc before 2.34 (manylinux_2_28) keeps them in libdl
+        libraries=["dl"] if sys.platform.startswith("linux") else [],
         language="c++",
         depends=[
             os.path.join(NATIVE_DIR, "record.h"),
@@ -171,6 +175,7 @@ def _native_extension():
             os.path.join(NATIVE_DIR, "serialize.h"),
             os.path.join(NATIVE_DIR, "render.h"),
             os.path.join(NATIVE_DIR, "columns.h"),
+            os.path.join(NATIVE_DIR, "draken_bridge.h"),
             DRAKEN_SOURCE_RECORD,
         ],
     )

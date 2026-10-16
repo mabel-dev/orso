@@ -29,6 +29,7 @@
 #include "serialize.h"
 #include "render.h"
 #include "columns.h"
+#include "draken_bridge.h"
 #include "width.h"
 #include "core/alloc.h"
 #include "core/append_buffer.h"
@@ -301,7 +302,45 @@ NB_MODULE(_native, m) {
             if (j != f.store->nfields) throw nb::value_error("one export spec per field is required");
             return out;
         }, nb::arg("specs"), nb::arg("limit") = -1, nb::lock_self(),
-           "Per field: (schema, array) PyCapsules for pyarrow, or None where pyarrow must convert.");
+           "Per field: (schema, array) PyCapsules for pyarrow, or None where pyarrow must convert.")
+        .def("export_draken", [](const Frame& f, nb::handle specs, int64_t limit) {
+            StoreGuard g(f);
+            uint64_t n = f.length();
+            if (limit >= 0 && static_cast<uint64_t>(limit) < n) n = static_cast<uint64_t>(limit);
+            nb::list out;
+            uint32_t j = 0;
+            for (nb::handle spec : specs) {
+                if (j >= f.store->nfields) throw nb::value_error("more export specs than fields");
+                nb::tuple t = nb::cast<nb::tuple>(spec);
+                orso::DrakenSpec ds;
+                ds.target = nb::cast<int>(t[0]);
+                ds.precision = nb::cast<int>(t[1]);
+                ds.scale = nb::cast<int>(t[2]);
+                auto r = orso::export_draken_column(*f.store, f.offset, n, j, ds);
+                out.append(nb::make_tuple(static_cast<int>(r.first), r.second));
+                ++j;
+            }
+            if (j != f.store->nfields) throw nb::value_error("one export spec per field is required");
+            return out;
+        }, nb::arg("specs"), nb::arg("limit") = -1, nb::lock_self(),
+           "Per field, given (draken type or 0, precision, scale): (0, Vector), (1, None) when every "
+           "row is null and no type was asked for, or (2, None) where draken must build it from values.")
+        .def("import_draken", [](Frame& f, nb::handle sources, uint64_t n) {
+            StoreGuard g(f);
+            if (f.is_view) f.detach();
+            std::vector<orso::DrakenSource> srcs;
+            for (nb::handle s : sources) {
+                nb::tuple t = nb::cast<nb::tuple>(s);
+                orso::DrakenSource d;
+                d.handle = nb::borrow(t[0]);
+                d.logical_kind = nb::cast<int>(t[1]);
+                d.unit = nb::cast<int>(t[2]);
+                d.scale = nb::cast<int>(t[3]);
+                srcs.push_back(std::move(d));
+            }
+            orso::import_draken(*f.store, srcs, n);
+        }, nb::arg("sources"), nb::arg("n"), nb::lock_self(),
+           "Append n rows from one (Vector, logical kind, unit, scale) per field.");
 
     nb::class_<FrameCursor>(m, "FrameCursor", nb::type_slots(cursor_slots))
         .def("__iter__", [](nb::handle self) { return nb::borrow(self); })
@@ -312,6 +351,10 @@ NB_MODULE(_native, m) {
         .def("rest", [](FrameCursor& c) { StoreGuard g(c.frame); return c.rest(); }, nb::lock_self(),
              "Every remaining row as a list.")
         .def_prop_ro("position", [](const FrameCursor& c) { return c.pos; }, nb::lock_self(), "Rows fetched so far.");
+
+    m.def("draken_bind", &orso::draken_bind, nb::arg("path"),
+          "Resolve the draken bridge in the already-loaded draken_native library at `path`.");
+    m.def("draken_bound", []() { return orso::g_draken.bound; });
 
     m.def("draken_source", []() { return std::string(ORSO_DRAKEN_SOURCE); },
           "Commit of opteryx-core the vendored draken headers were copied from.");

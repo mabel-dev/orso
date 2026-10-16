@@ -276,6 +276,25 @@ class DataFrame:
         rows, schema = converters.from_arrow(tables)
         return cls(rows=rows, schema=schema)
 
+    def to_draken(self, size=None):
+        """
+        Convert the DataFrame to a draken Morsel, optionally limiting the number of rows.
+        Needs draken (opteryx-core); raises MissingDependencyError without it.
+        """
+        from orso._draken import to_draken
+
+        return to_draken(self, size=size)
+
+    @classmethod
+    def from_draken(cls, morsels):
+        """
+        Convert a draken Morsel, or a list of Morsels with the same columns, to a
+        DataFrame. Needs draken (opteryx-core); raises MissingDependencyError without it.
+        """
+        from orso._draken import from_draken
+
+        return from_draken(cls, morsels)
+
     def arrow(self, size=None):
         """
         Convert an Orso DataFrame to a PyArrow Table, optionally limit the number

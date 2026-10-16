@@ -77,6 +77,10 @@ orso_df = orso.DataFrame.from_arrow(arrow_table)
 
 # To Pandas
 pandas_df = orso_df.pandas()
+
+# To and from draken (opteryx-core's columnar engine), when draken is importable
+morsel = orso_df.to_draken()
+orso_df = orso.DataFrame.from_draken(morsel)
 ```
 
 ## Features

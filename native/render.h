@@ -32,7 +32,9 @@ struct CharWidthLock {
     ~CharWidthLock() { PyMutex_Unlock(&g_char_width_mu); }
 };
 #else
-struct CharWidthLock {};
+struct CharWidthLock {
+    CharWidthLock() {}  // user-provided, so an unused guard draws no warning
+};
 #endif
 
 // 1 or 2, or 0 with an exception set
