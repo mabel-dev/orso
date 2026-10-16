@@ -142,7 +142,7 @@ def _arrow_static_type_map() -> dict:
         _ARROW_STATIC_TYPE_MAP = {
             OrsoTypes.BOOLEAN: pyarrow.bool_(),
             OrsoTypes.BLOB: pyarrow.binary(),
-            OrsoTypes.DATE: pyarrow.date64(),
+            OrsoTypes.DATE: pyarrow.date32(),  # v2: was date64 (DESIGN.md §8 fix 10)
             OrsoTypes.TIMESTAMP: pyarrow.timestamp("us"),
             OrsoTypes.TIME: pyarrow.time32("ms"),
             OrsoTypes.INTERVAL: pyarrow.month_day_nano_interval(),

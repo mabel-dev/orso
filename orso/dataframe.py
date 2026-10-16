@@ -236,10 +236,30 @@ class DataFrame:
 
     @classmethod
     def from_arrow(cls, tables):
-        """Convert a PyArrow Table, or list of Tables, to an Orso DataFrame."""
-        from orso.converters import from_arrow
+        """
+        Convert a PyArrow Table, or list of Tables, to an Orso DataFrame.
 
-        rows, schema = from_arrow(tables)
+        A Table, RecordBatch, or list of them is imported natively into a store frame:
+        no Python objects are made until rows are read. A generator of tables stays a
+        lazy frame, read one table at a time, as in v1.
+        """
+        from orso import converters
+
+        eager = converters.eager_tables(tables)
+        if eager:
+            schema = converters.schema_from_arrow(eager[0])
+            df = cls(rows=[], schema=schema)
+            frame = Frame(df._get_plan())
+            try:
+                converters.import_tables(frame, eager)
+            except ValueError:
+                eager = None  # tables of different widths: they cannot share a store
+            else:
+                df._frame = frame
+                df._py_rows = None
+                df._cursor = frame.cursor()
+                return df
+        rows, schema = converters.from_arrow(tables)
         return cls(rows=rows, schema=schema)
 
     def arrow(self, size=None):

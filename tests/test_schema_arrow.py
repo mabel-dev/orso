@@ -30,9 +30,12 @@ def test_column_to_field():
     arrow_field = column.arrow_field
     assert arrow_field.type == pyarrow.timestamp("us"),  arrow_field.type
 
+    # v2 (DESIGN.md §8 fix 10): DATE exports as date32. v1 exported date64, while date64
+    # imported as TIMESTAMP, so a DATE column came back from Arrow as a different type.
     column = FlatColumn(name="test", type=OrsoTypes.DATE)
     arrow_field = column.arrow_field
-    assert arrow_field.type == pyarrow.date64(), arrow_field.type
+    assert arrow_field.type == pyarrow.date32(), arrow_field.type
+    assert FlatColumn.from_arrow(arrow_field).type == OrsoTypes.DATE
 
     column = FlatColumn(name="test", type=OrsoTypes.BLOB)
     arrow_field = column.arrow_field
@@ -147,6 +150,10 @@ def test_field_to_column():
     assert column.name == "test"
     assert column.type == OrsoTypes.DATE, column.type
     assert column.element_type is None
+
+    # v2: date64 is a date too (pyarrow gives datetime.date values for it); v1 said TIMESTAMP
+    column = FlatColumn.from_arrow(pyarrow.field("test", pyarrow.date64()))
+    assert column.type == OrsoTypes.DATE, column.type
 
     arrow_field = pyarrow.field("test", pyarrow.binary())
     column = FlatColumn.from_arrow(arrow_field)

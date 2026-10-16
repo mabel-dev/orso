@@ -69,6 +69,8 @@ DataFrame(dictionaries: Iterable[dict] | None = None,
   tuple of Tables, or a generator of Tables. Returns a **lazy** frame whose schema is a
   `RelationSchema` named `"arrow"` built with `FlatColumn.from_arrow` per field.
   Zero tables (or `None` first table) gives an empty frame with an empty schema.
+  In v2 a Table, RecordBatch or list of them is imported eagerly into a native store frame
+  (no Python objects until rows are read); a generator of tables is still read lazily.
 
 ### Attributes and properties
 
@@ -404,7 +406,7 @@ any mix drawn from `BLOB/STRUCT/JSONB/VARCHAR` → `BLOB`; any other mix contain
 |---|---|
 | `BOOLEAN` | `bool_` |
 | `BLOB`, `JSONB` | `binary` |
-| `DATE` | `date64` |
+| `DATE` | `date32` (v1: `date64`; changed in v2, DESIGN.md §8 fix 10) |
 | `TIMESTAMP` | `timestamp("us")` |
 | `TIME` | `time32("ms")` |
 | `INTERVAL` | `month_day_nano_interval` |
@@ -421,7 +423,7 @@ any mix drawn from `BLOB/STRUCT/JSONB/VARCHAR` → `BLOB`; any other mix contain
 ### 5.5 Arrow → orso (used by `FlatColumn.from_arrow`, `tools.arrow_type_map`)
 
 `NA → None`, `BOOL → bool`, all `INT*/UINT*` → `int`, `HALF_FLOAT/FLOAT/DOUBLE → float`,
-`STRING/LARGE_STRING/STRING_VIEW → str`, `DATE32 → date`, `DATE64 → datetime`,
+`STRING/LARGE_STRING/STRING_VIEW → str`, `DATE32 → date`, `DATE64 → date` (v1: `datetime`),
 `TIME32/TIME64 → time`, `INTERVAL_MONTH_DAY_NANO/DURATION → timedelta`, id 18 (timestamp)
 → `datetime`, `LIST/LARGE_LIST/FIXED_SIZE_LIST → list`, `STRUCT/MAP → dict`,
 `BINARY/LARGE_BINARY → bytes`, `DECIMAL128/256 → DecimalFactory(precision, scale)`,

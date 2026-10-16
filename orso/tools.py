@@ -627,7 +627,7 @@ def arrow_type_map(parquet_type) -> Union[Type, None]:
         lib.Type_STRING: str,
         lib.Type_LARGE_STRING: str,
         lib.Type_DATE32: datetime.date,
-        lib.Type_DATE64: datetime.datetime,
+        lib.Type_DATE64: datetime.date,  # v2: pyarrow yields dates for date64 (was datetime)
         lib.Type_TIME32: datetime.time,
         lib.Type_TIME64: datetime.time,
         lib.Type_INTERVAL_MONTH_DAY_NANO: datetime.timedelta,

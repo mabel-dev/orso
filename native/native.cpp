@@ -21,6 +21,9 @@
 #include "record.h"
 #include "row.h"
 #include "store.h"
+#include "arrow_export.h"
+#include "arrow_import.h"
+#include "decimal.h"
 #include "width.h"
 #include "core/alloc.h"
 #include "core/append_buffer.h"
@@ -84,6 +87,10 @@ NB_MODULE(_native, m) {
 
     PyDateTime_IMPORT;
     if (PyDateTimeAPI == nullptr) throw nb::python_error();
+    {
+        nb::object decimal_type = nb::module_::import_("decimal").attr("Decimal");
+        orso::g_decimal_type = decimal_type.release().ptr();  // kept for the process lifetime
+    }
     PyTypeObject* row_base = orso::make_row_base();
     if (row_base == nullptr) throw nb::python_error();
     m.attr("RowBase") = nb::borrow(reinterpret_cast<PyObject*>(row_base));
@@ -139,7 +146,45 @@ NB_MODULE(_native, m) {
         .def("nbytes", &orso::Frame::nbytes)
         .def("stats", &orso::Frame::stats)
         .def("cursor", [](const orso::Frame& f) { return orso::FrameCursor(f); },
-             "A DB-API cursor over the rows this frame holds now.");
+             "A DB-API cursor over the rows this frame holds now.")
+        .def("extend", &orso::Frame::extend, nb::arg("rows"), nb::arg("limit") = -1,
+             "Append Python rows positionally, unvalidated; each must have nfields values.")
+        .def("column_values", &orso::Frame::column_values, nb::arg("j"), nb::arg("limit") = -1,
+             "Field j of the first `limit` rows as a list of Python values.")
+        .def("import_arrow", [](orso::Frame& f, nb::handle source, int64_t limit) {
+            // A Table imports batch by batch; a RecordBatch directly. Returns rows imported.
+            if (f.is_view) f.detach();
+            int64_t imported = 0;
+            auto one = [&](PyObject* batch) {
+                const int64_t remaining = limit < 0 ? -1 : limit - imported;
+                if (limit >= 0 && remaining <= 0) return;
+                const int64_t n = orso::import_batch(*f.store, batch, remaining);
+                if (n < 0) throw nb::python_error();
+                imported += n;
+            };
+            if (PyObject_HasAttrString(source.ptr(), "to_batches")) {
+                nb::object batches = source.attr("to_batches")();
+                for (nb::handle b : batches) one(b.ptr());
+            } else {
+                one(source.ptr());
+            }
+            return imported;
+        }, nb::arg("source"), nb::arg("limit") = -1,
+           "Import a pyarrow Table or RecordBatch through the C Data Interface.")
+        .def("export_columns", [](const orso::Frame& f, nb::handle specs, int64_t limit) {
+            uint64_t n = f.length();
+            if (limit >= 0 && static_cast<uint64_t>(limit) < n) n = static_cast<uint64_t>(limit);
+            nb::list out;
+            uint32_t j = 0;
+            for (nb::handle spec : specs) {
+                if (j >= f.store->nfields) throw nb::value_error("more export specs than fields");
+                out.append(orso::export_column(*f.store, f.offset, n, j, orso::parse_spec(spec)));
+                ++j;
+            }
+            if (j != f.store->nfields) throw nb::value_error("one export spec per field is required");
+            return out;
+        }, nb::arg("specs"), nb::arg("limit") = -1,
+           "Per field: (schema, array) PyCapsules for pyarrow, or None where pyarrow must convert.");
 
     nb::class_<orso::FrameCursor>(m, "FrameCursor")
         .def("__iter__", [](nb::handle self) { return nb::borrow(self); })

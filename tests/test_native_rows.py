@@ -291,8 +291,10 @@ def test_frame_holds_objects_without_leaking():
         df.append((sentinel,))
     assert sys.getrefcount(sentinel) == baseline + 100
     head = df.head(10)
-    head.append((sentinel,))  # copy-on-write takes its own references
-    assert sys.getrefcount(sentinel) == baseline + 111
+    head.append((sentinel,))
+    # copy-on-write takes its own reference to every object the shared store holds (a
+    # superset of the view's: nested values can keep objects anywhere in the arena)
+    assert sys.getrefcount(sentinel) == baseline + 100 + 100 + 1
     rows = df.fetchall() if df._cursor is not None else list(df)
     del df, head, rows
     gc.collect()

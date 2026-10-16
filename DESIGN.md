@@ -526,3 +526,70 @@ Known gaps carried into phase 3:
   reference). No consumer stores such values today.
 - Free-threaded builds compile but the store has no locking yet (§6).
 - `arrow()` on a store frame decodes to Python rows first; phase 3 replaces that.
+
+## 14. Phase 3 status (2026-10-16)
+
+Done, on macOS arm64 / CPython 3.14 / pyarrow 26:
+
+- **Decimals** (`native/decimal.h`): exact `Decimal` in a DECIMAL128 slot (int128 unscaled,
+  scale and a negative-zero flag in the tag), read from `str(Decimal)` and rebuilt with
+  `Decimal(text)`, so sign, digits and exponent survive. NaN, infinities, positive
+  exponents and more than 38 digits stay objects. `nbytes()` computes `len(str(d))` per
+  the decimal spec instead of serialising.
+- **Nested values**: lists, tuples and dicts are encoded recursively into the arena in
+  the record's own slot grammar (§4.4), so they are sized, exported and copied natively.
+  Observable difference: a frame now holds a copy, not the caller's list, so mutating the
+  list after `append` no longer changes the frame.
+- **Import** (`native/arrow_import.h`): `RecordBatch.__arrow_c_array__` capsules, one
+  reader per column from the format string, a range pre-check for temporal columns, then
+  a row-major scatter. Native readers cover ints, uints, floats, bool, utf8/large_utf8,
+  binary/large_binary, date32/64, timestamp s/ms/us (naive), time32/64 (not ns),
+  duration s/ms/us, decimal128, null, list/large_list/fixed_size_list, struct. Everything
+  else (time zones, nanoseconds, float16, decimal256, string views, intervals) comes
+  through pyarrow's `to_pylist()`, so every row equals v1's, type for type.
+  `DataFrame.from_arrow` of a Table, RecordBatch or list of them builds a store frame;
+  a generator of tables stays lazy, one table at a time, as v1 was. `converters.from_arrow`
+  still returns an iterator (a `FrameCursor`), which the PyPI opteryx `Cursor` relies on.
+- **Export** (`native/arrow_export.h`): one builder per column writes Arrow buffers from
+  the slots and hands them over as capsules. Each target type accepts exactly what
+  pyarrow's converter accepts (measured: bool is refused for int64, ints only up to 2^53
+  for float64, datetimes truncate to date32, times truncate to ms, lossy decimal rescales
+  refuse); anything else sends that one column back to pyarrow as v1's Python list.
+  List frames export through a temporary store too: encoding plus native export beat
+  extracting columns and letting pyarrow convert them, 1.7 to 3.1x.
+- **Fixes landed**: DATE exports as date32 and date64 imports as DATE (§8 #10); a column
+  with no declared type, or a STRUCT with no fields, is inferred on its own instead of
+  forcing inference on the whole table (#1, #12); `from_arrow(size=n)` converts n rows (#3).
+- **Tests**: `tests/test_native_arrow.py` (93) compares native export with pyarrow
+  converting the same Python values, including raising the same exception types, and
+  native import with `to_pylist()` across 36 Arrow types, sliced, chunked and batched.
+  Full suite 632 passed, 6 skipped.
+
+Measured against v1 (0.0.246) built and run back to back, 5 rounds, minimum times, on a
+loaded machine (load average ~8, control drift +4.2%): **31 cases faster, 23 unchanged,
+geometric mean 45.0% faster.** Four cases flagged 6–8% slower were re-measured with v1
+and v2 interleaved over 9 rounds and came out within ±3% (one 19% faster): load noise.
+
+| case | v1 ns/op | v2 ns/op | speedup |
+|---|---|---|---|
+| arrow/from_arrow_first_1000_rows | 59,180 | 401 | 148x |
+| arrow/from_arrow_materialized | 606 | 34 | 17.8x |
+| arrow/roundtrip_arrow_orso_arrow | 725 | 59 | 12.3x |
+| append/append_then_nbytes_then_arrow | 979 | 154 | 6.4x |
+| arrow/from_arrow_then_read_every_row | 615 | 160 | 3.8x |
+| arrow/to_arrow_wide_20_columns | 1,013 | 331 | 3.1x |
+| arrow/to_arrow_relation_schema | 116 | 59 | 2.0x |
+| arrow/to_arrow_inferred_types | 116 | 66 | 1.7x |
+| arrow/to_arrow_decimal_columns | 123 | 88 | 1.4x |
+
+`from_arrow_materialized` measures an import that no longer decodes anything, so it
+flatters v2; `from_arrow_then_read_every_row` (new this phase) is the honest end-to-end
+number when every row is used.
+
+v1 bugs found, not fixed (schema conversion is phase 4):
+
+- `FlatColumn.arrow_field` uses `self.scale or 10`, so a DECIMAL with scale 0 exports as
+  `decimal128(p, 10)`: `DECIMAL(10,0)` becomes `decimal128(10,10)`, which cannot hold 1.
+- `FlatColumn.from_arrow` crashes on `map` columns, and `arrow_type_map` refuses
+  dictionary-encoded columns, so neither v1 nor v2 can import them. Pinned by tests.
+

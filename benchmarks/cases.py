@@ -515,6 +515,14 @@ def _(scale):
     return run
 
 
+@case("arrow", "from_arrow_then_read_every_row", 100_000)
+def _(scale):
+    """Import and then touch every row: the end-to-end cost when rows are actually used
+    (v2 defers decoding, so from_arrow_materialized alone would flatter it)."""
+    table = make_arrow_table(int(100_000 * scale))
+    return lambda: consume(DataFrame.from_arrow(table))
+
+
 @case("arrow", "from_arrow_first_1000_rows", 1_000)
 def _(scale):
     table = make_arrow_table(int(100_000 * scale))

@@ -34,6 +34,7 @@
 #include "core/interval_slot.h"
 #include "core/iso_datetime.h"
 #include "core/string_slot.h"
+#include "decimal.h"
 #include "logical_type.h"  // us_epoch_to_parts
 
 namespace orso {
@@ -338,6 +339,81 @@ struct Store {
     const uint8_t* slot_at(const uint8_t* rec, uint32_t j) const noexcept { return rec + slot_offset + SLOT_BYTES * j; }
 };
 
+// ----- slot grammar ----------------------------------------------------------------
+//
+// Nested values (lists, tuples, dicts) live in the arena as a block in the same grammar
+// as a record, so every reader and writer below recurses through one set of functions:
+//
+//     block = [ u32 elements ][ u32 kind ][ tags: elements × u16, padded to 8 ][ slots: elements × 16 ]
+//     slot  = [ u64 block offset in the arena ][ u32 count ][ u32 0 ]   tag = DRAKEN_ARRAY, param = kind
+//
+// A dict of n pairs is a block of 2n elements, key then value, in insertion order. A
+// DECIMAL128 slot is the 16-byte unscaled value with scale and the negative-zero flag in
+// the tag parameter (decimal.h).
+
+constexpr uint8_t NEST_LIST = 0;
+constexpr uint8_t NEST_TUPLE = 1;
+constexpr uint8_t NEST_DICT = 2;
+constexpr int MAX_NEST_DEPTH = 32;
+
+inline uint64_t nested_tags_bytes(uint64_t elements) noexcept { return (elements * 2 + 7) & ~uint64_t(7); }
+inline uint64_t nested_block_bytes(uint64_t elements) noexcept {
+    return 8 + nested_tags_bytes(elements) + elements * SLOT_BYTES;
+}
+
+struct NestedRef {
+    uint64_t block;  // offset of the block in the arena
+    uint32_t count;  // list/tuple items, or dict pairs
+};
+
+inline NestedRef nested_ref(const uint8_t* slot) noexcept {
+    NestedRef r;
+    std::memcpy(&r.block, slot, 8);
+    std::memcpy(&r.count, slot + 8, 4);
+    return r;
+}
+
+inline uint64_t nested_elements(uint8_t kind, uint32_t count) noexcept {
+    return kind == NEST_DICT ? uint64_t(count) * 2 : uint64_t(count);
+}
+
+inline uint16_t nested_elem_tag(const Store& st, uint64_t block, uint64_t k) noexcept {
+    uint16_t t;
+    std::memcpy(&t, st.arena.data() + block + 8 + 2 * k, sizeof t);
+    return t;
+}
+
+inline const uint8_t* nested_elem_slot(const Store& st, uint64_t block, uint64_t elements, uint64_t k) noexcept {
+    return st.arena.data() + block + 8 + nested_tags_bytes(elements) + SLOT_BYTES * k;
+}
+
+// Reserve a nested block of `elements` slots; returns its arena offset.
+inline uint64_t nested_begin(Store& st, uint64_t elements, uint8_t kind) {
+    const uint64_t off = st.arena.size();
+    uint8_t* p = st.arena.extend(static_cast<size_t>(nested_block_bytes(elements)));
+    std::memset(p, 0, static_cast<size_t>(nested_block_bytes(elements)));
+    const uint32_t e32 = static_cast<uint32_t>(elements);
+    const uint32_t k32 = kind;
+    std::memcpy(p, &e32, 4);
+    std::memcpy(p + 4, &k32, 4);
+    return off;
+}
+
+// Store element k of a block. The arena may have moved since nested_begin (children
+// append strings and blocks), so the address is recomputed from the offset every time.
+inline void nested_set(Store& st, uint64_t block, uint64_t elements, uint64_t k, uint16_t tag, const uint8_t* slot) {
+    uint8_t* base = st.arena.data() + block;
+    std::memcpy(base + 8 + 2 * k, &tag, sizeof tag);
+    std::memcpy(base + 8 + nested_tags_bytes(elements) + SLOT_BYTES * k, slot, SLOT_BYTES);
+}
+
+inline void nested_finish(uint64_t block, uint32_t count, uint8_t kind, uint16_t& tag, uint8_t* slot) {
+    std::memset(slot, 0, SLOT_BYTES);
+    std::memcpy(slot, &block, 8);
+    std::memcpy(slot + 8, &count, 4);
+    tag = make_tag(DRAKEN_ARRAY, kind);
+}
+
 // ----- encode: Python value -> tag + slot (the only unboxing site) -----------------
 
 inline void put_object(Store& st, PyObject* v, uint16_t& tag, uint8_t* slot) {
@@ -358,12 +434,81 @@ inline bool put_string(Store& st, const char* p, Py_ssize_t n, uint8_t* slot) {
     const uint64_t off = st.arena.size();
     if (off + len > 0xFFFFFFFFull) return false;  // draken slots address 4 GB of arena
     st.arena.append(reinterpret_cast<const uint8_t*>(p), len);
-    str_init_extern(s, reinterpret_cast<const uint8_t*>(p), len, static_cast<uint32_t>(off));
+    str_init_extern(s, reinterpret_cast<const uint8_t*>(st.arena.data() + off), len, static_cast<uint32_t>(off));
     return true;
 }
 
-// 0 on success, -1 with an exception set.
-inline int encode_value(Store& st, PyObject* v, uint16_t& tag, uint8_t* slot) {
+inline bool bytes_are_ascii(const uint8_t* p, uint64_t n) noexcept {
+    uint64_t i = 0;
+    for (; i + 8 <= n; i += 8) {
+        uint64_t w;
+        std::memcpy(&w, p + i, 8);
+        if (w & 0x8080808080808080ull) return false;
+    }
+    for (; i < n; ++i) {
+        if (p[i] & 0x80) return false;
+    }
+    return true;
+}
+
+inline int encode_value(Store& st, PyObject* v, uint16_t& tag, uint8_t* slot, int depth = 0);
+
+inline int encode_decimal(Store& st, PyObject* v, uint16_t& tag, uint8_t* slot) {
+    PyObject* text = PyObject_Str(v);
+    if (text == nullptr) return -1;
+    Py_ssize_t n = 0;
+    const char* s = PyUnicode_AsUTF8AndSize(text, &n);
+    __int128 value = 0;
+    uint8_t scale = 0;
+    bool negzero = false;
+    const bool exact = s != nullptr && dec_from_text(s, n, value, scale, negzero);
+    Py_DECREF(text);
+    if (s == nullptr) return -1;
+    if (!exact) {
+        put_object(st, v, tag, slot);
+        return 0;
+    }
+    std::memcpy(slot, &value, sizeof value);
+    tag = make_tag(DRAKEN_DECIMAL128, static_cast<uint8_t>(scale | (negzero ? DEC_NEG_ZERO : 0)));
+    return 0;
+}
+
+inline int encode_nested(Store& st, PyObject* v, uint8_t kind, uint16_t& tag, uint8_t* slot, int depth) {
+    if (kind == NEST_DICT) {
+        const Py_ssize_t pairs = PyDict_GET_SIZE(v);
+        const uint64_t elements = uint64_t(pairs) * 2;
+        const uint64_t block = nested_begin(st, elements, kind);
+        Py_ssize_t pos = 0;
+        PyObject *key, *value;
+        uint64_t k = 0;
+        while (PyDict_Next(v, &pos, &key, &value)) {
+            if (k >= elements) break;  // cannot grow: nothing runs Python code meanwhile
+            uint8_t child[SLOT_BYTES];
+            uint16_t ctag = 0;
+            if (encode_value(st, key, ctag, child, depth + 1) < 0) return -1;
+            nested_set(st, block, elements, k++, ctag, child);
+            if (encode_value(st, value, ctag, child, depth + 1) < 0) return -1;
+            nested_set(st, block, elements, k++, ctag, child);
+        }
+        nested_finish(block, static_cast<uint32_t>(pairs), kind, tag, slot);
+        return 0;
+    }
+    const Py_ssize_t n = PySequence_Fast_GET_SIZE(v);  // exact list or tuple
+    PyObject** items = PySequence_Fast_ITEMS(v);
+    const uint64_t block = nested_begin(st, uint64_t(n), kind);
+    for (Py_ssize_t k = 0; k < n; ++k) {
+        uint8_t child[SLOT_BYTES];
+        uint16_t ctag = 0;
+        if (encode_value(st, items[k], ctag, child, depth + 1) < 0) return -1;
+        nested_set(st, block, uint64_t(n), uint64_t(k), ctag, child);
+    }
+    nested_finish(block, static_cast<uint32_t>(n), kind, tag, slot);
+    return 0;
+}
+
+// 0 on success, -1 with an exception set. `slot` is caller memory, never arena memory:
+// encoding nested values grows the arena.
+inline int encode_value(Store& st, PyObject* v, uint16_t& tag, uint8_t* slot, int depth) {
     std::memset(slot, 0, SLOT_BYTES);
     if (v == Py_None) {
         tag = make_tag(DRAKEN_NULL);
@@ -464,6 +609,12 @@ inline int encode_value(Store& st, PyObject* v, uint16_t& tag, uint8_t* slot) {
         tag = make_tag(DRAKEN_INTERVAL);
         return 0;
     }
+    if (reinterpret_cast<PyObject*>(t) == g_decimal_type) return encode_decimal(st, v, tag, slot);
+    if (depth < MAX_NEST_DEPTH) {
+        if (t == &PyList_Type) return encode_nested(st, v, NEST_LIST, tag, slot, depth);
+        if (t == &PyTuple_Type) return encode_nested(st, v, NEST_TUPLE, tag, slot, depth);
+        if (t == &PyDict_Type) return encode_nested(st, v, NEST_DICT, tag, slot, depth);
+    }
     put_object(st, v, tag, slot);
     return 0;
 }
@@ -474,6 +625,58 @@ inline int64_t load_i64(const uint8_t* slot) noexcept {
     int64_t x;
     std::memcpy(&x, slot, sizeof x);
     return x;
+}
+
+inline __int128 load_i128(const uint8_t* slot) noexcept {
+    __int128 x;
+    std::memcpy(&x, slot, sizeof x);
+    return x;
+}
+
+inline PyObject* decode_value(const Store& st, uint16_t tag, const uint8_t* slot);
+
+inline PyObject* decode_nested(const Store& st, uint16_t tag, const uint8_t* slot) {
+    const uint8_t kind = tag_param(tag);
+    const NestedRef ref = nested_ref(slot);
+    const uint64_t elements = nested_elements(kind, ref.count);
+    if (kind == NEST_DICT) {
+        PyObject* d = PyDict_New();
+        if (d == nullptr) return nullptr;
+        for (uint64_t k = 0; k < elements; k += 2) {
+            PyObject* key = decode_value(st, nested_elem_tag(st, ref.block, k), nested_elem_slot(st, ref.block, elements, k));
+            if (key == nullptr) {
+                Py_DECREF(d);
+                return nullptr;
+            }
+            PyObject* value =
+                decode_value(st, nested_elem_tag(st, ref.block, k + 1), nested_elem_slot(st, ref.block, elements, k + 1));
+            if (value == nullptr || PyDict_SetItem(d, key, value) < 0) {
+                Py_DECREF(key);
+                Py_XDECREF(value);
+                Py_DECREF(d);
+                return nullptr;
+            }
+            Py_DECREF(key);
+            Py_DECREF(value);
+        }
+        return d;
+    }
+    PyObject* out = kind == NEST_TUPLE ? PyTuple_New(static_cast<Py_ssize_t>(elements))
+                                       : PyList_New(static_cast<Py_ssize_t>(elements));
+    if (out == nullptr) return nullptr;
+    for (uint64_t k = 0; k < elements; ++k) {
+        PyObject* item = decode_value(st, nested_elem_tag(st, ref.block, k), nested_elem_slot(st, ref.block, elements, k));
+        if (item == nullptr) {
+            Py_DECREF(out);
+            return nullptr;
+        }
+        if (kind == NEST_TUPLE) {
+            PyTuple_SET_ITEM(out, static_cast<Py_ssize_t>(k), item);
+        } else {
+            PyList_SET_ITEM(out, static_cast<Py_ssize_t>(k), item);
+        }
+    }
+    return out;
 }
 
 // A new reference, or nullptr with an exception set.
@@ -541,6 +744,10 @@ inline PyObject* decode_value(const Store& st, uint16_t tag, const uint8_t* slot
             return PyDelta_FromDSU(static_cast<int>(days), static_cast<int>(rem / US_PER_SECOND),
                                    static_cast<int>(rem % US_PER_SECOND));
         }
+        case DRAKEN_DECIMAL128:
+            return dec_to_python(load_i128(slot), tag_param(tag));
+        case DRAKEN_ARRAY:
+            return decode_nested(st, tag, slot);
         case TAG_OBJECT: {
             PyObject* o;
             std::memcpy(&o, slot, sizeof o);
@@ -568,7 +775,39 @@ inline PyObject* decode_row(const Store& st, PyTypeObject* row_type, uint64_t i)
     return op;
 }
 
-// ----- width: the nbytes() estimate straight from the record -----------------------
+// ----- width: the nbytes() estimate straight from the slots ------------------------
+
+inline int64_t slot_width(const Store& st, uint16_t tag, const uint8_t* slot);
+
+// v1 sized a value it could not serialise natively through `default=serialize`; for a
+// value that survives that, decode it and ask the same question of the object.
+inline int64_t decoded_width(const Store& st, uint16_t tag, const uint8_t* slot) {
+    PyObject* o = decode_value(st, tag, slot);
+    if (o == nullptr) return -1;
+    const int64_t w = py_value_width(o, 1);
+    Py_DECREF(o);
+    return w;
+}
+
+inline int64_t nested_width(const Store& st, uint16_t tag, const uint8_t* slot) {
+    const uint8_t kind = tag_param(tag);
+    const NestedRef ref = nested_ref(slot);
+    const uint64_t elements = nested_elements(kind, ref.count);
+    if (kind == NEST_DICT) {
+        for (uint64_t k = 0; k < elements; k += 2) {
+            if ((nested_elem_tag(st, ref.block, k) & 0xFFu) != DRAKEN_VARCHAR) {
+                return decoded_width(st, tag, slot);  // v1 raised for non-str keys; so will this
+            }
+        }
+    }
+    int64_t total = mp_container_header(ref.count);
+    for (uint64_t k = 0; k < elements; ++k) {
+        const int64_t w = slot_width(st, nested_elem_tag(st, ref.block, k), nested_elem_slot(st, ref.block, elements, k));
+        if (w < 0) return -1;
+        total += w;
+    }
+    return total;
+}
 
 inline int64_t slot_width(const Store& st, uint16_t tag, const uint8_t* slot) {
     switch (tag & 0xFFu) {
@@ -583,26 +822,26 @@ inline int64_t slot_width(const Store& st, uint16_t tag, const uint8_t* slot) {
             return mp_str_width(str_length(reinterpret_cast<const DrakenStringSlot*>(slot)));
         case DRAKEN_VARBINARY:
             return mp_bin_width(str_length(reinterpret_cast<const DrakenStringSlot*>(slot)));
-        case DRAKEN_TIMESTAMP64: {
-            int64_t sub = load_i64(slot) % US_PER_SECOND;
-            return sub != 0 ? 27 : 20;
-        }
+        case DRAKEN_TIMESTAMP64:
+            return load_i64(slot) % US_PER_SECOND != 0 ? 27 : 20;
         case DRAKEN_DATE32:
             return 11;
         case DRAKEN_TIME64:
             return load_i64(slot) % US_PER_SECOND != 0 ? 16 : 9;
+        case DRAKEN_DECIMAL128: {  // v1: str(value) as a msgpack string
+            const uint8_t p = tag_param(tag);
+            return mp_str_width(static_cast<uint64_t>(
+                dec_str_length(load_i128(slot), p & DEC_SCALE_MASK, (p & DEC_NEG_ZERO) != 0)));
+        }
+        case DRAKEN_ARRAY:
+            return nested_width(st, tag, slot);
         case TAG_OBJECT: {
             PyObject* o;
             std::memcpy(&o, slot, sizeof o);
             return py_value_width(o, 1);
         }
-        default: {  // INTERVAL and anything rare: size the decoded value as v1 did
-            PyObject* o = decode_value(st, tag, slot);
-            if (o == nullptr) return -1;
-            const int64_t w = py_value_width(o, 1);
-            Py_DECREF(o);
-            return w;
-        }
+        default:  // INTERVAL: v1 serialised str(timedelta)
+            return decoded_width(st, tag, slot);
     }
 }
 
@@ -620,6 +859,40 @@ inline int64_t record_width(const Store& st, uint64_t i) {
 // ---------------------------------------------------------------------------------
 // Frame
 // ---------------------------------------------------------------------------------
+
+// Appends one record from `nfields` values; on failure the store is as it was.
+// Returns 0, or -1 with an exception set (C++ exceptions propagate after rollback).
+inline int append_record(Store& st, PyObject* const* vals) {
+    const size_t records_before = st.records.size();
+    const size_t arena_before = st.arena.size();
+    const size_t objects_before = st.objects.size();
+    auto rollback = [&]() {
+        for (size_t k = objects_before; k < st.objects.size(); ++k) Py_DECREF(st.objects[k]);
+        st.objects.resize(objects_before);
+        st.records.resize_uninit(records_before);
+        st.arena.resize_uninit(arena_before);
+    };
+    try {
+        uint8_t* rec = st.records.extend(st.stride);
+        if (st.slot_offset) std::memset(rec, 0, st.slot_offset);  // deterministic tag padding
+        for (uint32_t j = 0; j < st.nfields; ++j) {
+            uint8_t slot[SLOT_BYTES];
+            uint16_t tag = 0;
+            if (encode_value(st, vals[j], tag, slot) < 0) {
+                rollback();
+                return -1;
+            }
+            rec = st.records.data() + records_before;  // records do not move while encoding, but be exact
+            std::memcpy(rec + 2 * j, &tag, sizeof tag);
+            std::memcpy(rec + st.slot_offset + SLOT_BYTES * j, slot, SLOT_BYTES);
+        }
+    } catch (...) {
+        rollback();
+        throw;
+    }
+    st.rows += 1;
+    return 0;
+}
 
 class Frame {
 public:
@@ -641,24 +914,18 @@ public:
     uint64_t length() const noexcept { return is_view ? view_length : store->rows; }
 
     // A view's window is fixed and its store is shared: before writing, take a private
-    // copy of exactly the rows the view shows (copy-on-write).
+    // copy of the rows the view shows (copy-on-write). The arena is copied whole so every
+    // string and nested-block offset stays valid, and the copy takes its own reference to
+    // every object the old store holds (a superset of the window's, which is harmless).
     void detach() {
         auto fresh = std::make_shared<Store>(store->nfields);
         const uint64_t n = view_length;
-        if (n) {
-            fresh->records.append(store->record(offset), static_cast<size_t>(n * store->stride));
-        }
-        fresh->arena.append(store->arena.data(), store->arena.size());  // string offsets stay valid
-        for (uint64_t i = 0; i < n; ++i) {
-            const uint8_t* rec = fresh->record(i);
-            for (uint32_t j = 0; j < fresh->nfields; ++j) {
-                if ((Store::tag_at(rec, j) & 0xFFu) == TAG_OBJECT) {
-                    PyObject* o;
-                    std::memcpy(&o, fresh->slot_at(rec, j), sizeof o);
-                    fresh->objects.push_back(o);
-                    Py_INCREF(o);
-                }
-            }
+        if (n) fresh->records.append(store->record(offset), static_cast<size_t>(n * store->stride));
+        fresh->arena.append(store->arena.data(), store->arena.size());
+        fresh->objects.reserve(store->objects.size());
+        for (PyObject* o : store->objects) {
+            fresh->objects.push_back(o);
+            Py_INCREF(o);
         }
         fresh->rows = n;
         store = std::move(fresh);
@@ -670,35 +937,40 @@ public:
         if (is_view) detach();
         ValueBuffer buf(plan->nfields);
         if (plan->gather(entry.ptr(), buf) < 0) raise_python();
+        if (append_record(*store, buf.vals) < 0) raise_python();
+    }
 
-        Store& st = *store;
-        const size_t records_before = st.records.size();
-        const size_t arena_before = st.arena.size();
-        const size_t objects_before = st.objects.size();
-        auto rollback = [&]() {
-            for (size_t k = objects_before; k < st.objects.size(); ++k) Py_DECREF(st.objects[k]);
-            st.objects.resize(objects_before);
-            st.records.resize_uninit(records_before);
-            st.arena.resize_uninit(arena_before);
-        };
-        try {
-            uint8_t* rec = st.records.extend(st.stride);
-            if (st.slot_offset) std::memset(rec, 0, st.slot_offset);  // deterministic tag padding
-            for (uint32_t j = 0; j < st.nfields; ++j) {
-                uint16_t tag = 0;
-                if (encode_value(st, buf.vals[j], tag, rec + st.slot_offset + SLOT_BYTES * j) < 0) {
-                    rollback();
-                    raise_python();
-                }
-                std::memcpy(rec + 2 * j, &tag, sizeof tag);
+    // Positional rows with no validation: for building a temporary store from rows that
+    // are already Python objects (arrow() on a list frame). Every row must have exactly
+    // nfields values.
+    void extend(nb::handle rows, int64_t limit) {
+        if (is_view) detach();
+        PyObject* seq = PySequence_Fast(rows.ptr(), "extend() takes a sequence of rows");
+        if (seq == nullptr) raise_python();
+        Py_ssize_t n = PySequence_Fast_GET_SIZE(seq);
+        if (limit >= 0 && limit < n) n = limit;
+        PyObject** items = PySequence_Fast_ITEMS(seq);
+        const Py_ssize_t width = plan->nfields;
+        for (Py_ssize_t i = 0; i < n; ++i) {
+            PyObject* row = items[i];
+            PyObject* row_seq = PySequence_Fast(row, "orso: a row must be a sequence");
+            if (row_seq == nullptr) {
+                Py_DECREF(seq);
+                raise_python();
             }
-        } catch (const nb::python_error&) {
-            throw;
-        } catch (...) {
-            rollback();
-            throw;
+            if (PySequence_Fast_GET_SIZE(row_seq) != width) {
+                Py_DECREF(row_seq);
+                Py_DECREF(seq);
+                throw nb::value_error("orso: rows are not all the frame's width");
+            }
+            const int r = append_record(*store, PySequence_Fast_ITEMS(row_seq));
+            Py_DECREF(row_seq);
+            if (r < 0) {
+                Py_DECREF(seq);
+                raise_python();
+            }
         }
-        st.rows += 1;
+        Py_DECREF(seq);
     }
 
     uint64_t resolve(int64_t i) const {
@@ -729,6 +1001,25 @@ public:
                 raise_python();
             }
             PyList_SET_ITEM(out, i - start, op);
+        }
+        return nb::steal(out);
+    }
+
+    // Field `j` of the first `limit` rows (all when negative) as a list of Python values.
+    nb::object column_values(uint32_t j, int64_t limit) const {
+        if (j >= store->nfields) throw nb::index_error("column index out of range");
+        int64_t n = static_cast<int64_t>(length());
+        if (limit >= 0 && limit < n) n = limit;
+        PyObject* out = PyList_New(n);
+        if (out == nullptr) raise_python();
+        for (int64_t i = 0; i < n; ++i) {
+            const uint8_t* rec = store->record(offset + static_cast<uint64_t>(i));
+            PyObject* v = decode_value(*store, Store::tag_at(rec, j), store->slot_at(rec, j));
+            if (v == nullptr) {
+                Py_DECREF(out);
+                raise_python();
+            }
+            PyList_SET_ITEM(out, i, v);
         }
         return nb::steal(out);
     }
