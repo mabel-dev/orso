@@ -397,7 +397,10 @@ def from_arrow(tables, size=None):
         frame = Frame(plan)
         frame.import_arrow(first_table, limit)
         return frame.cursor(), orso_schema
-    return _lazy_native_rows(itertools.chain([first_table], tables), plan, row_factory, limit), orso_schema
+    return (
+        _lazy_native_rows(itertools.chain([first_table], tables), plan, row_factory, limit),
+        orso_schema,
+    )
 
 
 def to_pandas(dataset, size=None):

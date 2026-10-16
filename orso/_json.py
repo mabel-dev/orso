@@ -32,7 +32,7 @@ def _stdlib_dumps_bytes(value: Any) -> bytes:
 _json_dumps_bytes = _stdlib_dumps_bytes
 
 try:
-    import simdjson as _simdjson  # type:ignore
+    import simdjson as _simdjson  # type: ignore
 
     if hasattr(_simdjson, "loads"):
         _json_loads = _simdjson.loads

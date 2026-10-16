@@ -41,12 +41,12 @@ from typing import Union
 from orso import Row
 from orso._json import dumps_bytes as json_dumps_bytes
 from orso._native import Frame
-from orso._native import collect_rows_into
-from orso._native import xxh64 as _xxh64
 from orso._native import FrameCursor
 from orso._native import Plan
+from orso._native import collect_rows_into
 from orso._native import rows_from_dicts
 from orso._native import rows_nbytes
+from orso._native import xxh64 as _xxh64
 from orso.exceptions import MissingDependencyError
 from orso.group_by import GroupBy
 from orso.schema import RelationSchema
@@ -145,8 +145,8 @@ class DataFrame:
         else:
             if not isinstance(schema, (RelationSchema, list, tuple)):
                 raise ValueError("Row requires either a list of field names or a RelationSchema")
-            self._schema = schema  # type:ignore
-            self._py_rows = rows or []  # type:ignore
+            self._schema = schema  # type: ignore
+            self._py_rows = rows or []  # type: ignore
         self.arraysize = 100
         self._cursor = iter(self._py_rows or [])
 
@@ -230,9 +230,11 @@ class DataFrame:
                     (
                         str(col.name),
                         col.nullable,
-                        None
-                        if col.type == OrsoTypes._MISSING_TYPE
-                        else ORSO_TO_PYTHON_MAP[col.type],
+                        (
+                            None
+                            if col.type == OrsoTypes._MISSING_TYPE
+                            else ORSO_TO_PYTHON_MAP[col.type]
+                        ),
                         col.type == OrsoTypes.JSONB,
                     )
                     for col in schema.columns
@@ -425,7 +427,7 @@ class DataFrame:
     def distinct(self) -> "DataFrame":
         seen = set()
         unique_rows = [
-            x for x in self if hash(x) not in seen and not seen.add(hash(x))  # type:ignore
+            x for x in self if hash(x) not in seen and not seen.add(hash(x))  # type: ignore
         ]
         return DataFrame(rows=unique_rows, schema=self._schema)
 
@@ -696,7 +698,7 @@ class DataFrame:
                     nullable,
                 )
             )
-        return result  # type:ignore
+        return result  # type: ignore
 
     @property
     def column_names(self) -> Tuple[str]:
@@ -704,7 +706,7 @@ class DataFrame:
         if names is None:
             schema = self._schema
             if isinstance(schema, (tuple, list)):
-                names = tuple(str(c) for c in schema)  # type:ignore
+                names = tuple(str(c) for c in schema)  # type: ignore
             else:
                 names = tuple(str(col.name) for col in schema.columns)
             self._colnames = names

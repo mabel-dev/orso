@@ -1,6 +1,6 @@
 import os
-import sys
 import platform
+import sys
 import sysconfig
 
 from setuptools import Extension
@@ -123,7 +123,12 @@ def _native_extension():
     nanobind_root = os.path.dirname(nanobind.__file__)
     ryu_dir = os.path.join(NATIVE_DIR, "third_party", "ulfjack", "ryu")
 
-    cpp_flags = ["-O3", "-std=c++20", "-fvisibility=hidden", "-fno-strict-aliasing"] + _native_arch_flags()
+    cpp_flags = [
+        "-O3",
+        "-std=c++20",
+        "-fvisibility=hidden",
+        "-fno-strict-aliasing",
+    ] + _native_arch_flags()
     define_macros = [
         ("NB_COMPACT_ASSERTIONS", "1"),
         # Keep orso's nanobind type registry separate from any other nanobind
@@ -148,8 +153,12 @@ def _native_extension():
         ],
         include_dirs=[
             NATIVE_DIR,
-            os.path.join(NATIVE_DIR, "draken"),  # "core/buffers.h", "logical_type.h", "ops/vec_result.h"
-            os.path.join(NATIVE_DIR, "draken", "core"),  # draken's own quote-includes ("string_slot.h")
+            os.path.join(
+                NATIVE_DIR, "draken"
+            ),  # "core/buffers.h", "logical_type.h", "ops/vec_result.h"
+            os.path.join(
+                NATIVE_DIR, "draken", "core"
+            ),  # draken's own quote-includes ("string_slot.h")
             os.path.join(NATIVE_DIR, "third_party", "cyan4973"),  # "xxhash.h"
             ryu_dir,  # "ryu.h"
             nanobind.include_dir(),
@@ -192,7 +201,9 @@ class build_ext(_build_ext):
         def _compile(obj, src, ext, cc_args, extra_postargs, pp_opts):
             if src.endswith(".c"):
                 extra_postargs = [a for a in extra_postargs if not a.startswith("-std=")]
-                extra_postargs = [a for a in extra_postargs if a != "-fvisibility=hidden"] + ["-std=c11"]
+                extra_postargs = [a for a in extra_postargs if a != "-fvisibility=hidden"] + [
+                    "-std=c11"
+                ]
             return original_compile(obj, src, ext, cc_args, extra_postargs, pp_opts)
 
         if hasattr(self.compiler, "_compile"):

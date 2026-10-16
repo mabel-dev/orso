@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# isort: skip_file  (cases imports orso, so ROOT must be on sys.path first)
 """
 Orso micro-benchmark harness.
 
@@ -168,14 +169,21 @@ def print_table(results: dict, baseline: dict | None, threshold: float):
 
 
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("-k", "--filter", help="only run cases whose id contains this substring")
     parser.add_argument("--rounds", type=int, default=5, help="timed rounds per case (default 5)")
-    parser.add_argument("--scale", type=float, default=1.0, help="multiply the data size of every case")
+    parser.add_argument(
+        "--scale", type=float, default=1.0, help="multiply the data size of every case"
+    )
     parser.add_argument("-o", "--output", help="write results to this JSON file")
     parser.add_argument("-c", "--compare", help="compare against this saved JSON file")
     parser.add_argument(
-        "--threshold", type=float, default=5.0, help="percent change to flag as faster/slower (default 5)"
+        "--threshold",
+        type=float,
+        default=5.0,
+        help="percent change to flag as faster/slower (default 5)",
     )
     parser.add_argument("--list", action="store_true", help="list case ids and exit")
     args = parser.parse_args(argv)
@@ -203,7 +211,9 @@ def main(argv=None) -> int:
     if baseline:
         bm = baseline["meta"]
         if bm.get("scale") != args.scale:
-            print(f"WARNING: baseline scale {bm.get('scale')} differs from {args.scale}; deltas are not comparable")
+            print(
+                f"WARNING: baseline scale {bm.get('scale')} differs from {args.scale}; deltas are not comparable"
+            )
         if bm.get("python") != meta["python"] or bm.get("machine") != meta["machine"]:
             print(
                 f"WARNING: baseline ran on {bm.get('implementation')} {bm.get('python')} / {bm.get('machine')}"

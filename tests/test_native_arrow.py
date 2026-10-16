@@ -50,7 +50,9 @@ def reference_table(df, schema):
     arrays, fields = [], []
     for name, column, values in zip(df.column_names, schema.columns, columns):
         values = list(values)
-        if column.type == OrsoTypes._MISSING_TYPE or (column.type == OrsoTypes.STRUCT and not column.fields):
+        if column.type == OrsoTypes._MISSING_TYPE or (
+            column.type == OrsoTypes.STRUCT and not column.fields
+        ):
             array = pa.array(values)
             fields.append(pa.field(name, array.type))
         else:
@@ -85,10 +87,30 @@ def assert_tables_equal(a, b):
 # ---------------------------------------------------------------------------------
 
 DECIMALS = [
-    "0", "-0", "0.00", "-0.00", "0E-10", "-0E-38", "1", "-1", "1.5", "1.50", "-3.45",
-    "123456789012345678901234567890.12345678", "99999999999999999999999999999999999999",
-    "-99999999999999999999999999999999999999", "0.0000001", "0.000001", "1.23E-8", "-1.2E-12",
-    "1E-38", "1E+3", "1.5E+2", "NaN", "-Infinity", "sNaN",
+    "0",
+    "-0",
+    "0.00",
+    "-0.00",
+    "0E-10",
+    "-0E-38",
+    "1",
+    "-1",
+    "1.5",
+    "1.50",
+    "-3.45",
+    "123456789012345678901234567890.12345678",
+    "99999999999999999999999999999999999999",
+    "-99999999999999999999999999999999999999",
+    "0.0000001",
+    "0.000001",
+    "1.23E-8",
+    "-1.2E-12",
+    "1E-38",
+    "1E+3",
+    "1.5E+2",
+    "NaN",
+    "-Infinity",
+    "sNaN",
     "100000000000000000000000000000000000000",  # 39 digits: held as an object
 ]
 
@@ -115,10 +137,18 @@ def test_random_decimals_size_like_str():
 
 
 NESTED = [
-    [], (), {}, [1, "x", None, 2.5, True], (1, (2, (3, [4]))), {"a": [1, {"b": ("c", b"d")}]},
+    [],
+    (),
+    {},
+    [1, "x", None, 2.5, True],
+    (1, (2, (3, [4]))),
+    {"a": [1, {"b": ("c", b"d")}]},
     {"long key that is more than twelve bytes": "and a long value too, past the inline limit"},
-    [[[[[[[[[[1]]]]]]]]]], [D("1.20"), datetime.date(2024, 1, 2), datetime.datetime(2024, 1, 2, 3)],
-    {1: "int key", None: "none key"}, [{"x"}, frozenset({1})], ["\ud800"],
+    [[[[[[[[[[1]]]]]]]]]],
+    [D("1.20"), datetime.date(2024, 1, 2), datetime.datetime(2024, 1, 2, 3)],
+    {1: "int key", None: "none key"},
+    [{"x"}, frozenset({1})],
+    ["\ud800"],
 ]
 
 
@@ -151,24 +181,64 @@ def test_nested_values_are_copied_not_aliased():
 
 
 def rand_ts():
-    return datetime.datetime(1970, 1, 1) + datetime.timedelta(microseconds=rng.randint(-(10**16), 10**16))
+    return datetime.datetime(1970, 1, 1) + datetime.timedelta(
+        microseconds=rng.randint(-(10**16), 10**16)
+    )
 
 
 TYPED = [
-    (typed("i", OrsoTypes.INTEGER), lambda: rng.choice([0, 1, -1, 2**63 - 1, -(2**63), rng.randint(-1000, 1000)])),
-    (typed("f", OrsoTypes.DOUBLE), lambda: rng.choice([0.0, -0.0, 1.5, float("inf"), rng.random(), 2**53, -(2**53), 7])),
+    (
+        typed("i", OrsoTypes.INTEGER),
+        lambda: rng.choice([0, 1, -1, 2**63 - 1, -(2**63), rng.randint(-1000, 1000)]),
+    ),
+    (
+        typed("f", OrsoTypes.DOUBLE),
+        lambda: rng.choice([0.0, -0.0, 1.5, float("inf"), rng.random(), 2**53, -(2**53), 7]),
+    ),
     (typed("b", OrsoTypes.BOOLEAN), lambda: rng.choice([True, False])),
-    (typed("s", OrsoTypes.VARCHAR), lambda: rng.choice(["", "short", "a" * 40, "ünïcödé text, long enough", "🐻"])),
+    (
+        typed("s", OrsoTypes.VARCHAR),
+        lambda: rng.choice(["", "short", "a" * 40, "ünïcödé text, long enough", "🐻"]),
+    ),
     (typed("y", OrsoTypes.BLOB), lambda: rng.choice([b"", b"x" * 13, bytes(range(256))])),
     (typed("t", OrsoTypes.TIMESTAMP), rand_ts),
-    (typed("d", OrsoTypes.DATE), lambda: rng.choice([datetime.date(1, 1, 1), datetime.date(9999, 12, 31), rand_ts().date()])),
-    (typed("tm", OrsoTypes.TIME), lambda: datetime.time(rng.randint(0, 23), rng.randint(0, 59), rng.randint(0, 59), rng.randint(0, 999999))),
-    (typed("iv", OrsoTypes.INTERVAL), lambda: datetime.timedelta(microseconds=rng.randint(-(10**14), 10**14))),
-    (typed("dec", OrsoTypes.DECIMAL, precision=12, scale=3), lambda: D(rng.randint(-10**9, 10**9)).scaleb(-rng.randint(0, 3))),
-    (typed("arr", OrsoTypes.ARRAY, element_type=OrsoTypes.INTEGER), lambda: [rng.randint(-5, 5) for _ in range(rng.randint(0, 4))]),
-    (typed("arrs", OrsoTypes.ARRAY, element_type=OrsoTypes.VARCHAR), lambda: tuple(rng.choice(["a", "b" * 20]) for _ in range(rng.randint(0, 3)))),
-    (typed("st", OrsoTypes.STRUCT, fields=[FlatColumn(name="x", type=OrsoTypes.INTEGER), FlatColumn(name="y", type=OrsoTypes.VARCHAR)]),
-     lambda: rng.choice([{"x": 1, "y": "a"}, {"x": None}, {"y": "only y", "extra": 5}, {}])),
+    (
+        typed("d", OrsoTypes.DATE),
+        lambda: rng.choice([datetime.date(1, 1, 1), datetime.date(9999, 12, 31), rand_ts().date()]),
+    ),
+    (
+        typed("tm", OrsoTypes.TIME),
+        lambda: datetime.time(
+            rng.randint(0, 23), rng.randint(0, 59), rng.randint(0, 59), rng.randint(0, 999999)
+        ),
+    ),
+    (
+        typed("iv", OrsoTypes.INTERVAL),
+        lambda: datetime.timedelta(microseconds=rng.randint(-(10**14), 10**14)),
+    ),
+    (
+        typed("dec", OrsoTypes.DECIMAL, precision=12, scale=3),
+        lambda: D(rng.randint(-(10**9), 10**9)).scaleb(-rng.randint(0, 3)),
+    ),
+    (
+        typed("arr", OrsoTypes.ARRAY, element_type=OrsoTypes.INTEGER),
+        lambda: [rng.randint(-5, 5) for _ in range(rng.randint(0, 4))],
+    ),
+    (
+        typed("arrs", OrsoTypes.ARRAY, element_type=OrsoTypes.VARCHAR),
+        lambda: tuple(rng.choice(["a", "b" * 20]) for _ in range(rng.randint(0, 3))),
+    ),
+    (
+        typed(
+            "st",
+            OrsoTypes.STRUCT,
+            fields=[
+                FlatColumn(name="x", type=OrsoTypes.INTEGER),
+                FlatColumn(name="y", type=OrsoTypes.VARCHAR),
+            ],
+        ),
+        lambda: rng.choice([{"x": 1, "y": "a"}, {"x": None}, {"y": "only y", "extra": 5}, {}]),
+    ),
     (typed("j", OrsoTypes.JSONB), lambda: rng.choice([{"k": 1}, [1, 2], b"{}"])),
     (typed("n", OrsoTypes.NULL), lambda: None),
 ]
@@ -206,7 +276,9 @@ def test_typed_export_matches_pyarrow(column, make):
 
 def test_whole_mixed_schema_and_views():
     schema = RelationSchema(name="t", columns=[c for c, _ in TYPED])
-    rows = [{c.name: (None if rng.random() < 0.1 else make()) for c, make in TYPED} for _ in range(200)]
+    rows = [
+        {c.name: (None if rng.random() < 0.1 else make()) for c, make in TYPED} for _ in range(200)
+    ]
     listed, store = twin_typed_frames(schema, rows)
     for df in (listed, store, store.slice(37, 50), listed.slice(37, 50)):
         assert_export_matches(df, schema)
@@ -215,9 +287,12 @@ def test_whole_mixed_schema_and_views():
 @pytest.mark.parametrize(
     "column, bad",
     [
-        (typed("i", OrsoTypes.INTEGER), [1, None, float("nan")]),      # pyarrow truncates 1.5 but refuses NaN
-        (typed("f", OrsoTypes.DOUBLE), [1.0, 2**53 + 1]),               # inexact int
-        (typed("dec", OrsoTypes.DECIMAL, precision=5, scale=1), [D("1.55")]),   # lossy rescale
+        (
+            typed("i", OrsoTypes.INTEGER),
+            [1, None, float("nan")],
+        ),  # pyarrow truncates 1.5 but refuses NaN
+        (typed("f", OrsoTypes.DOUBLE), [1.0, 2**53 + 1]),  # inexact int
+        (typed("dec", OrsoTypes.DECIMAL, precision=5, scale=1), [D("1.55")]),  # lossy rescale
         (typed("dec", OrsoTypes.DECIMAL, precision=3, scale=0), [D("12345")]),  # too many digits
         (typed("s", OrsoTypes.VARCHAR), [1]),
         (typed("t", OrsoTypes.TIMESTAMP), [datetime.date(2024, 1, 1)]),
@@ -246,11 +321,25 @@ def test_typed_export_with_objects_falls_back_to_pyarrow():
 # ---------------------------------------------------------------------------------
 
 INFER = [
-    [1, 2, None], [1.5, None], [True, False], ["a", None, "b" * 30], [b"x", None],
-    [datetime.datetime(2024, 1, 1)], [datetime.date(2024, 1, 1)], [datetime.time(1, 2, 3, 4)],
-    [datetime.timedelta(days=-1, seconds=3)], [None, None], [],
-    [1, 2.5], [D("1.5"), D("22.75")], [[1, 2], [3]], [{"a": 1}, {"a": 2, "b": "x"}],
-    [1, "a"], [1, True], [2**63], [datetime.datetime(2024, 1, 1, tzinfo=UTC)],
+    [1, 2, None],
+    [1.5, None],
+    [True, False],
+    ["a", None, "b" * 30],
+    [b"x", None],
+    [datetime.datetime(2024, 1, 1)],
+    [datetime.date(2024, 1, 1)],
+    [datetime.time(1, 2, 3, 4)],
+    [datetime.timedelta(days=-1, seconds=3)],
+    [None, None],
+    [],
+    [1, 2.5],
+    [D("1.5"), D("22.75")],
+    [[1, 2], [3]],
+    [{"a": 1}, {"a": 2, "b": "x"}],
+    [1, "a"],
+    [1, True],
+    [2**63],
+    [datetime.datetime(2024, 1, 1, tzinfo=UTC)],
 ]
 
 
@@ -278,12 +367,18 @@ def test_inferred_export_matches_pyarrow(values):
 
 def arrow_columns():
     n = 50
+
     def nulls(values, p=0.2):
         return [None if rng.random() < p else v for v in values]
+
     ints = [rng.randint(-(2**31), 2**31 - 1) for _ in range(n)]
     ts = [rand_ts() for _ in range(n)]
     # nanosecond timestamps only reach 1677..2262
-    ts_ns = [datetime.datetime(2000, 1, 1) + datetime.timedelta(microseconds=rng.randint(-(10**15), 10**15)) for _ in range(n)]
+    ts_ns = [
+        datetime.datetime(2000, 1, 1)
+        + datetime.timedelta(microseconds=rng.randint(-(10**15), 10**15))
+        for _ in range(n)
+    ]
     return {
         "i8": pa.array(nulls([v % 100 for v in ints]), pa.int8()),
         "i16": pa.array(nulls([v % 30000 for v in ints]), pa.int16()),
@@ -312,8 +407,12 @@ def arrow_columns():
         "t64us": pa.array(nulls([t.time() for t in ts]), pa.time64("us")),
         "t64ns": pa.array(nulls([t.time() for t in ts]), pa.time64("ns")),
         "dur_s": pa.array(nulls([datetime.timedelta(seconds=v) for v in ints]), pa.duration("s")),
-        "dur_us": pa.array(nulls([datetime.timedelta(microseconds=v) for v in ints]), pa.duration("us")),
-        "dur_ns": pa.array(nulls([datetime.timedelta(microseconds=v) for v in ints]), pa.duration("ns")),
+        "dur_us": pa.array(
+            nulls([datetime.timedelta(microseconds=v) for v in ints]), pa.duration("us")
+        ),
+        "dur_ns": pa.array(
+            nulls([datetime.timedelta(microseconds=v) for v in ints]), pa.duration("ns")
+        ),
         "mdn": pa.array(nulls([datetime.timedelta(days=1)] * n), pa.month_day_nano_interval()),
         "dec": pa.array(nulls([D(v).scaleb(-4) for v in ints]), pa.decimal128(14, 4)),
         "dec256": pa.array(nulls([D(v) for v in ints]), pa.decimal256(40, 0)),
@@ -373,7 +472,9 @@ def test_import_sliced_chunked_and_batched():
     sliced = table.slice(7, 21)
     assert_rows_match(list(orso.DataFrame.from_arrow(sliced)), rows_of(sliced))
     batch = table.to_batches()[0].slice(3, 9)
-    assert_rows_match(list(orso.DataFrame.from_arrow(batch)), rows_of(pa.Table.from_batches([batch])))
+    assert_rows_match(
+        list(orso.DataFrame.from_arrow(batch)), rows_of(pa.Table.from_batches([batch]))
+    )
     assert_rows_match(list(orso.DataFrame.from_arrow([table, table])), expected + expected)
 
 
@@ -425,7 +526,10 @@ def test_arrow_round_trip_keeps_types():
         {
             "i": pa.array([1, None, 3]),
             "s": ["a", None, "c" * 30],
-            "t": pa.array([datetime.datetime(2024, 1, 1, 0, 0, 0, 5), None, datetime.datetime(1, 1, 1)], pa.timestamp("us")),
+            "t": pa.array(
+                [datetime.datetime(2024, 1, 1, 0, 0, 0, 5), None, datetime.datetime(1, 1, 1)],
+                pa.timestamp("us"),
+            ),
             "d": pa.array([datetime.date(2024, 1, 1), None, datetime.date(1, 1, 1)], pa.date32()),
             "dec": pa.array([D("1.20"), None, D("-3.45")], pa.decimal128(10, 2)),
             "l": pa.array([[1], None, []], pa.list_(pa.int64())),

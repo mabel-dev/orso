@@ -277,8 +277,6 @@ def test_sparse_column():
     assert numpy.array_equal(values, numpy.array(VARYING_LENGTHS))
 
 
-
-
 @needs_numpy
 def test_sparse_column_multiply():
     # Initialize the sparse column

@@ -16,15 +16,13 @@ import logging
 import math
 import os
 import random
+import sys
 import threading
 import time
-import sys
 import uuid
 from collections import OrderedDict
 from functools import wraps
 from random import getrandbits
-
-from orso._native import parse_iso_text as _parse_iso_text
 from typing import Any
 from typing import Callable
 from typing import List
@@ -33,7 +31,7 @@ from typing import Tuple
 from typing import Type
 from typing import Union
 
-
+from orso._native import parse_iso_text as _parse_iso_text
 from orso.exceptions import MissingDependencyError
 
 logger = logging.getLogger(__name__)
@@ -237,17 +235,17 @@ def counter(func: Callable) -> Callable:
         Returns:
             str: The formatted report string.
         """
-        stats = f"\nExecution Statistics for `{self.__name__}`\n  Count   : {self.count}\n"  # type:ignore
-        if self.count > 0:  # type:ignore
-            stats += f"  Average : {sum(self._run_times) / self.count} seconds\n"  # type:ignore
-            stats += f"  Slowest : {min(self._run_times)} seconds\n"  # type:ignore
-            stats += f"  Fastest : {max(self._run_times)} seconds\n"  # type:ignore
+        stats = f"\nExecution Statistics for `{self.__name__}`\n  Count   : {self.count}\n"  # type: ignore
+        if self.count > 0:  # type: ignore
+            stats += f"  Average : {sum(self._run_times) / self.count} seconds\n"  # type: ignore
+            stats += f"  Slowest : {min(self._run_times)} seconds\n"  # type: ignore
+            stats += f"  Fastest : {max(self._run_times)} seconds\n"  # type: ignore
         return stats
 
     @wraps(func)
     def wrapper(*args, **kwargs) -> Any:
         # Increment the counter for function execution
-        wrapper.count += 1  # type:ignore
+        wrapper.count += 1  # type: ignore
 
         # Record the starting time
         start_time = time.monotonic()
@@ -256,16 +254,16 @@ def counter(func: Callable) -> Callable:
         result = func(*args, **kwargs)
 
         # Record and store the elapsed time
-        wrapper._run_times.append(time.monotonic() - start_time)  # type:ignore
+        wrapper._run_times.append(time.monotonic() - start_time)  # type: ignore
 
         return result
 
     # Initialize counter and run_times attributes
-    wrapper.count = 0  # type:ignore
-    wrapper._run_times = []  # type:ignore
+    wrapper.count = 0  # type: ignore
+    wrapper._run_times = []  # type: ignore
 
     # Attach the reporting function
-    wrapper.stats = lambda: report(wrapper)  # type:ignore
+    wrapper.stats = lambda: report(wrapper)  # type: ignore
 
     return wrapper
 
@@ -796,7 +794,7 @@ def parse_iso(value):
             if val_len == 10:
                 # YYYY-MM-DD
                 return datetime.datetime(
-                    *map(int, [value[:4], value[5:7], value[8:10]])  # type:ignore
+                    *map(int, [value[:4], value[5:7], value[8:10]])  # type: ignore
                 )
             if val_len >= 16:
                 if value[10] not in ("T", " ") and value[13] != ":":
@@ -804,7 +802,7 @@ def parse_iso(value):
                 if val_len >= 19 and value[16] == ":":
                     # YYYY-MM-DD HH:MM:SS
                     return datetime.datetime(
-                        *map(  # type:ignore
+                        *map(  # type: ignore
                             int,
                             [
                                 value[:4],  # YYYY
@@ -819,7 +817,7 @@ def parse_iso(value):
                 if val_len == 16:
                     # YYYY-MM-DD HH:MM
                     return datetime.datetime(
-                        *map(  # type:ignore
+                        *map(  # type: ignore
                             int,
                             [
                                 value[:4],

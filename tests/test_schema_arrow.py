@@ -28,7 +28,7 @@ def test_column_to_field():
 
     column = FlatColumn(name="test", type=OrsoTypes.TIMESTAMP)
     arrow_field = column.arrow_field
-    assert arrow_field.type == pyarrow.timestamp("us"),  arrow_field.type
+    assert arrow_field.type == pyarrow.timestamp("us"), arrow_field.type
 
     # v2 (DESIGN.md §8 fix 10): DATE exports as date32. v1 exported date64, while date64
     # imported as TIMESTAMP, so a DATE column came back from Arrow as a different type.
@@ -56,6 +56,7 @@ def test_struct_column_to_field_metadata():
 
     fallback_field = FlatColumn(name="missing", type=OrsoTypes.STRUCT).arrow_field
     assert fallback_field.type == pyarrow.binary()
+
 
 def test_array_column_to_field():
     column = FlatColumn(name="test", type=OrsoTypes.ARRAY, element_type=OrsoTypes.VARCHAR)
@@ -107,6 +108,7 @@ def test_column_to_field_name():
     column = FlatColumn(name="test", type="ARRAY<BLOB>")
     arrow_field = column.arrow_field
     assert arrow_field.type == pyarrow.list_(pyarrow.binary())
+
 
 def test_field_to_column():
     arrow_field = pyarrow.field("test", pyarrow.list_(pyarrow.int64()))
@@ -180,8 +182,7 @@ def test_field_to_column():
     assert column.element_type == OrsoTypes.BLOB
 
     arrow_field = pyarrow.field(
-        "test",
-        pyarrow.struct([pyarrow.field("subfield", pyarrow.int32(), nullable=False)])
+        "test", pyarrow.struct([pyarrow.field("subfield", pyarrow.int32(), nullable=False)])
     )
     column = FlatColumn.from_arrow(arrow_field)
     assert column.name == "test"
@@ -189,7 +190,6 @@ def test_field_to_column():
     assert column.fields is not None
     assert column.fields[0].name == "subfield"
     assert column.fields[0].type == OrsoTypes.INTEGER
-
 
 
 if __name__ == "__main__":  # prgama: nocover

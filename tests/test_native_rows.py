@@ -36,24 +36,83 @@ from orso.types import OrsoTypes
 UTC = datetime.timezone.utc
 
 SAMPLE_VALUES = [
-    None, True, False,
-    0, 1, 127, 128, 255, 256, 65535, 65536, 2**32 - 1, 2**32, 2**63 - 1, 2**63, 2**64 - 1,
-    -1, -32, -33, -128, -129, -32768, -32769, -(2**31), -(2**31) - 1, -(2**63),
-    0.0, -0.0, 1.5, float("inf"), float("nan"),
-    "", "a", "a" * 12, "a" * 13, "a" * 31, "a" * 32, "a" * 255, "a" * 256, "a" * 70000,
-    "é", "é" * 20, "日本語のテキスト", "emoji 🐻 longer than twelve",
-    b"", b"x" * 12, b"x" * 13, b"x" * 300, b"\x00\xff" * 40000,
-    datetime.datetime(2024, 1, 2, 3, 4, 5), datetime.datetime(2024, 1, 2, 3, 4, 5, 6),
-    datetime.datetime(1, 1, 1), datetime.datetime(9999, 12, 31, 23, 59, 59, 999999),
+    None,
+    True,
+    False,
+    0,
+    1,
+    127,
+    128,
+    255,
+    256,
+    65535,
+    65536,
+    2**32 - 1,
+    2**32,
+    2**63 - 1,
+    2**63,
+    2**64 - 1,
+    -1,
+    -32,
+    -33,
+    -128,
+    -129,
+    -32768,
+    -32769,
+    -(2**31),
+    -(2**31) - 1,
+    -(2**63),
+    0.0,
+    -0.0,
+    1.5,
+    float("inf"),
+    float("nan"),
+    "",
+    "a",
+    "a" * 12,
+    "a" * 13,
+    "a" * 31,
+    "a" * 32,
+    "a" * 255,
+    "a" * 256,
+    "a" * 70000,
+    "é",
+    "é" * 20,
+    "日本語のテキスト",
+    "emoji 🐻 longer than twelve",
+    b"",
+    b"x" * 12,
+    b"x" * 13,
+    b"x" * 300,
+    b"\x00\xff" * 40000,
+    datetime.datetime(2024, 1, 2, 3, 4, 5),
+    datetime.datetime(2024, 1, 2, 3, 4, 5, 6),
+    datetime.datetime(1, 1, 1),
+    datetime.datetime(9999, 12, 31, 23, 59, 59, 999999),
     datetime.datetime(1969, 12, 31, 23, 59, 59, 500000),
-    datetime.datetime(2024, 1, 1, tzinfo=UTC), datetime.datetime(2024, 1, 1, fold=1),
-    datetime.date(1970, 1, 1), datetime.date(1, 1, 1), datetime.date(9999, 12, 31), datetime.date(1900, 2, 28),
-    datetime.time(0, 0), datetime.time(23, 59, 59, 999999), datetime.time(12, tzinfo=UTC),
-    datetime.timedelta(0), datetime.timedelta(days=-3, seconds=5, microseconds=7),
-    datetime.timedelta(days=999999999), datetime.timedelta(days=-999999999),
-    decimal.Decimal("99.99"), decimal.Decimal("-0"), decimal.Decimal("NaN"),
-    [1, "a", None], (1, 2), {"k": [1, {"n": "v"}]}, {"set"}, frozenset({1}),
-    bytearray(b"ab"), "\ud800",
+    datetime.datetime(2024, 1, 1, tzinfo=UTC),
+    datetime.datetime(2024, 1, 1, fold=1),
+    datetime.date(1970, 1, 1),
+    datetime.date(1, 1, 1),
+    datetime.date(9999, 12, 31),
+    datetime.date(1900, 2, 28),
+    datetime.time(0, 0),
+    datetime.time(23, 59, 59, 999999),
+    datetime.time(12, tzinfo=UTC),
+    datetime.timedelta(0),
+    datetime.timedelta(days=-3, seconds=5, microseconds=7),
+    datetime.timedelta(days=999999999),
+    datetime.timedelta(days=-999999999),
+    decimal.Decimal("99.99"),
+    decimal.Decimal("-0"),
+    decimal.Decimal("NaN"),
+    [1, "a", None],
+    (1, 2),
+    {"k": [1, {"n": "v"}]},
+    {"set"},
+    frozenset({1}),
+    bytearray(b"ab"),
+    "\ud800",
 ]
 
 
@@ -206,14 +265,26 @@ def test_round_trip_every_value_type():
 
 def test_store_frame_slices_match_list_slices():
     store, listed = twin_frames(mixed_rows(57))
-    windows = [(0, None), (0, 5), (10, 0), (-5, None), (-5, 3), (-100, 200), (50, 50), (200, 5), (3, 1)]
+    windows = [
+        (0, None),
+        (0, 5),
+        (10, 0),
+        (-5, None),
+        (-5, 3),
+        (-100, 200),
+        (50, 50),
+        (200, 5),
+        (3, 1),
+    ]
     for offset, length in windows:
         assert_same_rows(list(store.slice(offset, length)), list(listed.slice(offset, length)))
     for size in (0, 1, 5, 57, 100):
         assert_same_rows(list(store.head(size)), list(listed.head(size)))
         assert_same_rows(list(store.tail(size)), list(listed.tail(size)))
     for batch in (1, 10, 57, 1000):
-        assert [len(b) for b in store.to_batches(batch)] == [len(b) for b in listed.to_batches(batch)]
+        assert [len(b) for b in store.to_batches(batch)] == [
+            len(b) for b in listed.to_batches(batch)
+        ]
         assert_same_rows([r for b in store.to_batches(batch) for r in b], list(listed))
 
 
@@ -322,7 +393,15 @@ def typed_schema():
 def test_typed_append_stores_in_schema_order():
     df = orso.DataFrame(schema=typed_schema())
     when = datetime.datetime(2024, 5, 6, 7, 8, 9)
-    df.append({"doc": {"k": [1, 2]}, "when": when, "anything": decimal.Decimal("1.5"), "name": None, "id": 1})
+    df.append(
+        {
+            "doc": {"k": [1, 2]},
+            "when": when,
+            "anything": decimal.Decimal("1.5"),
+            "name": None,
+            "id": 1,
+        }
+    )
     row = df.row(0)
     assert row == (1, None, when, b'{"k":[1,2]}', decimal.Decimal("1.5"))
     assert type(row[4]) is decimal.Decimal
@@ -333,10 +412,19 @@ def test_typed_append_stores_in_schema_order():
     [
         ({"id": None, "name": "a", "when": None, "doc": None, "anything": 1}, DataValidationError),
         ({"id": "1", "name": "a", "when": None, "doc": None, "anything": 1}, DataValidationError),
-        ({"id": 1, "name": "a", "when": "2024-01-01", "doc": None, "anything": 1}, DataValidationError),
-        ({"id": 1, "name": "a", "when": None, "doc": "not bytes", "anything": 1}, DataValidationError),
+        (
+            {"id": 1, "name": "a", "when": "2024-01-01", "doc": None, "anything": 1},
+            DataValidationError,
+        ),
+        (
+            {"id": 1, "name": "a", "when": None, "doc": "not bytes", "anything": 1},
+            DataValidationError,
+        ),
         ({"id": 1, "name": "a", "when": None, "doc": None}, DataValidationError),
-        ({"id": 1, "name": "a", "when": None, "doc": None, "anything": 1, "extra": 2}, ExcessColumnsInDataError),
+        (
+            {"id": 1, "name": "a", "when": None, "doc": None, "anything": 1, "extra": 2},
+            ExcessColumnsInDataError,
+        ),
         ((1, "a", None, None, 1), TypeError),
     ],
 )

@@ -106,8 +106,19 @@ TYPED = [
     {"name": "j", "type": OrsoTypes.JSONB},
     {"name": "any"},
 ]
-VALUES = [None, 1, True, "x", 1.5, b"b", datetime.datetime(2024, 1, 1), datetime.date(2024, 1, 1),
-          decimal.Decimal("1.5"), [1], {"k": 1}]
+VALUES = [
+    None,
+    1,
+    True,
+    "x",
+    1.5,
+    b"b",
+    datetime.datetime(2024, 1, 1),
+    datetime.date(2024, 1, 1),
+    decimal.Decimal("1.5"),
+    [1],
+    {"k": 1},
+]
 
 
 def test_validate_matches_v1_on_random_records():
@@ -194,8 +205,18 @@ def test_columns_have_no_instance_dict():
 def test_relation_schema_positional_signature():
     columns = [FlatColumn(name="a")]
     schema = RelationSchema("n", ["al"], columns, "a", 5)
-    assert (schema.name, schema.aliases, schema.columns, schema.primary_key, schema.row_count_metric) == (
-        "n", ["al"], columns, "a", 5,
+    assert (
+        schema.name,
+        schema.aliases,
+        schema.columns,
+        schema.primary_key,
+        schema.row_count_metric,
+    ) == (
+        "n",
+        ["al"],
+        columns,
+        "a",
+        5,
     )
     assert RelationSchema("n", aliases=None).aliases is None  # an explicit None is kept
 
@@ -245,7 +266,9 @@ def test_parse_paths_agree():
     assert OrsoTypes.INTEGER.parse("12") == 12
     assert OrsoTypes.VARCHAR.parse(b"abcdef", length=3) == "abc"
     assert OrsoTypes.DECIMAL.parse("1.235", precision=10, scale=2) == decimal.Decimal("1.24")
-    assert OrsoTypes.TIMESTAMP.parse("2024-01-01T00:00:00.25+01:00") == datetime.datetime(2023, 12, 31, 23, 0, 0, 250000)
+    assert OrsoTypes.TIMESTAMP.parse("2024-01-01T00:00:00.25+01:00") == datetime.datetime(
+        2023, 12, 31, 23, 0, 0, 250000
+    )
     assert OrsoTypes.DATE.parse("2024-02-29") == datetime.date(2024, 2, 29)
     with pytest.raises(ValueError):
         OrsoTypes.DATE.parse("2023-02-29")
@@ -272,7 +295,9 @@ def test_decimal_scale_zero_exports_as_scale_zero():
     pa = pytest.importorskip("pyarrow")
     column = FlatColumn(name="d", type="DECIMAL(10,0)")
     assert column.arrow_field.type == pa.decimal128(10, 0)  # v1: decimal128(10, 10)
-    df = orso.DataFrame(rows=[(decimal.Decimal(7),)], schema=RelationSchema(name="t", columns=[column]))
+    df = orso.DataFrame(
+        rows=[(decimal.Decimal(7),)], schema=RelationSchema(name="t", columns=[column])
+    )
     assert df.arrow().column(0).to_pylist() == [decimal.Decimal(7)]
 
 

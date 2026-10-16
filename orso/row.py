@@ -39,7 +39,6 @@ from weakref import WeakValueDictionary
 
 from ormsgpack import OPT_SERIALIZE_NUMPY
 from ormsgpack import packb
-
 from ormsgpack import unpackb
 
 from orso._native import RowBase
@@ -76,11 +75,11 @@ def extract_columns(table: List[Dict[str, Any]], columns: List[str]) -> Tuple[Li
     n_rows = len(table)
     result = [None] * len(columns)
     for i in range(len(columns)):
-        result[i] = [None] * n_rows  # type:ignore
+        result[i] = [None] * n_rows  # type: ignore
 
     for i, row in enumerate(table):
         for j, column in enumerate(columns):
-            result[j][i] = row[column]  # type:ignore
+            result[j][i] = row[column]  # type: ignore
 
     return tuple(result)
 

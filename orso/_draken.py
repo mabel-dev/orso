@@ -79,7 +79,14 @@ _SEQUENCE_DTYPE = {
     OrsoTypes.ARRAY: "ARRAY",
 }
 
-_PYTHON_DTYPE = {bool: "BOOLEAN", int: "INTEGER", float: "DOUBLE", str: "VARCHAR", list: "ARRAY", tuple: "ARRAY"}
+_PYTHON_DTYPE = {
+    bool: "BOOLEAN",
+    int: "INTEGER",
+    float: "DOUBLE",
+    str: "VARCHAR",
+    list: "ARRAY",
+    tuple: "ARRAY",
+}
 
 
 def _fallback_vector(name, column, values):
@@ -224,7 +231,9 @@ def from_draken(cls, source):
     first = morsels[0]
     names = [n.decode() if isinstance(n, bytes) else n for n in first.column_names]
     handles = [_handle(first.column(n)) for n in names]
-    schema = RelationSchema(name="draken", columns=[_column_for(n, h) for n, h in zip(names, handles)])
+    schema = RelationSchema(
+        name="draken", columns=[_column_for(n, h) for n, h in zip(names, handles)]
+    )
     df = cls(rows=[], schema=schema)
     frame = Frame(df._get_plan())
     for morsel in morsels:
@@ -235,7 +244,12 @@ def from_draken(cls, source):
         for n in names:
             h = _handle(morsel.column(n))
             sources.append(
-                (h, _enum_int(h.logical_type_kind), _enum_int(h.logical_type_unit), int(h.logical_type_scale or 0))
+                (
+                    h,
+                    _enum_int(h.logical_type_kind),
+                    _enum_int(h.logical_type_unit),
+                    int(h.logical_type_scale or 0),
+                )
             )
         frame.import_draken(sources, morsel.num_rows)
     df._frame = frame

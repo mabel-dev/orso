@@ -20,7 +20,7 @@ def test_append_dict_to_jsonb_column():
     )
 
     df = DataFrame(schema=schema)
-    df.append({"id": 1, "payload": {"a": 1, "b": [1,2]}})
+    df.append({"id": 1, "payload": {"a": 1, "b": [1, 2]}})
 
     # Stored value should be bytes
     row = df._rows[0]
@@ -41,7 +41,7 @@ def test_append_bytes_to_jsonb_column():
     )
 
     df = DataFrame(schema=schema)
-    payload = b"{\"x\":1}"
+    payload = b'{"x":1}'
     df.append({"id": 2, "payload": payload})
 
     row = df._rows[0]

@@ -48,7 +48,9 @@ def _arrow_table(n):
             "user": [f"user_{i:07d}" for i in range(n)],
             "score": [i * 0.5 for i in range(n)],
             "active": [i % 3 == 0 for i in range(n)],
-            "seen": pyarrow.array([base + datetime.timedelta(seconds=i) for i in range(n)], pyarrow.timestamp("us")),
+            "seen": pyarrow.array(
+                [base + datetime.timedelta(seconds=i) for i in range(n)], pyarrow.timestamp("us")
+            ),
             "tag": [None if i % 11 == 0 else ("alpha", "beta", "gamma")[i % 3] for i in range(n)],
         }
     )
@@ -157,7 +159,9 @@ def w_planner_schemas(scale):
             schema = RelationSchema(
                 name=f"rel_{s}",
                 columns=[
-                    FlatColumn(name=f"col_{c}", type=types[c % len(types)], aliases=[f"r{s}.col_{c}"])
+                    FlatColumn(
+                        name=f"col_{c}", type=types[c % len(types)], aliases=[f"r{s}.col_{c}"]
+                    )
                     for c in range(30)
                 ],
             )
@@ -188,7 +192,10 @@ def w_parse_timestamps(scale):
     from orso.types import OrsoTypes
 
     base = datetime.datetime(2024, 1, 1)
-    texts = [(base + datetime.timedelta(seconds=i * 37)).isoformat(sep=" ") for i in range(int(200_000 * scale))]
+    texts = [
+        (base + datetime.timedelta(seconds=i * 37)).isoformat(sep=" ")
+        for i in range(int(200_000 * scale))
+    ]
     parse = OrsoTypes.TIMESTAMP.parse
     return lambda: len([parse(t) for t in texts])
 
@@ -234,7 +241,16 @@ def worker(root, name, scale, repeats):
         start = time.perf_counter()
         run()
         best = min(best, time.perf_counter() - start)
-    print(json.dumps({"version": orso.__version__, "orso_file": orso.__file__, "seconds": best, "check": check}))
+    print(
+        json.dumps(
+            {
+                "version": orso.__version__,
+                "orso_file": orso.__file__,
+                "seconds": best,
+                "check": check,
+            }
+        )
+    )
 
 
 # ---------------------------------------------------------------------------------
@@ -246,9 +262,14 @@ def ensure_v1():
     marker = os.path.join(V1_DIR, ".built")
     if os.path.exists(marker):
         return V1_DIR
-    print(f"building orso v1 ({V1_COMMIT}) into {os.path.relpath(V1_DIR, ROOT)} (first run only) ...", flush=True)
+    print(
+        f"building orso v1 ({V1_COMMIT}) into {os.path.relpath(V1_DIR, ROOT)} (first run only) ...",
+        flush=True,
+    )
     os.makedirs(V1_DIR, exist_ok=True)
-    archive = subprocess.run(["git", "archive", V1_COMMIT], cwd=ROOT, check=True, capture_output=True).stdout
+    archive = subprocess.run(
+        ["git", "archive", V1_COMMIT], cwd=ROOT, check=True, capture_output=True
+    ).stdout
     subprocess.run(["tar", "-x", "-C", V1_DIR], input=archive, check=True)
     subprocess.run(
         [sys.executable, "setup.py", "build_ext", "--inplace"],
@@ -276,9 +297,13 @@ def fmt_seconds(s):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("-k", "--filter", help="only workloads whose name contains this text")
-    parser.add_argument("--scale", type=float, default=1.0, help="multiply every data size (default 1)")
+    parser.add_argument(
+        "--scale", type=float, default=1.0, help="multiply every data size (default 1)"
+    )
     parser.add_argument("--repeats", type=int, default=3, help="timed runs per process (default 3)")
     parser.add_argument("--worker", nargs=4, help=argparse.SUPPRESS)
     args = parser.parse_args()
@@ -292,7 +317,9 @@ def main():
     v1_root = ensure_v1()
     v2_root = ROOT
 
-    print(f"\norso v1 0.0.246 vs v2 (this checkout) | Python {sys.version.split()[0]} | scale {args.scale:g}\n")
+    print(
+        f"\norso v1 0.0.246 vs v2 (this checkout) | Python {sys.version.split()[0]} | scale {args.scale:g}\n"
+    )
     header = f"{'workload':<48} {'v1':>10} {'v2':>10} {'speedup':>9}"
     print(header)
     print("-" * len(header))
@@ -310,10 +337,15 @@ def main():
             continue
         speedup = best["v1"] / best["v2"]
         ratios.append(speedup)
-        print(f"{name:<48} {fmt_seconds(best['v1']):>10} {fmt_seconds(best['v2']):>10} {speedup:>8.1f}x", flush=True)
+        print(
+            f"{name:<48} {fmt_seconds(best['v1']):>10} {fmt_seconds(best['v2']):>10} {speedup:>8.1f}x",
+            flush=True,
+        )
     if ratios:
         print("-" * len(header))
-        print(f"{'geometric mean':<48} {'':>10} {'':>10} {statistics.geometric_mean(ratios):>8.1f}x")
+        print(
+            f"{'geometric mean':<48} {'':>10} {'':>10} {statistics.geometric_mean(ratios):>8.1f}x"
+        )
 
 
 if __name__ == "__main__":

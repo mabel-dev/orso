@@ -92,7 +92,9 @@ def test_matches_drakens_parser(text):
     from orso._native import parse_timestamp_us
 
     us = parse_timestamp_us(text)
-    expected = None if us is None else datetime.datetime(1970, 1, 1) + datetime.timedelta(microseconds=us)
+    expected = (
+        None if us is None else datetime.datetime(1970, 1, 1) + datetime.timedelta(microseconds=us)
+    )
     assert parse_iso(text) == expected
 
 

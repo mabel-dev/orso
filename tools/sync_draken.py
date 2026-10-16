@@ -67,7 +67,10 @@ MANIFEST = [
     ("third_party/ulfjack/ryu/d2s_small_table.h", "third_party/ulfjack/ryu/d2s_small_table.h"),
     ("third_party/ulfjack/ryu/d2s_intrinsics.h", "third_party/ulfjack/ryu/d2s_intrinsics.h"),
     ("third_party/ulfjack/ryu/d2fixed.c", "third_party/ulfjack/ryu/d2fixed.c"),
-    ("third_party/ulfjack/ryu/d2fixed_full_table.h", "third_party/ulfjack/ryu/d2fixed_full_table.h"),
+    (
+        "third_party/ulfjack/ryu/d2fixed_full_table.h",
+        "third_party/ulfjack/ryu/d2fixed_full_table.h",
+    ),
     ("third_party/ulfjack/ryu/f2s.c", "third_party/ulfjack/ryu/f2s.c"),
     ("third_party/ulfjack/ryu/f2s_full_table.h", "third_party/ulfjack/ryu/f2s_full_table.h"),
     ("third_party/ulfjack/ryu/f2s_intrinsics.h", "third_party/ulfjack/ryu/f2s_intrinsics.h"),
@@ -82,7 +85,11 @@ def sha256(path: str) -> str:
 
 
 def git(source: str, *args: str) -> str:
-    return subprocess.check_output(["git", *args], cwd=source, stderr=subprocess.DEVNULL).decode().strip()
+    return (
+        subprocess.check_output(["git", *args], cwd=source, stderr=subprocess.DEVNULL)
+        .decode()
+        .strip()
+    )
 
 
 def read_record() -> dict:
@@ -115,9 +122,16 @@ def sync(source: str) -> int:
 
     commit = git(source, "rev-parse", "HEAD")
     commit_date = git(source, "log", "-1", "--format=%ci")
-    dirty = [p for p in git(source, "status", "--porcelain").splitlines() if p[3:].startswith(("draken/", "third_party/"))]
+    dirty = [
+        p
+        for p in git(source, "status", "--porcelain").splitlines()
+        if p[3:].startswith(("draken/", "third_party/"))
+    ]
     if dirty:
-        print("WARNING: source tree has uncommitted changes under draken/ or third_party/:", file=sys.stderr)
+        print(
+            "WARNING: source tree has uncommitted changes under draken/ or third_party/:",
+            file=sys.stderr,
+        )
         for line in dirty[:10]:
             print("  " + line, file=sys.stderr)
 
@@ -164,14 +178,26 @@ def check() -> int:
     if problems:
         print("\n".join(problems), file=sys.stderr)
         return 1
-    print(f"ok: {len(MANIFEST)} vendored files match SOURCE (opteryx-core @ {record['meta'].get('commit', '?')[:8]})")
+    print(
+        f"ok: {len(MANIFEST)} vendored files match SOURCE (opteryx-core @ {record['meta'].get('commit', '?')[:8]})"
+    )
     return 0
 
 
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--source", default=os.path.join(ROOT, "..", "opteryx-core"), help="path to an opteryx-core checkout")
-    parser.add_argument("--check", action="store_true", help="verify the vendored copy against SOURCE instead of copying")
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "--source",
+        default=os.path.join(ROOT, "..", "opteryx-core"),
+        help="path to an opteryx-core checkout",
+    )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="verify the vendored copy against SOURCE instead of copying",
+    )
     args = parser.parse_args(argv)
     return check() if args.check else sync(args.source)
 

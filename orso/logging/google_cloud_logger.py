@@ -99,7 +99,7 @@ class GoogleLogger(object):
             "function": method,
             "file": module,
             "line": line,
-        }  # type:ignore
+        }  # type: ignore
 
         if spanId:
             structured_log["logging.googleapis.com/spanId"] = spanId
@@ -108,7 +108,7 @@ class GoogleLogger(object):
             formatter = LogFormatter(None)
             message = formatter.clean_record(message, False)
             structured_log["message"] = str(message) + " *"  # We don't want valid JSON here
-            structured_log.update(message)  # type:ignore
+            structured_log.update(message)  # type: ignore
             return log_it(structured_log)
         else:
             structured_log["message"] = message

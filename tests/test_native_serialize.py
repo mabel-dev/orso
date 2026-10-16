@@ -39,11 +39,15 @@ def from_bytes_cython(data: bytes) -> tuple:
         raise DataError("Data malformed - incorrect length")
     items = unpackb(data[14:])
     return tuple(
-        datetime.datetime.fromtimestamp(item[1])
-        if isinstance(item, list) and len(item) == 2 and item[0] == "__datetime__"
-        else item
+        (
+            datetime.datetime.fromtimestamp(item[1])
+            if isinstance(item, list) and len(item) == 2 and item[0] == "__datetime__"
+            else item
+        )
         for item in items
     )
+
+
 from orso.exceptions import DataError
 from orso.row import Row
 from orso.row import _serialize
@@ -69,24 +73,90 @@ class Point:
 
 
 VALUES = [
-    None, True, False, 0, 1, 127, 128, 255, 256, 65535, 65536, 2**32 - 1, 2**32, 2**63 - 1, 2**63,
-    2**64 - 1, -1, -32, -33, -128, -129, -32768, -32769, -(2**31), -(2**31) - 1, -(2**63),
-    0.0, -0.0, 1.5, 1e300, float("inf"), float("-inf"), float("nan"), 1e16, 123456789.125,
-    "", "a", "a" * 31, "a" * 32, "a" * 255, "a" * 256, "a" * 70000, "é", "日本", "🐻 bear",
-    "quote\" backslash\\ tab\t newline\n bell\x07 del\x7f", Name("subclass"),
-    b"", b"\x00\xff", b"x" * 300, b"y" * 70000,
-    datetime.datetime(2024, 1, 2, 3, 4, 5), datetime.datetime(2024, 1, 2, 3, 4, 5, 6),
-    datetime.datetime(1, 1, 1), datetime.datetime(9999, 12, 31, 23, 59, 59, 999999),
-    datetime.datetime(2024, 1, 1, tzinfo=UTC), datetime.date(2024, 2, 29), datetime.date(1, 1, 1),
-    datetime.time(0, 0), datetime.time(23, 59, 59, 1), datetime.timedelta(days=2, seconds=3),
-    decimal.Decimal("1.50"), decimal.Decimal("-0"), decimal.Decimal("NaN"),
-    [], (), {}, [1, "a", None, [2.5, {"k": (b"x",)}]], {"a": 1, "b": [True]}, list(range(16)),
-    {str(i): i for i in range(16)}, Colour.RED, Level.HIGH, uuid.UUID(int=7), Point(1),
-    bytearray(b"ab"), memoryview(b"cd"),
+    None,
+    True,
+    False,
+    0,
+    1,
+    127,
+    128,
+    255,
+    256,
+    65535,
+    65536,
+    2**32 - 1,
+    2**32,
+    2**63 - 1,
+    2**63,
+    2**64 - 1,
+    -1,
+    -32,
+    -33,
+    -128,
+    -129,
+    -32768,
+    -32769,
+    -(2**31),
+    -(2**31) - 1,
+    -(2**63),
+    0.0,
+    -0.0,
+    1.5,
+    1e300,
+    float("inf"),
+    float("-inf"),
+    float("nan"),
+    1e16,
+    123456789.125,
+    "",
+    "a",
+    "a" * 31,
+    "a" * 32,
+    "a" * 255,
+    "a" * 256,
+    "a" * 70000,
+    "é",
+    "日本",
+    "🐻 bear",
+    'quote" backslash\\ tab\t newline\n bell\x07 del\x7f',
+    Name("subclass"),
+    b"",
+    b"\x00\xff",
+    b"x" * 300,
+    b"y" * 70000,
+    datetime.datetime(2024, 1, 2, 3, 4, 5),
+    datetime.datetime(2024, 1, 2, 3, 4, 5, 6),
+    datetime.datetime(1, 1, 1),
+    datetime.datetime(9999, 12, 31, 23, 59, 59, 999999),
+    datetime.datetime(2024, 1, 1, tzinfo=UTC),
+    datetime.date(2024, 2, 29),
+    datetime.date(1, 1, 1),
+    datetime.time(0, 0),
+    datetime.time(23, 59, 59, 1),
+    datetime.timedelta(days=2, seconds=3),
+    decimal.Decimal("1.50"),
+    decimal.Decimal("-0"),
+    decimal.Decimal("NaN"),
+    [],
+    (),
+    {},
+    [1, "a", None, [2.5, {"k": (b"x",)}]],
+    {"a": 1, "b": [True]},
+    list(range(16)),
+    {str(i): i for i in range(16)},
+    Colour.RED,
+    Level.HIGH,
+    uuid.UUID(int=7),
+    Point(1),
+    bytearray(b"ab"),
+    memoryview(b"cd"),
 ]
 if numpy is not None:
     VALUES += [
-        numpy.int64(5), numpy.float32(1.5), numpy.bool_(True), numpy.array([1, 2]),
+        numpy.int64(5),
+        numpy.float32(1.5),
+        numpy.bool_(True),
+        numpy.array([1, 2]),
         numpy.datetime64("2024-01-01T00:00:00"),
     ]
 
@@ -140,7 +210,9 @@ def test_as_bytes_layout_and_round_trip():
         assert record[14:] == payload
         native, v1 = Row.from_bytes(record), from_bytes_cython(record)
         # repr compares NaN as NaN, and the types must match too
-        assert repr(tuple(native)) == repr(v1) and [type(x) for x in native] == [type(x) for x in v1]
+        assert repr(tuple(native)) == repr(v1) and [type(x) for x in native] == [
+            type(x) for x in v1
+        ]
 
 
 def test_from_bytes_errors_match_v1():
@@ -225,7 +297,12 @@ def _v1_character_width(symbol):
 
 
 def _v1_trunc_printable(value, width=None, full_line: bool = True):
-    simple = ("\n" not in value) and ("\r" not in value) and ("\033" not in value) and ("\001" not in value)
+    simple = (
+        ("\n" not in value)
+        and ("\r" not in value)
+        and ("\033" not in value)
+        and ("\001" not in value)
+    )
     if simple:
         if width is not None:
             if len(value) > width:
@@ -264,11 +341,20 @@ def test_trunc_printable_matches_v1():
     from orso import _native
 
     rng = random.Random(12)
-    alphabet = list("abc xyz") + ["\n", "\r", "\033", "\001", "m", "[", "3", "1"] + list("日本語漢字") + ["é", "̀", "🐻", "ｱ", "\t"]
+    alphabet = (
+        list("abc xyz")
+        + ["\n", "\r", "\033", "\001", "m", "[", "3", "1"]
+        + list("日本語漢字")
+        + ["é", "̀", "🐻", "ｱ", "\t"]
+    )
     for _ in range(20000):
         value = "".join(rng.choice(alphabet) for _ in range(rng.randint(0, 40)))
         width = rng.choice([None, 0, 1, 5, 12, 30, 80, -3])
         full_line = rng.random() < 0.7
-        assert _native.trunc_printable(value, width, full_line) == _v1_trunc_printable(value, width, full_line), (
-            value, width, full_line,
+        assert _native.trunc_printable(value, width, full_line) == _v1_trunc_printable(
+            value, width, full_line
+        ), (
+            value,
+            width,
+            full_line,
         )

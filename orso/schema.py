@@ -54,8 +54,8 @@ Example:
 import json
 from collections import defaultdict
 from collections.abc import MutableMapping
-from dataclasses import MISSING as _MISSING
 from dataclasses import _MISSING_TYPE
+from dataclasses import MISSING as _MISSING
 from dataclasses import asdict
 from dataclasses import dataclass
 from dataclasses import field
@@ -175,13 +175,38 @@ def _arrow_static_type_map() -> dict:
 # ---------------------------------------------------------------------------------
 
 _COLUMN_FIELDS = (
-    "name", "default", "type", "element_type", "description", "disposition", "aliases",
-    "nullable", "expectations", "identity", "length", "precision", "scale", "origin",
-    "highest_value", "lowest_value", "null_count", "fields",
+    "name",
+    "default",
+    "type",
+    "element_type",
+    "description",
+    "disposition",
+    "aliases",
+    "nullable",
+    "expectations",
+    "identity",
+    "length",
+    "precision",
+    "scale",
+    "origin",
+    "highest_value",
+    "lowest_value",
+    "null_count",
+    "fields",
 )
 # writes to these invalidate schema caches (lookups, names, Arrow schemas)
 _COLUMN_CACHE_FIELDS = frozenset(
-    ("name", "aliases", "type", "element_type", "nullable", "precision", "scale", "fields", "length")
+    (
+        "name",
+        "aliases",
+        "type",
+        "element_type",
+        "nullable",
+        "precision",
+        "scale",
+        "fields",
+        "length",
+    )
 )
 _COLUMN_SLOTS = tuple("_" + f for f in _COLUMN_FIELDS)
 _NOTSET = object()
@@ -285,7 +310,9 @@ class FlatColumn:
         self._aliases = [] if value is _NOTSET else value
         self._nullable = get("nullable", True)
         value = get("expectations", _NOTSET)
-        self._expectations = [] if value is _NOTSET else (_load_expectations(value, name) if value else value)
+        self._expectations = (
+            [] if value is _NOTSET else (_load_expectations(value, name) if value else value)
+        )
         value = get("identity", _NOTSET)
         self._identity = random_string() if value is _NOTSET else value
         self._length = get("length")
@@ -297,9 +324,15 @@ class FlatColumn:
         self._lowest_value = get("lowest_value")
         self._null_count = get("null_count")
         value = get("fields")
-        self._fields = [v if isinstance(v, FlatColumn) else FlatColumn(**v) for v in value] if value else value
+        self._fields = (
+            [v if isinstance(v, FlatColumn) else FlatColumn(**v) for v in value] if value else value
+        )
         self._arrow_cache = None
-        if column_type.__class__ is OrsoTypes and column_type is not OrsoTypes.DECIMAL and not self._default:
+        if (
+            column_type.__class__ is OrsoTypes
+            and column_type is not OrsoTypes.DECIMAL
+            and not self._default
+        ):
             self._type = column_type  # the common case: nothing left to derive
             return
         self._type = column_type
@@ -334,7 +367,9 @@ class FlatColumn:
         column_type = getattr(self, p + "type")
         # map literals to OrsoTypes
         if column_type.__class__ is not OrsoTypes:
-            column_type, _length, _precision, _scale, _element_type = OrsoTypes.from_name(column_type)
+            column_type, _length, _precision, _scale, _element_type = OrsoTypes.from_name(
+                column_type
+            )
             setattr(self, p + "type", column_type)
             if column_type == OrsoTypes._MISSING_TYPE:
                 warn(f"Column '{self.name}' type not recognized.")
@@ -406,7 +441,9 @@ class FlatColumn:
 
         # v2: a dictionary-encoded column is described by its value type (v1 raised)
         arrow_type = arrow_field.type
-        while getattr(arrow_type, "value_type", None) is not None and hasattr(arrow_type, "index_type"):
+        while getattr(arrow_type, "value_type", None) is not None and hasattr(
+            arrow_type, "index_type"
+        ):
             arrow_type = arrow_type.value_type
 
         # Fetch the native type mapping from Arrow to Python native types
@@ -419,8 +456,8 @@ class FlatColumn:
         # Check if the type is Decimal and populate scale and precision
         if isinstance(native_type, DecimalFactory):
             field_type = OrsoTypes.DECIMAL
-            scale = native_type.scale  # type:ignore
-            precision = native_type.precision  # type:ignore
+            scale = native_type.scale  # type: ignore
+            precision = native_type.precision  # type: ignore
         elif mappable_as_binary and native_type == dict:
             field_type = OrsoTypes.BLOB
         elif native_type == dict:
@@ -429,7 +466,9 @@ class FlatColumn:
                 struct_fields = [cls.from_arrow(child) for child in arrow_type]
         elif native_type == list:
             field_type = OrsoTypes.ARRAY
-            value_type = getattr(arrow_type, "value_type", None)  # a map has (key, value) pairs instead
+            value_type = getattr(
+                arrow_type, "value_type", None
+            )  # a map has (key, value) pairs instead
             if value_type is not None:
                 element_type = PYTHON_TO_ORSO_MAP.get(arrow_type_map(value_type))
         else:
@@ -561,6 +600,7 @@ class FlatColumn:
 
 
 _install_tracked_slots(FlatColumn, _COLUMN_FIELDS, _COLUMN_CACHE_FIELDS)
+
 
 @dataclass(init=False)
 class FunctionColumn(FlatColumn):
@@ -720,8 +760,14 @@ class DictionaryColumn(FlatColumn):
 
 
 _SCHEMA_FIELDS = (
-    "name", "aliases", "columns", "primary_key", "row_count_metric", "row_count_estimate",
-    "data_size_metric", "data_size_estimate",
+    "name",
+    "aliases",
+    "columns",
+    "primary_key",
+    "row_count_metric",
+    "row_count_estimate",
+    "data_size_metric",
+    "data_size_estimate",
 )
 _SCHEMA_SLOTS = tuple("_" + f for f in _SCHEMA_FIELDS)
 
@@ -734,7 +780,17 @@ class _SchemaCache:
     validation plan) only when asked for.
     """
 
-    __slots__ = ("epoch", "columns", "ncols", "exact", "names", "all_names", "lower", "arrow", "plan")
+    __slots__ = (
+        "epoch",
+        "columns",
+        "ncols",
+        "exact",
+        "names",
+        "all_names",
+        "lower",
+        "arrow",
+        "plan",
+    )
 
     def __init__(self, epoch, columns):
         self.epoch = epoch

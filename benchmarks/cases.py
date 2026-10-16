@@ -253,7 +253,8 @@ def _(scale):
 def _(scale):
     n = int(50_000 * scale)
     schema = RelationSchema(
-        name="wide", columns=[FlatColumn(name=f"col_{i}", type=OrsoTypes.INTEGER) for i in range(20)]
+        name="wide",
+        columns=[FlatColumn(name=f"col_{i}", type=OrsoTypes.INTEGER) for i in range(20)],
     )
     find = schema.find_column
     return lambda: [find("col_19") for _ in range(n)]
@@ -323,7 +324,9 @@ def _(scale):
             FlatColumn(name="payload", type=OrsoTypes.JSONB),
         ],
     )
-    dicts = [{"id": i, "payload": {"k": i, "tags": ["a", "b"], "nested": {"x": 1.5}}} for i in range(n)]
+    dicts = [
+        {"id": i, "payload": {"k": i, "tags": ["a", "b"], "nested": {"x": 1.5}}} for i in range(n)
+    ]
 
     def run():
         df = DataFrame(rows=[], schema=schema)
@@ -693,7 +696,15 @@ def _(scale):
 @case("types", "from_name", 50_000)
 def _(scale):
     n = int(50_000 * scale)
-    names = ("INTEGER", "VARCHAR", "VARCHAR[64]", "DECIMAL(10,2)", "ARRAY<VARCHAR>", "TIMESTAMP", "double")
+    names = (
+        "INTEGER",
+        "VARCHAR",
+        "VARCHAR[64]",
+        "DECIMAL(10,2)",
+        "ARRAY<VARCHAR>",
+        "TIMESTAMP",
+        "double",
+    )
     from_name = OrsoTypes.from_name
     return lambda: [from_name(names[i % len(names)]) for i in range(n)]
 
@@ -701,7 +712,12 @@ def _(scale):
 @case("types", "parse_scalars", 100_000)
 def _(scale):
     n = int(100_000 * scale)
-    values = [(OrsoTypes.INTEGER, "12345"), (OrsoTypes.DOUBLE, "3.25"), (OrsoTypes.VARCHAR, 42), (OrsoTypes.BOOLEAN, "true")]
+    values = [
+        (OrsoTypes.INTEGER, "12345"),
+        (OrsoTypes.DOUBLE, "3.25"),
+        (OrsoTypes.VARCHAR, 42),
+        (OrsoTypes.BOOLEAN, "true"),
+    ]
     return lambda: [values[i % 4][0].parse(values[i % 4][1]) for i in range(n)]
 
 

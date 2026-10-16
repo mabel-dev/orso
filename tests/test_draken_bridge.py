@@ -64,7 +64,11 @@ def typed_rows(n):
         rows.append(
             {
                 "i": None if null else k - 3,
-                "s": None if null else ("short" if k % 2 else f"a longer string, number {k}, ünïcødé"),
+                "s": (
+                    None
+                    if null
+                    else ("short" if k % 2 else f"a longer string, number {k}, ünïcødé")
+                ),
                 "f": None if null else k * 0.25,
                 "b": None if null else k % 3 == 0,
                 "ts": None if null else TS + datetime.timedelta(seconds=k, microseconds=k),
@@ -108,16 +112,27 @@ def test_typed_frame_exports_natively(kind):
     morsel = df.to_draken()
     assert morsel.num_rows == 60
     assert morsel.column_types == [
-        T.INT64, T.VARCHAR, T.FLOAT64, T.BOOL, T.TIMESTAMP64, T.DATE32, T.TIME64, T.INTERVAL, T.DECIMAL128, T.VARBINARY,
+        T.INT64,
+        T.VARCHAR,
+        T.FLOAT64,
+        T.BOOL,
+        T.TIMESTAMP64,
+        T.DATE32,
+        T.TIME64,
+        T.INTERVAL,
+        T.DECIMAL128,
+        T.VARBINARY,
     ]
     dec = morsel.column("dec")._nb
     assert (dec.logical_type_precision, dec.logical_type_scale) == (12, 3)
     for name in ("i", "s", "f", "b", "ts", "d", "t", "bl"):
         assert morsel.column(name).to_pylist() == [
-            (r[name].replace(tzinfo=datetime.timezone.utc) if name == "ts" and r[name] else r[name]) for r in rows
+            (r[name].replace(tzinfo=datetime.timezone.utc) if name == "ts" and r[name] else r[name])
+            for r in rows
         ], name
     assert morsel.column("iv").to_pylist() == [
-        None if r["iv"] is None else (0, r["iv"] // datetime.timedelta(microseconds=1)) for r in rows
+        None if r["iv"] is None else (0, r["iv"] // datetime.timedelta(microseconds=1))
+        for r in rows
     ]
     assert morsel.column("dec").to_pylist() == [r["dec"] for r in rows]  # rescaled, equal
 
@@ -134,7 +149,10 @@ def test_arrow_view_of_export_matches_rows():
 
 def test_untyped_frame_infers_types():
     df = orso.DataFrame(
-        [{"a": 1, "b": "x", "c": 1.5, "mixed": 1, "none": None}, {"a": 2, "b": None, "c": 2.5, "mixed": 2.5, "none": None}]
+        [
+            {"a": 1, "b": "x", "c": 1.5, "mixed": 1, "none": None},
+            {"a": 2, "b": None, "c": 2.5, "mixed": 2.5, "none": None},
+        ]
     )
     morsel = df.to_draken()
     assert morsel.column_types == [T.INT64, T.VARCHAR, T.FLOAT64, T.FLOAT64, T.NULL]
@@ -239,8 +257,12 @@ def test_from_draken_matches_arrow_import():
         "f32": dn.vector_float32_from_sequence([1.5, None, 2.25]),
         "nv": dn.vector_from_nvarchar_sequence([b"\xc3\xa9t\xc3\xa9", None, b"x" * 20]),
         "vb": dn.vector_from_bytes_sequence([b"\x00\x01", None, b"z" * 30]),
-        "dec": dn.vector_decimal_from_sequence([decimal.Decimal("1.25"), None, decimal.Decimal("-7.5")], 9, 2),
-        "date": dn.vector_date32_from_sequence([datetime.date(1999, 12, 31), None, datetime.date(2030, 1, 1)]),
+        "dec": dn.vector_decimal_from_sequence(
+            [decimal.Decimal("1.25"), None, decimal.Decimal("-7.5")], 9, 2
+        ),
+        "date": dn.vector_date32_from_sequence(
+            [datetime.date(1999, 12, 31), None, datetime.date(2030, 1, 1)]
+        ),
         "ts": dn.vector_timestamp_from_sequence([TS, None, datetime.datetime(1970, 1, 1)]),
         "null": dn.vector_null_from_length(3),
     }
@@ -292,11 +314,19 @@ def test_many_morsels_and_the_cursor():
 
 def test_from_draken_then_append_and_arrow():
     morsel = draken.Morsel.from_vectors(
-        ["n", "s"], [dn.vector_int64_from_sequence([1, 2]), draken.vector_from_sequence(["a", "b" * 20], "VARCHAR")]
+        ["n", "s"],
+        [
+            dn.vector_int64_from_sequence([1, 2]),
+            draken.vector_from_sequence(["a", "b" * 20], "VARCHAR"),
+        ],
     )
     df = orso.DataFrame.from_draken(morsel)
     df.append({"n": 3, "s": "c"})
-    assert df.arrow().to_pylist() == [{"n": 1, "s": "a"}, {"n": 2, "s": "b" * 20}, {"n": 3, "s": "c"}]
+    assert df.arrow().to_pylist() == [
+        {"n": 1, "s": "a"},
+        {"n": 2, "s": "b" * 20},
+        {"n": 3, "s": "c"},
+    ]
 
 
 def test_without_draken_is_a_missing_dependency():
@@ -310,5 +340,7 @@ def test_without_draken_is_a_missing_dependency():
         "    print('missing', e.dependency)\n"
     )
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    out = subprocess.run([sys.executable, "-c", code], cwd=root, capture_output=True, text=True, check=True)
+    out = subprocess.run(
+        [sys.executable, "-c", code], cwd=root, capture_output=True, text=True, check=True
+    )
     assert out.stdout.strip() == "missing draken"

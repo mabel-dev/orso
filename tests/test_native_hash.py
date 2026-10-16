@@ -27,7 +27,9 @@ def test_native_xxhash_matches_the_package():
         assert _native.xxh32(data) == xxhash.xxh32(data).intdigest()
 
 
-@pytest.mark.parametrize("value", [b"", b"abc", "text", "日本", 12345, 1.5, None, ("a", 1), bytearray(b"x")])
+@pytest.mark.parametrize(
+    "value", [b"", b"abc", "text", "日本", 12345, 1.5, None, ("a", 1), bytearray(b"x")]
+)
 def test_cityhash_values_unchanged(value):
     data = value if isinstance(value, bytes) else str(value).encode()
     assert CityHash64(value) == xxhash.xxh64(data).intdigest()
@@ -39,4 +41,6 @@ def test_dataframe_hash_unchanged():
     expected = 0
     for i, row in enumerate(df):
         expected = i ^ expected ^ xxhash.xxh64(str(row).encode()).intdigest()
-    assert hash(df) == expected or hash(df) == hash(expected)  # Python folds __hash__ results to Py_ssize_t
+    assert hash(df) == expected or hash(df) == hash(
+        expected
+    )  # Python folds __hash__ results to Py_ssize_t

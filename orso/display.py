@@ -16,6 +16,8 @@ from collections import deque
 from itertools import islice
 from typing import Union
 
+from orso._native import trunc_printable as _native_trunc_printable  # noqa: E402
+
 # Background		#282a36	40 42 54	231° 15% 18%
 # Current Line		#44475a	68 71 90	232° 14% 31%
 # Foreground		#f8f8f2	248 248 242	60° 30% 96%
@@ -63,9 +65,6 @@ COLORS = {
     "\001BOLD_CYANm": "\033[1;36m",  # Cyan
     "\001BOLD_WHITEm": "\033[1;37m",  # White
 }
-
-
-from orso._native import trunc_printable as _native_trunc_printable  # noqa: E402
 
 
 def colorizer(record, can_colorize=True):
@@ -129,7 +128,7 @@ def html_table(dictset, limit: int = 5):  # pragma: no cover
 
         yield "</tbody></table>"
 
-    footer = f"\n<p>{dictset.rowcount} rows x {dictset.columncount} columns</p>"  # type:ignore
+    footer = f"\n<p>{dictset.rowcount} rows x {dictset.columncount} columns</p>"  # type: ignore
 
     return "".join(_to_html_table(dictset.head(limit), dictset.column_names)) + footer
 
