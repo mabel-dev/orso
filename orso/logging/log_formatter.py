@@ -64,7 +64,7 @@ class LogFormatter(logging.Formatter):
             msg = record
         msg = self.sanitize_record(msg)
         if "://" in msg:
-            msg = re.sub(r":\/\/(.*?)\@", r"://\001BOLD_PURLEm<redacted>\001OFFm", msg)
+            msg = re.sub(r":\/\/(.*?)\@", r"://\001BOLD_PURPLEm<redacted>\001OFFm", msg)
         return msg
 
     def _can_colorize(self) -> bool:
