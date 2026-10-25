@@ -29,9 +29,9 @@ def add_logging_level(level_name, level_num, method_name=None):
     currently configured logging class.
 
     `level_name` becomes an attribute of the `logging` module with the value
-    `level_num`. `methodName` becomes a convenience method for both `logging`
+    `level_num`. `method_name` becomes a convenience method for both `logging`
     itself and the class returned by `logging.getLoggerClass()` (usually just
-    `logging.Logger`). If `method_name` is not specified, `levelName.lower()` is
+    `logging.Logger`). If `method_name` is not specified, `level_name.lower()` is
     used.
 
     To avoid accidental clobberings of existing attributes, this method will
@@ -53,7 +53,7 @@ def add_logging_level(level_name, level_num, method_name=None):
     # http://stackoverflow.com/q/2183233/2988730, especially
     # http://stackoverflow.com/a/13638084/2988730
     def log_for_level(self, message, *args, **kwargs):
-        # if we've added the level,it doesn't format the message as JSON
+        # if we've added the level, it doesn't format the message as JSON
         if isinstance(message, dict):
             try:
                 message = json.dumps(message)
@@ -63,7 +63,7 @@ def add_logging_level(level_name, level_num, method_name=None):
         if isinstance(message, bytes):
             message = message.decode()
         if self.isEnabledFor(level_num):
-            # supress duplicate warnings
+            # suppress duplicate warnings
             if level_num == 30:  # warnings
                 hashed = hash(message)
                 if hashed in logging_seen_warnings:

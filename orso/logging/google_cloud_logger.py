@@ -76,7 +76,7 @@ class GoogleLogger(object):
         severity: Optional[int] = logging.DEBUG,
         spanId: Optional[str] = None,
     ):
-        # supress duplicate warnings
+        # suppress duplicate warnings
         if severity == LEVELS.WARNING:  # warnings
             hashed = hash(str(message))
             if hashed in logging_seen_warnings:

@@ -53,7 +53,7 @@ class GroupBy:
     """
     GroupBy does a lazy evaluation of the groups, the groups are calculated as part of
     calculating the aggregations. This was implemented like this so that generators
-    can be aggregated - we have one opportunity to cycle of the records, and if the
+    can be aggregated - we have one opportunity to cycle over the records, and if the
     data is in a generator, there's a chance the dataset doesn't fit in memory.
     """
 
@@ -80,25 +80,25 @@ class GroupBy:
             collect_columns if isinstance(collect_columns, list) else [collect_columns]
         )
         source_columns = self._dictset.column_names
-        collect_column_indicies = [
+        collect_column_indices = [
             source_columns.index(target) if target in source_columns else -1
             for target in collect_columns
         ]
-        group_column_indicies = array.array(
+        group_column_indices = array.array(
             "i",
             (source_columns.index(target) for target in self._columns),
         )
 
         for record in self._dictset:
             # Create a unique hash for each group
-            group_key = hash(tuple(record[col] for col in group_column_indicies))
+            group_key = hash(tuple(record[col] for col in group_column_indices))
 
             if group_key not in self._group_keys:
                 self._group_keys[group_key] = [
-                    (source_columns[column], record[column]) for column in group_column_indicies
+                    (source_columns[column], record[column]) for column in group_column_indices
                 ]
 
-            for i, column in enumerate(collect_column_indicies):
+            for i, column in enumerate(collect_column_indices):
                 yield (group_key, collect_columns[i], "*" if column == -1 else record[column])
 
     def aggregate(self, aggregations: List[Tuple[str, Callable]]) -> "DataFrame":
