@@ -829,6 +829,7 @@ _SCHEMA_FIELDS = (
     "row_count_estimate",
     "data_size_metric",
     "data_size_estimate",
+    "relation_statistics",
 )
 _SCHEMA_SLOTS = tuple("_" + f for f in _SCHEMA_FIELDS)
 
@@ -937,6 +938,9 @@ class RelationSchema:
     """Statistic of the size of the data in the relation."""
     data_size_estimate: Optional[int] = None
     """Estimate of the size of the data in the relation."""
+    relation_statistics: Optional[Any] = field(default=None, repr=False, compare=False)
+    """Opaque statistics object attached by the consumer (the opteryx SQL connector sets
+    this). Orso never inspects it. It is excluded from equality, repr and to_dict()/to_json()."""
 
     def __init__(
         self,
@@ -948,6 +952,7 @@ class RelationSchema:
         row_count_estimate: Optional[int] = None,
         data_size_metric: Optional[int] = None,
         data_size_estimate: Optional[int] = None,
+        relation_statistics: Optional[Any] = None,
     ):
         # the dataclass signature, written out: positional or keyword, list factories
         self._name = name
@@ -958,6 +963,7 @@ class RelationSchema:
         self._row_count_estimate = row_count_estimate
         self._data_size_metric = data_size_metric
         self._data_size_estimate = data_size_estimate
+        self._relation_statistics = relation_statistics
         self._schema_cache = None
 
     def __getstate__(self):
@@ -1121,7 +1127,21 @@ class RelationSchema:
             """Handle enum serialization."""
             return {key: value.value if isinstance(value, Enum) else value for key, value in obj}
 
-        return asdict(self, dict_factory=_converter)
+        # relation_statistics is opaque consumer data, not schema: serialise a shallow
+        # clone without it so asdict never deep-copies (or trips over) the stats object
+        clone = RelationSchema(
+            name=self.name,
+            aliases=self.aliases,
+            columns=self.columns,
+            primary_key=self.primary_key,
+            row_count_metric=self.row_count_metric,
+            row_count_estimate=self.row_count_estimate,
+            data_size_metric=self.data_size_metric,
+            data_size_estimate=self.data_size_estimate,
+        )
+        result = asdict(clone, dict_factory=_converter)
+        result.pop("relation_statistics", None)
+        return result
 
     @classmethod
     def from_dict(cls, dic: dict) -> "RelationSchema":

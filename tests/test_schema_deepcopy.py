@@ -115,3 +115,48 @@ def test_pickle_and_copy_still_work():
     s = RelationSchema(name="p", columns=[make_column()])
     assert pickle.loads(pickle.dumps(s)) == s
     assert copy.copy(s) == s
+
+
+# --- relation_statistics: the PyPI opteryx SQL connector assigns this onto the schema ---
+
+
+class _Stats:
+    """Stand-in for opteryx's RelationStatistics (an opaque, consumer-owned object)."""
+
+    def __init__(self, rows):
+        self.rows = rows
+
+
+def test_relation_statistics_can_be_assigned_and_read():
+    schema = RelationSchema(name="t", columns=[make_column()])
+    assert schema.relation_statistics is None
+    stats = _Stats(10)
+    schema.relation_statistics = stats  # AttributeError on the slotted class without the field
+    assert schema.relation_statistics is stats
+
+
+def test_relation_statistics_constructor_keyword():
+    stats = _Stats(3)
+    assert RelationSchema(name="t", relation_statistics=stats).relation_statistics is stats
+
+
+def test_relation_statistics_survives_deepcopy_and_pickle_independently():
+    schema = RelationSchema(name="t", columns=[make_column()])
+    schema.relation_statistics = _Stats(7)
+    copied = copy.deepcopy(schema)
+    assert copied.relation_statistics.rows == 7
+    assert copied.relation_statistics is not schema.relation_statistics
+    restored = pickle.loads(pickle.dumps(schema))
+    assert restored.relation_statistics.rows == 7
+
+
+def test_relation_statistics_is_not_part_of_equality_repr_or_serialisation():
+    column = make_column()  # FlatColumn identities are random, so share one column
+    a = RelationSchema(name="t", columns=[column])
+    b = RelationSchema(name="t", columns=[column])
+    b.relation_statistics = _Stats(1)
+    assert a == b
+    assert "relation_statistics" not in repr(b)
+    assert "relation_statistics" not in b.to_dict()
+    assert b.to_dict() == a.to_dict()
+    assert "relation_statistics" not in b.to_json()
