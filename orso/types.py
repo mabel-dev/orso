@@ -25,6 +25,26 @@ from orso._json import dumps_bytes as json_dumps_bytes
 from orso._json import loads as json_loads
 from orso.tools import parse_iso
 
+# Physical (Parquet/Arrow) element names emitted inside ARRAY<...> by readers such as rugo
+_ELEMENT_TYPE_ALIASES = {
+    "INT8": "INTEGER",
+    "INT16": "INTEGER",
+    "INT32": "INTEGER",
+    "INT64": "INTEGER",
+    "UINT8": "INTEGER",
+    "UINT16": "INTEGER",
+    "UINT32": "INTEGER",
+    "UINT64": "INTEGER",
+    "FLOAT": "DOUBLE",
+    "FLOAT16": "DOUBLE",
+    "FLOAT32": "DOUBLE",
+    "FLOAT64": "DOUBLE",
+    "BINARY": "BLOB",
+    "BYTE_ARRAY": "BLOB",
+    "FIXED_LEN_BYTE_ARRAY": "BLOB",
+    "DATE32": "DATE",
+}
+
 
 def _parse_type(type_str: str) -> Union[str, Tuple[str, Tuple[int, ...]]]:
     """
@@ -40,7 +60,7 @@ def _parse_type(type_str: str) -> Union[str, Tuple[str, Tuple[int, ...]]]:
     """
 
     # Match ARRAY<TYPE>
-    array_match = re.match(r"ARRAY<([\w\s\[\]\(\)]+)>", type_str)
+    array_match = re.match(r"ARRAY<(.+)>", type_str)
     if array_match:
         return "ARRAY", (array_match.group(1),)
 
@@ -334,6 +354,9 @@ class OrsoTypes(str, Enum):
                 ("ARRAY", "LIST", "NUMERIC", "BSON", "STRING", "DECIMAL", "VECTOR")
             ):
                 raise ValueError(f"Invalid element type '{_element_type}' for ARRAY type.")
+            # drop unit/tz/length suffixes, e.g. TIMESTAMP[MS,UTC], DATE32[DAY]
+            _element_type = _element_type.split("[", 1)[0].strip()
+            _element_type = _ELEMENT_TYPE_ALIASES.get(_element_type, _element_type)
             if _element_type in OrsoTypes.__members__:
                 _type = OrsoTypes.ARRAY
                 _element_type = OrsoTypes[_element_type]

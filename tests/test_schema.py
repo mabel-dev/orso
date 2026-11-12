@@ -384,6 +384,43 @@ def test_type_name_parsing():
     assert _type.length == 12, _type.length
 
 
+@pytest.mark.parametrize(
+    "name, element",
+    [
+        ("array<int8>", OrsoTypes.INTEGER),
+        ("array<int16>", OrsoTypes.INTEGER),
+        ("array<int32>", OrsoTypes.INTEGER),
+        ("array<int64>", OrsoTypes.INTEGER),
+        ("array<uint8>", OrsoTypes.INTEGER),
+        ("array<uint16>", OrsoTypes.INTEGER),
+        ("array<uint32>", OrsoTypes.INTEGER),
+        ("array<uint64>", OrsoTypes.INTEGER),
+        ("array<float16>", OrsoTypes.DOUBLE),
+        ("array<float32>", OrsoTypes.DOUBLE),
+        ("array<float64>", OrsoTypes.DOUBLE),
+        ("array<byte_array>", OrsoTypes.BLOB),
+        ("array<fixed_len_byte_array>", OrsoTypes.BLOB),
+        ("array<date32[day]>", OrsoTypes.DATE),
+        ("array<timestamp[ms,UTC]>", OrsoTypes.TIMESTAMP),
+        ("array<time[ms,UTC]>", OrsoTypes.TIME),
+        ("array<varchar>", OrsoTypes.VARCHAR),
+        ("array<boolean>", OrsoTypes.BOOLEAN),
+    ],
+)
+def test_array_physical_element_names(name, element):
+    # element names as emitted by rugo's parquet metadata reader
+    _type, _, _, _, _element_type = OrsoTypes.from_name(name)
+    assert _type == OrsoTypes.ARRAY
+    assert _element_type == element, _element_type
+
+
+def test_array_element_names_still_fail_loudly():
+    with pytest.raises(ValueError, match="Unknown column type 'INT128'"):
+        OrsoTypes.from_name("array<int128>")
+    with pytest.raises(ValueError, match="Invalid element type"):
+        OrsoTypes.from_name("array<decimal(10,2)>")
+
+
 def test_type_name_parser():
     _type, _length, _scale, _precision, _element_type = OrsoTypes.from_name("INTEGER")
     assert (_type, _length, _scale, _precision, _element_type) == (
