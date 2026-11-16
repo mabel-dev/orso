@@ -255,12 +255,38 @@ def to_arrow(dataset, size=None):
             array = pa.array(_Capsules(native))
         else:
             values = frame.column_values(j, limit)
-            array = pa.array(values) if field is None else pa.array(values, type=field.type)
+            array, field = _array_or_infer(pa, values, name, field)
         arrays.append(array)
         fields.append(field if field is not None else pa.field(name, array.type))
     if declared:
         return pa.Table.from_arrays(arrays, schema=pa.schema(fields))
     return pa.Table.from_arrays(arrays, list(dataset.column_names))
+
+
+def _array_or_infer(pa, values, name, field):
+    """
+    A pyarrow array for `values` as the declared `field`, or, when the values do not
+    fit it (a dict or list in a JSONB/VARCHAR/ARRAY<string> column, say), inferred from
+    the values, as orso 0.0.x always did (it never imposed the schema on export).
+    Only containers (dict, list, tuple, set) trigger the fallback; a bad scalar (NaN
+    into an integer column, a lossy decimal) still raises what pyarrow raises.
+    Returns (array, field), where field is None if the type was inferred.
+    """
+    if field is None:
+        return pa.array(values), None
+    try:
+        return pa.array(values, type=field.type), field
+    except (pa.ArrowInvalid, pa.ArrowTypeError, pa.ArrowNotImplementedError):
+        if not any(isinstance(v, (dict, list, tuple, set)) for v in values):
+            raise
+        try:
+            array = pa.array(values)
+        except (pa.ArrowInvalid, pa.ArrowTypeError, pa.ArrowNotImplementedError):
+            # not inferable either (mixed dicts, lists and bytes): the declared error
+            pass
+        else:
+            return array, pa.field(name, array.type, nullable=field.nullable)
+        raise
 
 
 def _to_arrow_v1(dataset, limit):
@@ -291,7 +317,21 @@ def _to_arrow_v1(dataset, limit):
             arrow_schema = None
 
     if arrow_schema is not None:
-        return pa.Table.from_arrays(arrays, schema=arrow_schema)
+        try:
+            return pa.Table.from_arrays(arrays, schema=arrow_schema)
+        except (pa.ArrowInvalid, pa.ArrowTypeError, pa.ArrowNotImplementedError):
+            # a column's values do not fit its declared type: build per column,
+            # inferring the ones that do not, as 0.0.x did
+            built = [
+                _array_or_infer(pa, col, name, field)
+                for col, name, field in zip(arrays, column_names, arrow_schema)
+            ]
+            return pa.Table.from_arrays(
+                [a for a, _ in built],
+                schema=pa.schema(
+                    [f if f is not None else pa.field(n, a.type) for (a, f), n in zip(built, column_names)]
+                ),
+            )
     return pa.Table.from_arrays(arrays, column_names)
 
 

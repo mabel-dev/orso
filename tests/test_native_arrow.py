@@ -57,8 +57,21 @@ def reference_table(df, schema):
             fields.append(pa.field(name, array.type))
         else:
             field = column.arrow_field
-            array = pa.array(values, type=field.type)
-            fields.append(field)
+            try:
+                array = pa.array(values, type=field.type)
+                fields.append(field)
+            except (pa.ArrowInvalid, pa.ArrowTypeError, pa.ArrowNotImplementedError):
+                # containers that do not fit the declared type are inferred (0.0.x did);
+                # anything else, or values that cannot be inferred, raises the original
+                if not any(isinstance(v, (dict, list, tuple, set)) for v in values):
+                    raise
+                try:
+                    array = pa.array(values)
+                except (pa.ArrowInvalid, pa.ArrowTypeError, pa.ArrowNotImplementedError):
+                    array = None
+                if array is None:
+                    pa.array(values, type=field.type)  # raises the declared-type error
+                fields.append(pa.field(name, array.type, nullable=field.nullable))
         arrays.append(array)
     return pa.Table.from_arrays(arrays, schema=pa.schema(fields))
 
