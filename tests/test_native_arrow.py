@@ -22,6 +22,7 @@ pa = pytest.importorskip("pyarrow")
 import orso
 from orso import _native
 from orso import converters
+from orso._json import dumps_bytes as json_dumps_bytes
 from orso.row import _value_size
 from orso.schema import FlatColumn
 from orso.schema import RelationSchema
@@ -61,17 +62,27 @@ def reference_table(df, schema):
                 array = pa.array(values, type=field.type)
                 fields.append(field)
             except (pa.ArrowInvalid, pa.ArrowTypeError, pa.ArrowNotImplementedError):
-                # containers that do not fit the declared type are inferred (0.0.x did);
-                # anything else, or values that cannot be inferred, raises the original
+                # containers that do not fit the declared type: a binary column gets them
+                # as JSON bytes (0.0.x), any other type is inferred; scalars that do not
+                # fit, or values that fit neither, raise the declared-type error
                 if not any(isinstance(v, (dict, list, tuple, set)) for v in values):
                     raise
-                try:
-                    array = pa.array(values)
-                except (pa.ArrowInvalid, pa.ArrowTypeError, pa.ArrowNotImplementedError):
-                    array = None
-                if array is None:
-                    pa.array(values, type=field.type)  # raises the declared-type error
-                fields.append(pa.field(name, array.type, nullable=field.nullable))
+                array = None
+                if pa.types.is_binary(field.type):
+                    array = pa.array(
+                        [
+                            json_dumps_bytes(v) if isinstance(v, (dict, list, tuple, set)) else v
+                            for v in values
+                        ],
+                        type=field.type,
+                    )
+                    fields.append(field)
+                else:
+                    try:
+                        array = pa.array(values)
+                    except (pa.ArrowInvalid, pa.ArrowTypeError, pa.ArrowNotImplementedError):
+                        pa.array(values, type=field.type)  # raises the declared-type error
+                    fields.append(pa.field(name, array.type, nullable=field.nullable))
         arrays.append(array)
     return pa.Table.from_arrays(arrays, schema=pa.schema(fields))
 

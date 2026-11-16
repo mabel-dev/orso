@@ -149,9 +149,37 @@ if __name__ == "__main__":  # prgama: nocover
     run_tests()
 
 
-def test_arrow_infers_when_values_do_not_fit_declared_type():
-    """0.0.x never imposed the schema on export: dicts/lists in JSONB, VARCHAR or ARRAY
-    columns were inferred (struct/list), not rejected with 'Expected bytes, got dict'."""
+def test_arrow_jsonb_dicts_are_written_as_json_bytes():
+    """0.0.x wrote dict/list/tuple/set values in a JSONB column as JSON bytes (on append),
+    so the column stayed binary; a dict handed to a binary column must not raise
+    'Expected bytes, got a dict'."""
+    import pytest
+
+    pa = pytest.importorskip("pyarrow")
+    from orso import DataFrame
+    from orso.schema import FlatColumn, RelationSchema
+    from orso.types import OrsoTypes
+
+    for orso_type in (OrsoTypes.JSONB, OrsoTypes.BLOB):
+        schema = RelationSchema(
+            name="t",
+            columns=[FlatColumn(name="a", type=OrsoTypes.INTEGER), FlatColumn(name="b", type=orso_type)],
+        )
+        rows = [(1, {"x": 1}), (2, [1, {"y": 2}]), (3, (1, 2)), (4, None), (5, b"raw")]
+        df = DataFrame(rows=rows, schema=schema)
+        table = df.arrow()
+        assert table.schema.field("b").type == pa.binary()
+        assert table.column("b").to_pylist() == [
+            b'{"x":1}',
+            b'[1,{"y":2}]',
+            b"[1,2]",
+            None,
+            b"raw",
+        ]
+        assert df.arrow(size=1).column("b").to_pylist() == [b'{"x":1}']
+
+
+def test_arrow_infers_when_non_binary_column_holds_containers():
     import pytest
 
     pytest.importorskip("pyarrow")
@@ -159,18 +187,16 @@ def test_arrow_infers_when_values_do_not_fit_declared_type():
     from orso.schema import FlatColumn, RelationSchema
     from orso.types import OrsoTypes
 
-    for orso_type in (OrsoTypes.JSONB, OrsoTypes.VARCHAR, OrsoTypes.ARRAY, OrsoTypes.STRUCT):
+    for orso_type in (OrsoTypes.VARCHAR, OrsoTypes.ARRAY, OrsoTypes.STRUCT):
         schema = RelationSchema(
             name="t",
             columns=[FlatColumn(name="a", type=OrsoTypes.INTEGER), FlatColumn(name="b", type=orso_type)],
         )
         df = DataFrame(rows=[(1, {"x": 1}), (2, {"x": 2})], schema=schema)
-        table = df.arrow()
-        assert table.column("b").to_pylist() == [{"x": 1}, {"x": 2}]
-        assert df.arrow(size=1).num_rows == 1
+        assert df.arrow().column("b").to_pylist() == [{"x": 1}, {"x": 2}]
 
 
-def test_arrow_v1_path_infers_when_values_do_not_fit_declared_type():
+def test_arrow_v1_path_writes_jsonb_dicts_as_json_bytes():
     import pytest
 
     pa = pytest.importorskip("pyarrow")
@@ -186,5 +212,6 @@ def test_arrow_v1_path_infers_when_values_do_not_fit_declared_type():
     df = DataFrame(rows=[(1, {"x": 1}), (2, {"x": 2})], schema=schema)
     df.materialize()
     table = converters._to_arrow_v1(df, len(df))
-    assert table.column("b").to_pylist() == [{"x": 1}, {"x": 2}]
+    assert table.column("b").to_pylist() == [b'{"x":1}', b'{"x":2}']
+    assert table.column("b").type == pa.binary()
     assert table.column("a").type == pa.int64()

@@ -29,6 +29,7 @@
 import itertools
 import typing
 
+from orso._json import dumps_bytes as json_dumps_bytes
 from orso._native import Frame
 from orso._native import Plan
 from orso._native import extract_columns as extract_columns_to_lists
@@ -265,11 +266,15 @@ def to_arrow(dataset, size=None):
 
 def _array_or_infer(pa, values, name, field):
     """
-    A pyarrow array for `values` as the declared `field`, or, when the values do not
-    fit it (a dict or list in a JSONB/VARCHAR/ARRAY<string> column, say), inferred from
-    the values, as orso 0.0.x always did (it never imposed the schema on export).
-    Only containers (dict, list, tuple, set) trigger the fallback; a bad scalar (NaN
-    into an integer column, a lossy decimal) still raises what pyarrow raises.
+    A pyarrow array for `values` as the declared `field`, falling back when the values
+    are containers (dict, list, tuple, set) that do not fit it. A bad scalar (NaN into an
+    integer column, a lossy decimal) still raises what pyarrow raises.
+
+    - A binary column (JSONB, BLOB): the containers are written as JSON bytes, which is
+      what orso 0.0.x stored when a dict was appended to a JSONB column, so the column
+      stays binary.
+    - Any other declared type: the type is inferred from the values.
+
     Returns (array, field), where field is None if the type was inferred.
     """
     if field is None:
@@ -279,6 +284,15 @@ def _array_or_infer(pa, values, name, field):
     except (pa.ArrowInvalid, pa.ArrowTypeError, pa.ArrowNotImplementedError):
         if not any(isinstance(v, (dict, list, tuple, set)) for v in values):
             raise
+        if pa.types.is_binary(field.type):
+            try:
+                encoded = [
+                    json_dumps_bytes(v) if isinstance(v, (dict, list, tuple, set)) else v
+                    for v in values
+                ]
+                return pa.array(encoded, type=field.type), field
+            except (TypeError, ValueError, pa.ArrowInvalid, pa.ArrowTypeError):
+                pass  # not JSON-serialisable (a datetime in the dict, say): try inferring
         try:
             array = pa.array(values)
         except (pa.ArrowInvalid, pa.ArrowTypeError, pa.ArrowNotImplementedError):
