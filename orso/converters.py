@@ -27,9 +27,9 @@
 # ---------------------------------------------------------------------------------
 
 import itertools
+import json
 import typing
 
-from orso._json import dumps_bytes as json_dumps_bytes
 from orso._native import Frame
 from orso._native import Plan
 from orso._native import extract_columns as extract_columns_to_lists
@@ -272,7 +272,9 @@ def _array_or_infer(pa, values, name, field):
 
     - A binary column (JSONB, BLOB): the containers are written as JSON bytes, which is
       what orso 0.0.x stored when a dict was appended to a JSONB column, so the column
-      stays binary.
+      stays binary - also when they hold datetimes, decimals or bytes.
+    - A string column: the type is inferred from the values, as 0.0.x did; if it cannot
+      be (JSON strings with a dict among them), the containers are written as JSON text.
     - Any other declared type: the type is inferred from the values.
 
     Returns (array, field), where field is None if the type was inferred.
@@ -284,23 +286,49 @@ def _array_or_infer(pa, values, name, field):
     except (pa.ArrowInvalid, pa.ArrowTypeError, pa.ArrowNotImplementedError):
         if not any(isinstance(v, (dict, list, tuple, set)) for v in values):
             raise
-        if pa.types.is_binary(field.type):
-            try:
-                encoded = [
-                    json_dumps_bytes(v) if isinstance(v, (dict, list, tuple, set)) else v
-                    for v in values
-                ]
-                return pa.array(encoded, type=field.type), field
-            except (TypeError, ValueError, pa.ArrowInvalid, pa.ArrowTypeError):
-                pass  # not JSON-serialisable (a datetime in the dict, say): try inferring
+        binary = pa.types.is_binary(field.type) or pa.types.is_large_binary(field.type)
+        text = pa.types.is_string(field.type) or pa.types.is_large_string(field.type)
+        if binary:
+            # JSONB/BLOB: always JSON bytes, never an inferred struct
+            return _containers_as_json(pa, values, field, as_text=False), field
         try:
             array = pa.array(values)
         except (pa.ArrowInvalid, pa.ArrowTypeError, pa.ArrowNotImplementedError):
-            # not inferable either (mixed dicts, lists and bytes): the declared error
-            pass
-        else:
-            return array, pa.field(name, array.type, nullable=field.nullable)
-        raise
+            if text:
+                # mixed containers and strings (JSON strings with the odd dict among
+                # them): the containers become JSON text, the column stays a string
+                return _containers_as_json(pa, values, field, as_text=True), field
+            raise
+        return array, pa.field(name, array.type, nullable=field.nullable)
+
+
+def _json_default(value):
+    """JSON for what the stdlib encoder refuses: datetimes, decimals, bytes, sets."""
+    if isinstance(value, (set, frozenset)):
+        return list(value)
+    if isinstance(value, (bytes, bytearray, memoryview)):
+        return bytes(value).decode("utf-8", errors="replace")
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    return str(value)  # Decimal, UUID, numpy scalars, ...
+
+
+_lenient_json = json.JSONEncoder(separators=(",", ":"), default=_json_default)
+
+
+def _containers_as_json(pa, values, field, as_text):
+    """`values` with each dict/list/tuple/set as compact JSON (bytes, or str if
+    `as_text`), so they fit the declared binary or string `field`."""
+    encoded = []
+    for v in values:
+        if isinstance(v, (set, frozenset)):
+            v = list(v)
+        if isinstance(v, (dict, list, tuple)):
+            v = _lenient_json.encode(v)
+            if not as_text:
+                v = v.encode("utf-8")
+        encoded.append(v)
+    return pa.array(encoded, type=field.type)
 
 
 def _to_arrow_v1(dataset, limit):

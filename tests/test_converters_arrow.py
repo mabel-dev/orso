@@ -215,3 +215,59 @@ def test_arrow_v1_path_writes_jsonb_dicts_as_json_bytes():
     assert table.column("b").to_pylist() == [b'{"x":1}', b'{"x":2}']
     assert table.column("b").type == pa.binary()
     assert table.column("a").type == pa.int64()
+
+
+def test_arrow_string_column_of_json_strings_with_a_dict_among_them():
+    """0.1.7 raised 'Expected bytes, got a dict' at `pa.array(values, type=field.type)`:
+    a VARCHAR column of JSON strings with a dict among them cannot be inferred either,
+    so the error was re-raised. The dict must become JSON text and the column stay a string."""
+    import datetime
+    import decimal
+
+    import pytest
+
+    pa = pytest.importorskip("pyarrow")
+    from orso import DataFrame
+    from orso import converters
+    from orso.schema import FlatColumn, RelationSchema
+    from orso.types import OrsoTypes
+
+    schema = RelationSchema(
+        name="t",
+        columns=[FlatColumn(name="a", type=OrsoTypes.INTEGER), FlatColumn(name="b", type=OrsoTypes.VARCHAR)],
+    )
+    rows = [
+        (1, '{"x":1}'),
+        (2, {"x": 2}),
+        (3, None),
+        (4, [1, {"at": datetime.datetime(2026, 1, 1)}, decimal.Decimal("1.5")]),
+    ]
+    expected = ['{"x":1}', '{"x":2}', None, '[1,{"at":"2026-01-01T00:00:00"},"1.5"]']
+
+    df = DataFrame(rows=rows, schema=schema)
+    table = df.arrow()
+    assert table.schema.field("b").type == pa.string()
+    assert table.column("b").to_pylist() == expected
+
+    df.materialize()
+    table = converters._to_arrow_v1(df, len(df))
+    assert table.schema.field("b").type == pa.string()
+    assert table.column("b").to_pylist() == expected
+
+
+def test_arrow_jsonb_dicts_holding_datetimes_stay_binary():
+    """0.1.7 fell back to inferring a struct when a JSONB dict held a datetime."""
+    import datetime
+
+    import pytest
+
+    pa = pytest.importorskip("pyarrow")
+    from orso import DataFrame
+    from orso.schema import FlatColumn, RelationSchema
+    from orso.types import OrsoTypes
+
+    schema = RelationSchema(name="t", columns=[FlatColumn(name="b", type=OrsoTypes.JSONB)])
+    df = DataFrame(rows=[({"at": datetime.date(2026, 1, 1)},), ({1, 2},), (b"raw",)], schema=schema)
+    table = df.arrow()
+    assert table.schema.field("b").type == pa.binary()
+    assert table.column("b").to_pylist() == [b'{"at":"2026-01-01"}', b"[1,2]", b"raw"]
