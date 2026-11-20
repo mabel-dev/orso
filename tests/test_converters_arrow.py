@@ -163,7 +163,10 @@ def test_arrow_jsonb_dicts_are_written_as_json_bytes():
     for orso_type in (OrsoTypes.JSONB, OrsoTypes.BLOB):
         schema = RelationSchema(
             name="t",
-            columns=[FlatColumn(name="a", type=OrsoTypes.INTEGER), FlatColumn(name="b", type=orso_type)],
+            columns=[
+                FlatColumn(name="a", type=OrsoTypes.INTEGER),
+                FlatColumn(name="b", type=orso_type),
+            ],
         )
         rows = [(1, {"x": 1}), (2, [1, {"y": 2}]), (3, (1, 2)), (4, None), (5, b"raw")]
         df = DataFrame(rows=rows, schema=schema)
@@ -190,7 +193,10 @@ def test_arrow_infers_when_non_binary_column_holds_containers():
     for orso_type in (OrsoTypes.VARCHAR, OrsoTypes.ARRAY, OrsoTypes.STRUCT):
         schema = RelationSchema(
             name="t",
-            columns=[FlatColumn(name="a", type=OrsoTypes.INTEGER), FlatColumn(name="b", type=orso_type)],
+            columns=[
+                FlatColumn(name="a", type=OrsoTypes.INTEGER),
+                FlatColumn(name="b", type=orso_type),
+            ],
         )
         df = DataFrame(rows=[(1, {"x": 1}), (2, {"x": 2})], schema=schema)
         assert df.arrow().column("b").to_pylist() == [{"x": 1}, {"x": 2}]
@@ -207,7 +213,10 @@ def test_arrow_v1_path_writes_jsonb_dicts_as_json_bytes():
 
     schema = RelationSchema(
         name="t",
-        columns=[FlatColumn(name="a", type=OrsoTypes.INTEGER), FlatColumn(name="b", type=OrsoTypes.JSONB)],
+        columns=[
+            FlatColumn(name="a", type=OrsoTypes.INTEGER),
+            FlatColumn(name="b", type=OrsoTypes.JSONB),
+        ],
     )
     df = DataFrame(rows=[(1, {"x": 1}), (2, {"x": 2})], schema=schema)
     df.materialize()
@@ -234,7 +243,10 @@ def test_arrow_string_column_of_json_strings_with_a_dict_among_them():
 
     schema = RelationSchema(
         name="t",
-        columns=[FlatColumn(name="a", type=OrsoTypes.INTEGER), FlatColumn(name="b", type=OrsoTypes.VARCHAR)],
+        columns=[
+            FlatColumn(name="a", type=OrsoTypes.INTEGER),
+            FlatColumn(name="b", type=OrsoTypes.VARCHAR),
+        ],
     )
     rows = [
         (1, '{"x":1}'),

@@ -371,7 +371,10 @@ def _to_arrow_v1(dataset, limit):
             return pa.Table.from_arrays(
                 [a for a, _ in built],
                 schema=pa.schema(
-                    [f if f is not None else pa.field(n, a.type) for (a, f), n in zip(built, column_names)]
+                    [
+                        f if f is not None else pa.field(n, a.type)
+                        for (a, f), n in zip(built, column_names)
+                    ]
                 ),
             )
     return pa.Table.from_arrays(arrays, column_names)
